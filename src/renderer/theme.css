@@ -1,121 +1,106 @@
 /* ClearDay theme — every colour in the app lives here, as a CSS variable.
-   Status and priority colours are placeholders until final hex values are
-   chosen; change them here and nothing else needs touching.
 
-   Radii, font and text shadows are taken from the token usage widget
-   (Claude Usage Limits Bar) so both apps read as one family. The window's
-   background is --bg-rgb at the opacity set in Preferences, over the
-   system's blur of the desktop. */
+   The look follows the references in Design references/: flat surfaces, soft
+   pills, a monochrome UI where colour comes only from statuses and
+   priorities, and Poppins. Dark mode carries pastel statuses with dark text;
+   Light mode carries earthy statuses with white text. Status and priority
+   colours are still placeholders; change them here and nothing else needs
+   touching. */
+
+@font-face { font-family: 'Poppins'; font-weight: 400; src: url('fonts/Poppins-Regular.ttf') format('truetype'); }
+@font-face { font-family: 'Poppins'; font-weight: 500; src: url('fonts/Poppins-Medium.ttf') format('truetype'); }
+@font-face { font-family: 'Poppins'; font-weight: 600; src: url('fonts/Poppins-SemiBold.ttf') format('truetype'); }
+@font-face { font-family: 'Poppins'; font-weight: 700; src: url('fonts/Poppins-Bold.ttf') format('truetype'); }
 
 :root {
-  /* ── Status fills: the whole row takes this colour, text turns white ── */
-  --status-todo: #7C8591;          /* gray */
-  --status-in-progress: #C27C0E;   /* yellow — deep amber so white text reads */
-  --status-awaiting: #3D9BE0;      /* light blue */
-  --status-on-hold: #8A5A3B;       /* brown */
-  --status-done: #2E9E5B;          /* green */
-
-  /* ── Priority rings ── */
-  --priority-high: #FF453A;        /* red */
-  --priority-medium: #FF9F0A;      /* orange */
-
-  /* The Ongoing list's tab in the compact layout */
-  --list-ongoing: #5B6B8C;         /* slate */
-
-  /* Text on a status fill, in both modes */
-  --on-fill: #FFFFFF;
-  --on-fill-dim: rgba(255, 255, 255, 0.78);
-  --on-fill-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
-  /* Thin dark keyline that keeps a ring visible on any fill */
-  --ring-keyline: rgba(0, 0, 0, 0.42);
-
-  /* ── Shape and type (from the widget) ── */
-  --font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
-  --ui-scale: 1;                   /* Preferences → Text size */
-  --radius-window: 10px;           /* macOS's own window corner, so the blur and the board's edge meet */
-  --radius-row: 12px;
-  --radius-popover: 14px;
-  --radius-control: 7px;
+  /* ── Shape, type, motion (both modes) ── */
+  --font: 'Poppins', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --radius-row: 20px;              /* soft pills */
+  --radius-card: 16px;             /* side panel, notes, popovers, sheet */
+  --radius-control: 999px;         /* icon buttons, inputs, segmented pills */
   --row-height: 40px;
 
-  /* ── Motion ── */
-  --ease-out: cubic-bezier(0.32, 0.72, 0, 1);   /* the widget's morph curve */
+  --ease-out: cubic-bezier(0.32, 0.72, 0, 1);
   --dur-fast: 150ms;
   --dur-move: 320ms;
 
-  /* ── Accent (focus rings, selection, the add button) ── */
-  --accent: #3B82F6;
-  --danger: #FF453A;
+  --danger: #D9483B;
 }
 
-/* ── Dark: white text — the widget's own look ──────────────────────────── */
+/* ── Dark: the reference's charcoal, pastel statuses, dark text on them ──── */
 :root {
   color-scheme: dark;
-  --text: rgba(255, 255, 255, 0.95);
-  --text-dim: rgba(255, 255, 255, 0.70);
-  --text-faint: rgba(255, 255, 255, 0.45);
-  /* The widget's label shadow: the dark half carries legibility over a light
-     backdrop, the white glow lifts it off a dark one. */
-  --text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  --bg: #272727;
+  --surface: #333333;              /* inputs, tracks, the side card, notes */
+  --surface-hover: #3D3D3D;
+  --hairline: #363636;
+  --text: #F2F2F2;
+  --text-dim: #9A9A9A;
+  --text-faint: #585858;
+  --selection: rgba(206, 206, 206, 0.28);
 
-  --surface: rgba(255, 255, 255, 0.12);          /* inputs, empty states */
-  --surface-hover: rgba(255, 255, 255, 0.22);    /* the widget's menu-button hover */
-  --hairline: rgba(255, 255, 255, 0.18);
-  --selection: rgba(59, 130, 246, 0.45);
+  /* The UI's one accent is its own text colour, as a pill: the active
+     segment, the + button, switches, focus. */
+  --accent: #CECECE;
+  --accent-text: #1E1E1E;
 
-  /* Window edge: the widget's inset hairline and its top-lit gradient rim */
-  --window-hairline: rgba(255, 255, 255, 0.45);
-  --rim-top: rgba(255, 255, 255, 0.85);
-  --rim-mid: rgba(255, 255, 255, 0.35);
-  --rim-bottom: rgba(255, 255, 255, 0.55);
+  /* ── Status fills: the whole row takes this colour ── */
+  --status-todo: #8E8E8E;
+  --status-in-progress: #ECD98B;   /* yellow */
+  --status-awaiting: #97D4F3;      /* light blue */
+  --status-on-hold: #F2B48A;       /* brown, as a pastel tan */
+  --status-done: #AFEF99;          /* green */
+  --on-fill: #1E1E1E;              /* text and icons on a status fill */
+  --on-fill-dim: rgba(30, 30, 30, 0.62);
+  --on-fill-hover: rgba(0, 0, 0, 0.10);
 
-  /* Popovers and the compact To Do drawer: CSS backdrop blur over the board */
-  --popover-bg: rgba(40, 40, 46, 0.72);
-  --popover-border: rgba(255, 255, 255, 0.22);
-  --popover-shadow: 0 2px 4px rgba(0, 0, 0, 0.14), 0 10px 30px rgba(0, 0, 0, 0.30);
-  --popover-blur: blur(24px) saturate(160%);
-  /* Preferences sheet: nearly opaque, so the board doesn't read through */
-  --sheet-bg: rgba(34, 34, 40, 0.94);
+  /* ── Priority rings ── */
+  --priority-high: #CE3436;
+  --priority-medium: #F28A2E;
+  --ring-keyline: rgba(0, 0, 0, 0.35);
 
-  /* The notes panel under a row, and the To Do panel's own backing */
-  --notes-bg: rgba(16, 16, 22, 0.42);
-  --panel-bg: rgba(255, 255, 255, 0.06);
+  /* The Ongoing list's colour (its dot and compact edge tab) */
+  --list-ongoing: #6C77D3;
 
-  /* Window background: this colour at the Preferences opacity (set on
-     :root by app.js as --bg-opacity-dark / --bg-opacity-light). */
-  --bg-rgb: 28 28 32;
-  --bg-opacity: var(--bg-opacity-dark, 0.75);
+  /* Floating things: popovers, toasts, the compact drawer, Preferences */
+  --popover-bg: #303030;
+  --popover-border: #3D3D3D;
+  --popover-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
 }
 
-/* ── Light: dark text ──────────────────────────────────────────────────── */
+/* ── Light: white, earthy statuses, white text on them ──────────────────── */
 @media (prefers-color-scheme: light) {
   :root {
     color-scheme: light;
-    /* Plain black on light: no highlight under the text */
+    --bg: #FFFFFF;
+    --surface: #F2F2F3;
+    --surface-hover: #E6E6E8;
+    --hairline: #E6E6E8;
     --text: #111113;
-    --text-dim: rgba(0, 0, 0, 0.58);
-    --text-faint: rgba(0, 0, 0, 0.38);
-    --text-shadow: none;
+    --text-dim: #6D6E69;
+    --text-faint: #A3A3A6;
+    --selection: rgba(17, 17, 19, 0.14);
 
-    --surface: rgba(255, 255, 255, 0.45);
-    --surface-hover: rgba(255, 255, 255, 0.70);
-    --hairline: rgba(0, 0, 0, 0.10);
-    --selection: rgba(59, 130, 246, 0.30);
+    --accent: #111113;
+    --accent-text: #FFFFFF;
 
-    --window-hairline: rgba(255, 255, 255, 0.65);
-    --rim-top: rgba(255, 255, 255, 0.95);
-    --rim-mid: rgba(255, 255, 255, 0.50);
-    --rim-bottom: rgba(255, 255, 255, 0.70);
+    --status-todo: #8C8C91;
+    --status-in-progress: #C9A23F;
+    --status-awaiting: #6C9FB2;
+    --status-on-hold: #A2826B;
+    --status-done: #1F8466;
+    --on-fill: #FFFFFF;
+    --on-fill-dim: rgba(255, 255, 255, 0.72);
+    --on-fill-hover: rgba(255, 255, 255, 0.18);
 
-    --popover-bg: rgba(250, 250, 252, 0.78);
-    --popover-border: rgba(255, 255, 255, 0.85);
-    --popover-shadow: 0 2px 4px rgba(0, 0, 0, 0.08), 0 10px 30px rgba(0, 0, 0, 0.16);
-    --sheet-bg: rgba(248, 248, 250, 0.95);
+    --priority-high: #C85E44;
+    --priority-medium: #E29B3C;
+    --ring-keyline: rgba(0, 0, 0, 0.30);
 
-    --notes-bg: rgba(255, 255, 255, 0.62);
-    --panel-bg: rgba(255, 255, 255, 0.28);
+    --list-ongoing: #39406A;
 
-    --bg-rgb: 246 246 248;
-    --bg-opacity: var(--bg-opacity-light, 0.70);
+    --popover-bg: #FFFFFF;
+    --popover-border: #E6E6E8;
+    --popover-shadow: 0 8px 28px rgba(0, 0, 0, 0.12);
   }
 }

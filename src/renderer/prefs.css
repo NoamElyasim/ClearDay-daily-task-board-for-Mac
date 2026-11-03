@@ -13,9 +13,8 @@
 .prefs-sheet {
   position: absolute; inset: 8px;
   display: flex; flex-direction: column;
-  border-radius: 8px;
-  background: var(--sheet-bg);
-  -webkit-backdrop-filter: var(--popover-blur); backdrop-filter: var(--popover-blur);
+  border-radius: var(--radius-card);
+  background: var(--popover-bg);
   box-shadow: var(--popover-shadow), inset 0 0 0 1px var(--popover-border);
   color: var(--text);
   opacity: 0; transform: translateY(14px) scale(0.985);
@@ -36,13 +35,13 @@
 }
 /* The window stays movable with the sheet open. */
 #prefs.open .prefs-head { -webkit-app-region: drag; }
-.prefs-head h2 { font-size: 15px; font-weight: 700; }
+.prefs-head h2 { font-size: 15px; font-weight: 600; }
 .prefs-done {
   -webkit-app-region: no-drag;
-  height: 28px; padding: 0 14px; border-radius: 8px;
-  background: var(--accent); color: #fff; font-weight: 600; font-size: 12.5px;
+  height: 30px; padding: 0 16px; border-radius: var(--radius-control);
+  background: var(--accent); color: var(--accent-text); font-weight: 500; font-size: 12.5px;
 }
-.prefs-done:hover { filter: brightness(1.08); }
+.prefs-done:hover { opacity: 0.88; }
 
 .prefs-body {
   flex: 1; min-height: 0;
@@ -53,7 +52,7 @@
 .prefs-body section { padding: 12px 0 6px; }
 .prefs-body section + section { border-top: 1px solid var(--hairline); }
 .prefs-body h3 {
-  font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
   color: var(--text-dim); margin-bottom: 6px;
 }
 .pref-row {
@@ -61,56 +60,53 @@
   min-height: 36px;
   flex-wrap: wrap;
 }
-.pref-label { font-size: 13px; display: flex; flex-direction: column; }
+.pref-label { font-size: 12.5px; display: flex; flex-direction: column; }
 .pref-hint { font-size: 11px; color: var(--text-dim); }
 
 /* Segmented control */
+/* Segmented control: a pill track with the active segment as a pill */
 .seg {
-  display: inline-flex; padding: 2px; gap: 2px; border-radius: 8px;
-  background: var(--surface); box-shadow: inset 0 0 0 1px var(--hairline);
+  display: inline-flex; padding: 3px; gap: 2px; border-radius: var(--radius-control);
+  background: var(--surface);
 }
 .seg-btn {
-  height: 24px; padding: 0 10px; border-radius: 6px;
+  height: 26px; padding: 0 12px; border-radius: var(--radius-control);
   font-size: 12px; color: var(--text-dim);
   transition: background-color var(--dur-fast) ease, color var(--dur-fast) ease;
 }
 .seg-btn:hover { color: var(--text); }
-.seg-btn.active { background: var(--accent); color: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2); }
+.seg-btn.active { background: var(--accent); color: var(--accent-text); }
 
 /* Switch */
 .switch {
   position: relative; width: 36px; height: 22px; border-radius: 11px; flex: none;
-  background: var(--surface-hover); box-shadow: inset 0 0 0 1px var(--hairline);
+  background: var(--surface-hover);
   transition: background-color var(--dur-fast) ease;
 }
 .switch .knob {
   position: absolute; top: 2px; left: 2px;
   width: 18px; height: 18px; border-radius: 50%;
-  background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-  transition: transform var(--dur-move) var(--ease-out);
+  background: var(--text-dim);
+  transition: transform var(--dur-move) var(--ease-out), background-color var(--dur-fast) ease;
 }
 .switch.on { background: var(--accent); }
+.switch.on .knob { background: var(--accent-text); }
 .switch.on .knob { transform: translateX(14px); }
 
-/* Slider */
-.slider-wrap { display: flex; align-items: center; gap: 10px; }
-.slider { width: 150px; accent-color: var(--accent); }
-.slider-value { width: 38px; text-align: right; font-size: 12px; font-variant-numeric: tabular-nums; color: var(--text-dim); }
-
 .pref-select {
-  height: 26px; padding: 0 8px; border-radius: 7px;
-  border: 1px solid var(--hairline); background: var(--surface); color: var(--text);
+  height: 30px; padding: 0 12px; border-radius: var(--radius-control);
+  border: 0; background: var(--surface); color: var(--text);
   font: inherit; font-size: 12px;
 }
 
 .pref-actions { display: flex; flex-wrap: wrap; gap: 8px; padding: 4px 0; }
 .pref-action {
-  height: 28px; padding: 0 12px; border-radius: 8px;
-  background: var(--surface); box-shadow: inset 0 0 0 1px var(--hairline);
-  font-size: 12.5px;
+  height: 30px; padding: 0 14px; border-radius: var(--radius-control);
+  background: transparent; box-shadow: inset 0 0 0 1px var(--text-faint);
+  font-size: 12px;
   transition: background-color var(--dur-fast) ease;
 }
-.pref-action:hover { background: var(--surface-hover); }
+.pref-action:hover { background: var(--surface); }
 .pref-action.danger { color: var(--danger); }
 .export-note { display: block; min-height: 16px; padding-top: 2px; }
 
@@ -120,8 +116,8 @@
 }
 .shortcuts dd { color: var(--text-dim); }
 kbd {
-  display: inline-block; min-width: 22px; padding: 1px 6px; border-radius: 5px;
-  font: 600 11px var(--font); text-align: center;
-  background: var(--surface); box-shadow: inset 0 0 0 1px var(--hairline), 0 1px 0 var(--hairline);
+  display: inline-block; min-width: 24px; padding: 1px 8px; border-radius: var(--radius-control);
+  font: 500 11px var(--font); text-align: center;
+  background: var(--surface);
 }
 .about p { font-size: 12.5px; color: var(--text-dim); margin-bottom: 10px; }
