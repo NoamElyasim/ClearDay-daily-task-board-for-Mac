@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.5.0 — 2026-11-03
+
+- **New app icon:** a clear sky with a sun whose centre is a checkmark. The
+  icon is now an SVG source (`build/icon.svg`), rendered by `npm run make-icon`.
+- **A short film** at the top of the README shows ClearDay at work: add a
+  task, start it, prioritize it, fold a section, switch to Light.
+- Downloads for both Apple Silicon and Intel Macs.
+
 ## v0.4.1 — 2026-11-03
 
 - Done tasks show no priority bookmark.

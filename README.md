@@ -5,6 +5,10 @@ One window, one day: set what's in progress, what's waiting for approval,
 what's on hold and what's done, with the to-do list and your long-term
 projects beside it.
 
+[![ClearDay in 20 seconds: add a task, start it, prioritize it, fold a section, switch to light](docs/film.gif)](https://github.com/NoamElyasim/ClearDay-daily-task-board-for-Mac/releases/download/v0.5.0/ClearDay-film.mp4)
+
+<sub>Click the animation to watch the film with sound.</sub>
+
 ![ClearDay, dark](docs/expanded-dark.png)
 
 | Light | Compact |
@@ -154,3 +158,10 @@ Window size, theme and the other settings live in a separate
 ## License
 
 [MIT](LICENSE)
+
+## Film credits
+
+- Desk photo: "Apple-desk-laptop-macbook" on Wikimedia Commons, public domain (CC0).
+- "Suspense Whoosh/Transition" by tyops on Freesound, CC BY 4.0
+  (https://freesound.org/people/tyops/sounds/275143).
+- Music from the HeyGen music library.
