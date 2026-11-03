@@ -75,6 +75,9 @@ async function run() {
     await wc.insertText(text);
     await sleep(150);
   }
+  // A theme variable resolved to the rgb() string getComputedStyle reports.
+  const cssColor = (name) => js(`(() => { const p = document.createElement('div'); p.style.color = 'var(${name})';
+    document.body.append(p); const c = getComputedStyle(p).color; p.remove(); return c; })()`);
   const task = (id) => store.list().find((t) => t.id === id);
   const byText = (text) => store.list().find((t) => t.text === text);
   const taskSel = (id) => `.task[data-id="${id}"]`;
@@ -140,8 +143,8 @@ async function run() {
     task(id).status === 'in_progress' &&
     await js(`!!document.querySelector('.section[data-status="in_progress"] ${taskSel(id)}')`) &&
     await js(`getComputedStyle(document.querySelector('${taskSel(id)} .row')).backgroundColor`) !== 'rgba(0, 0, 0, 0)');
-  check('row text is white on the fill',
-    await js(`getComputedStyle(document.querySelector('${taskSel(id)} .text')).color`) === 'rgb(255, 255, 255)');
+  check('row text takes the theme\'s on-fill colour',
+    await js(`getComputedStyle(document.querySelector('${taskSel(id)} .text')).color`) === await cssColor('--on-fill'));
 
   // ── Partial bold ──
   await js(`(() => {

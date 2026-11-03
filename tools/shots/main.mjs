@@ -3,8 +3,8 @@
 //
 // Loads the real renderer and preload with the demo board (seed.mjs), in a
 // hidden window. The page gets a still backdrop as its background and the
-// pane is inset with a CSS blur standing in for the system's vibrancy, so
-// each shot looks like the window sitting on a desktop.
+// pane is inset with the rounded corners and shadow macOS gives the real
+// window, so each shot looks like the window sitting on a desktop.
 //
 //   npm run shots           → tools/shots/out/*.png, plus a midnight check
 //   npm run shots -- --docs → also copies the README images into docs/
@@ -72,10 +72,9 @@ async function shot(name, { theme, width, height, setup, prefs = {} }) {
   await win.loadFile(path.join(REPO, 'src', 'renderer', 'index.html'));
   const bg = backdrop(page.width, page.height);
   await win.webContents.insertCSS(`
-    html { background: url("${bg.dataUrl}") 0 0 / 100% 100% no-repeat !important; }
-    #pane { inset: ${INSET}px !important; overflow: hidden;
-      -webkit-backdrop-filter: blur(30px) saturate(170%); backdrop-filter: blur(30px) saturate(170%);
-      box-shadow: inset 0 0 0 1px var(--window-hairline), 0 2px 6px rgba(0,0,0,.18), 0 18px 40px rgba(0,0,0,.30) !important; }
+    html, body { background: url("${bg.dataUrl}") 0 0 / 100% 100% no-repeat !important; }
+    #pane { inset: ${INSET}px !important; overflow: hidden; border-radius: 10px;
+      box-shadow: 0 0 0 0.5px rgba(0,0,0,.35), 0 2px 6px rgba(0,0,0,.18), 0 18px 40px rgba(0,0,0,.30) !important; }
   `);
   const js = (code) => win.webContents.executeJavaScript(code);
   await sleep(600);
@@ -121,9 +120,8 @@ const SHOTS = {
     setup: (js) => js('cleardayDebug.setDrawer(true); 1') },
   'prefs-dark': { theme: 'dark', width: 780, height: 560, setup: (js) => js('cleardayDebug.openPrefs(); 1') },
   'prefs-light-narrow': { theme: 'light', width: 340, height: 600, setup: (js) => js('cleardayDebug.openPrefs(); 1') },
-  'opacity-30-dark': { theme: 'dark', width: 780, height: 560, prefs: { bgOpacityDark: 0.3 } },
-  'opacity-100-light': { theme: 'light', width: 780, height: 560, prefs: { bgOpacityLight: 1 } },
-  'opacity-0-light': { theme: 'light', width: 780, height: 560, prefs: { bgOpacityLight: 0 } },
+  'hover-row-light': { theme: 'light', width: 780, height: 560, setup: (js) => js(`cleardayDebug.state.selectedId = ${firstId}; cleardayDebug.render(); 1`) },
+  'notes-light': { theme: 'light', width: 780, height: 560, setup: openNotes },
   'notes-rtl-dark': { theme: 'dark', width: 780, height: 560, setup: async (js) => {
     await js(`cleardayDebug.toggleNotes(${firstId}); 1`);
     await js(`(async () => { const id = ${firstId}; await window.clearday.tasks.update(id, { notesDir: 'rtl', notes: ${JSON.stringify(RTL_NOTE)} });
