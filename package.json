@@ -35,12 +35,16 @@
         {
           "target": "dmg",
           "arch": [
-            "arm64"
+            "arm64",
+            "x64"
           ]
         }
       ],
       "category": "public.app-category.productivity",
       "identity": null
+    },
+    "dmg": {
+      "artifactName": "ClearDay-${version}-${arch}.${ext}"
     }
   },
   "allowScripts": {

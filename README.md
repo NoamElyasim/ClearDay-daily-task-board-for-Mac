@@ -87,14 +87,36 @@ projects beside it.
 
 ## Install
 
-ClearDay needs macOS 13 or later. It isn't notarized, so build it yourself:
+ClearDay needs macOS 13 or later.
+
+1. Download the latest DMG from
+   [Releases](https://github.com/NoamElyasim/ClearDay-daily-task-board-for-Mac/releases/latest):
+   `arm64` for Apple Silicon (M1 and later), `x64` for Intel Macs.
+2. Open it and drag ClearDay into Applications.
+3. Open ClearDay. ClearDay isn't notarized by Apple yet, so the first time
+   macOS says it can't verify the app:
+   - Click **Done** in that message.
+   - Open **System Settings → Privacy & Security**, scroll down, and click
+     **Open Anyway** next to the ClearDay line.
+   - Confirm with **Open Anyway** and your password.
+
+   After that it opens like any other app. If you're at home in Terminal,
+   this does the same in one line:
+
+   ```bash
+   xattr -dr com.apple.quarantine /Applications/ClearDay.app
+   ```
+
+### Build it yourself
 
 ```bash
-git clone https://github.com/NoamElyasim/clearday.git
-cd clearday
+git clone https://github.com/NoamElyasim/ClearDay-daily-task-board-for-Mac.git
+cd ClearDay-daily-task-board-for-Mac
 npm install
 npm run install:mac      # builds, signs locally, copies to /Applications, opens it
 ```
+
+`npm run dist:mac` builds both DMGs into `dist/`.
 
 ## Develop
 
