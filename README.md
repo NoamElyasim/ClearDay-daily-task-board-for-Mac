@@ -20,36 +20,45 @@ projects beside it.
 - **A flat, modern look.**
   - Soft pill rows set in Poppins, on a solid white (Light) or charcoal
     (Dark) window.
-  - In Dark mode the statuses are pastels with dark text. In Light mode they
-    are earthy tones with white text.
+  - Each status has one bright colour, the same in both modes, with dark
+    text in a deeper shade of that colour.
   - The rest of the interface stays black and white, so colour only ever
-    means a status or a priority.
-  - Light, Dark and Follow System themes.
+    means a status or a priority. Buttons invert when you point at them.
+  - A light/dark switch in the header. Follow System is in Preferences.
+- **Move the window from anywhere.** Drag any empty space: the header, the
+  gaps between rows, the space under them.
 - **Statuses fill the row.** Click the round button on a row and pick To Do,
   In Progress, Awaiting Approval, On Hold or Done. The whole row takes that
   colour. The edit tools appear when you hover over a row.
 - **To Do in its own panel.** The board lists In Progress first, then
   Awaiting Approval, then On Hold, then Done. A row moves to its new section,
   animated, when its status changes.
+- **Fold a section away.** Click the chevron (or anywhere on the heading) to
+  hide its tasks. The count stays, and the app remembers what you folded.
 - **Ongoing projects.** Long-term work lives in an Ongoing tab beside To Do.
-  - Its tasks keep their own statuses but stay off today's board.
+  - With that tab open, the board shows your ongoing projects in the same
+    status sections, and the side keeps their To Do. The To Do tab brings
+    back today's board.
   - Move a task between Today and Ongoing from the status picker, or by
     dragging it.
   - New tasks go to whichever tab is open.
-- **Priority rings.** Mark a task High (red) or Medium (orange) and a
-  glowing ring appears on its right.
+- **Priority bookmarks.** A red (High) or amber (Medium) bookmark hangs from
+  the top of the row. Click it to change the priority; on a row without one,
+  a faint bookmark appears when you point at the row.
 - **Partial bold.** Select a word and press ⌘B or the B button. With nothing
   selected, B bolds the whole row.
-- **Notes.** The ≡ button opens a notes panel attached under the task, and
-  the same button closes it.
+- **Notes.** The ≡ button opens a notes panel attached under the task. The
+  same button closes it, and so does a click anywhere else. One note is
+  open at a time.
   - It saves as you type and resizes from its bottom edge.
   - Right-click in a note for spelling suggestions, Look Up, speech, and
     writing direction: left to right or right to left, kept per note.
 - **Responsive layout.**
   - A wide window shows the board and the To Do panel side by side.
   - A narrow window shows one column, with To Do in a drawer on the right
-    edge and the row tools behind "…".
-  - In the narrow layout, To Do and Ongoing each get a tab on the right edge.
+    and the row tools behind "…".
+  - In the narrow layout, To Do and Ongoing each get a tab on the bottom
+    edge.
 - **Sorting.** Default (by status), By priority, By creation time, or Manual.
   Default and Manual let you drag rows to reorder them, and drag rows between
   To Do and the board.

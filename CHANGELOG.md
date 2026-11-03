@@ -1,5 +1,24 @@
 # Changelog
 
+## v0.4.0 — 2026-11-03
+
+- **New status colours,** the same in Light and Dark: yellow In Progress,
+  blue Awaiting Approval, orange On Hold, green Done. Each has dark text in
+  a deeper shade of its own colour.
+- **Priority bookmarks.** The ring and the flag button are gone. A red (High)
+  or amber (Medium) bookmark hangs from the top of the row; click it to
+  change the priority.
+- **Ongoing works like today.** With the Ongoing tab open, the board shows
+  your ongoing projects by status, and the side keeps their To Do.
+- **Fold sections** with the chevron on their heading. Folds are remembered.
+- **Light/dark switch** in the header.
+- **Move the window from any empty space,** not just the header.
+- **Notes:** one open at a time, and a click anywhere else closes it.
+- A solid gear icon, and buttons that invert when you point at them.
+- **Narrow layout:** the To Do and Ongoing tabs sit on the bottom edge, in the
+  same gray, clear of the rows.
+- **Fixed:** a selected row's outline was cut off at the panel's edge.
+
 ## v0.3.0 — 2026-11-03
 
 - **New look.** The design is flatter, softer and more modern:
