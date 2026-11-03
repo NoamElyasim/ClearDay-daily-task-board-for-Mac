@@ -148,14 +148,17 @@ test('Awaiting Approval sits between In Progress and On Hold', () => {
   assert.deepEqual(a.sections.filter((s) => s.tasks.length).map((s) => s.tasks[0].id), ['p', 'w', 'h']);
 });
 
-test('ongoing tasks stay off the board and To Do, ordered by status then drag order', () => {
+test('each list arranges apart: To Do on the side, the rest on the board', () => {
   const on = (id, status, order) => ({ ...mk(id, status, order), list: 'ongoing' });
-  const a = arrange([on('od', 'done', 1), on('ot', 'todo', 2), on('op2', 'in_progress', 4), on('op1', 'in_progress', 3),
-    on('ow', 'awaiting_approval', 5), mk('t', 'todo', 6), mk('p', 'in_progress', 7)], 'default');
-  assert.deepEqual(a.todo.map((t) => t.id), ['t']);
-  assert.deepEqual(a.sections.flatMap((s) => s.tasks.map((t) => t.id)), ['p']);
-  assert.deepEqual(a.ongoing.map((t) => t.id), ['op1', 'op2', 'ow', 'ot', 'od']);
-  assert.deepEqual(arrange([on('b', 'done', 2), on('a', 'todo', 1)], 'manual').ongoing.map((t) => t.id), ['a', 'b']);
+  const tasks = [on('od', 'done', 1), on('ot', 'todo', 2), on('op2', 'in_progress', 4), on('op1', 'in_progress', 3),
+    on('ow', 'awaiting_approval', 5), mk('t', 'todo', 6), mk('p', 'in_progress', 7)];
+  const today = arrange(tasks, 'default');
+  assert.deepEqual(today.todo.map((t) => t.id), ['t']);
+  assert.deepEqual(today.sections.flatMap((s) => s.tasks.map((t) => t.id)), ['p']);
+  const ongoing = arrange(tasks, 'default', 'ongoing');
+  assert.deepEqual(ongoing.todo.map((t) => t.id), ['ot']);
+  assert.deepEqual(ongoing.sections.map((s) => s.tasks.map((t) => t.id)), [['op1', 'op2'], ['ow'], [], ['od']]);
+  assert.deepEqual(arrange([on('b', 'done', 2), on('a', 'done', 1)], 'manual', 'ongoing').sections[0].tasks.map((t) => t.id), ['a', 'b']);
 });
 
 test('list and notesDir default, validate and survive a patch', () => {

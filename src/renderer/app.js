@@ -62,12 +62,17 @@ function setDrawer(open) {
 }
 
 // ─── Side tabs: To Do | Ongoing ──────────────────────────────────────────────
-// The tab showing also decides where the add field puts a new task.
+// The tab showing decides which list the board shows and where the add field
+// puts a new task. Mid-drag only the side page switches; the board follows
+// once the row is dropped, so the list under the lifted row stays put.
 function setSide(tab, { save = true } = {}) {
   if (tab !== 'todo' && tab !== 'ongoing') return;
+  const changedTab = tab !== state.side;
   state.side = tab;
   showSide(tab);
+  for (const el of pane.querySelectorAll('.edge-tab')) el.classList.toggle('active', el.dataset.tab === tab);
   addInput.placeholder = tab === 'ongoing' ? 'Add an ongoing task…' : 'Add a task…';
+  if (changedTab && !pane.classList.contains('dragging') && state.tasks.size) render({ animate: true });
   if (save) api.settings.set({ sidePanel: tab });
 }
 
@@ -240,7 +245,7 @@ function statusItems(task) {
 function priorityItems(task) {
   return [...PRIORITIES].reverse().map((p) => ({
     label: p === 'high' ? 'High' : p === 'medium' ? 'Medium' : 'None',
-    swatch: p ? { color: css(p === 'high' ? '--priority-high' : '--priority-medium'), kind: 'ring' } : { kind: 'none' },
+    swatch: p ? { color: css(p === 'high' ? '--priority-high' : '--priority-medium'), kind: 'mark' } : { kind: 'none' },
     checked: task.priority === p,
     onPick: () => setPriority(task.id, p),
   }));
@@ -276,15 +281,17 @@ const notesHandlers = {
   },
 };
 
-// ≡ opens the notes under the row, and closes them again.
+// ≡ opens the notes under the row, and closes them again. One note is open
+// at a time: opening another closes it, and so does a click anywhere else.
 function toggleNotes(id) {
   if (state.openNotes.has(id)) return closeNotes(id);
+  for (const other of [...state.openNotes]) closeNotes(other, { draw: false });
   state.openNotes.add(id);
   render({ animate: true });
   taskEl(id)?.querySelector('.notes textarea')?.focus();
 }
 
-function closeNotes(id) {
+function closeNotes(id, { draw = true } = {}) {
   // A note closed mid-typing still saves what was typed.
   const ta = taskEl(id)?.querySelector('.notes textarea');
   if (ta && noteTimers.has(id)) {
@@ -293,8 +300,17 @@ function closeNotes(id) {
     updateTask(id, { notes: ta.value });
   }
   state.openNotes.delete(id);
-  render({ animate: true });
+  if (draw) render({ animate: true });
 }
+
+// A press outside the open note's task (its row or the note itself) closes
+// it. Pickers and Preferences float above and don't count as outside.
+document.addEventListener('pointerdown', (e) => {
+  if (e.button !== 0 || !state.openNotes.size) return;
+  if (e.target.closest?.('#popover-layer, #prefs')) return;
+  const inTask = e.target.closest?.('.task')?.dataset.id;
+  for (const id of [...state.openNotes]) if (id !== inTask) closeNotes(id);
+}, true);
 
 // Writing Direction, chosen from a note's right-click menu (main.mjs).
 api.onNotesDir(async ({ id, dir }) => {
@@ -346,11 +362,14 @@ pane.addEventListener('mousedown', (e) => {
 });
 
 pane.addEventListener('click', (e) => {
+  if (justMoved) return;
   const btn = e.target.closest('[data-action]');
   const taskNode = e.target.closest('.task');
   const id = taskNode?.dataset.id;
   const task = id && state.tasks.get(id);
 
+  const fold = e.target.closest('.section-head');
+  if (fold) { toggleFold(fold.closest('.section')); return; }
   if (btn && task) {
     const action = btn.dataset.action;
     select(id);
@@ -374,6 +393,20 @@ pane.addEventListener('click', (e) => {
   if (!taskNode) select(null);
 });
 
+// Folds a board section away, or opens it again. Kept per list and status.
+function toggleFold(sec) {
+  const key = sec?.dataset.key;
+  if (!key) return;
+  if (state.collapsed.has(key)) state.collapsed.delete(key);
+  else state.collapsed.add(key);
+  // Clipped for the length of the fold, so rows don't spill while it moves.
+  sec.classList.add('folding');
+  clearTimeout(sec.foldTimer);
+  sec.foldTimer = setTimeout(() => sec.classList.remove('folding'), 360);
+  render();
+  api.settings.set({ collapsed: [...state.collapsed] });
+}
+
 function select(id) {
   if (state.selectedId === id) return;
   state.selectedId = id;
@@ -381,6 +414,64 @@ function select(id) {
 }
 
 document.getElementById('sort-btn').addEventListener('click', () => api.menus.sort());
+
+// ─── Light / dark switch ─────────────────────────────────────────────────────
+// Flips the window to the other appearance. "System" stays in Preferences.
+const themeBtn = document.getElementById('theme-btn');
+const darkQuery = window.matchMedia('(prefers-color-scheme: dark)');
+function syncThemeSwitch() {
+  themeBtn.setAttribute('aria-checked', String(darkQuery.matches));
+  themeBtn.title = darkQuery.matches ? 'Switch to Light' : 'Switch to Dark';
+}
+darkQuery.addEventListener('change', syncThemeSwitch);
+themeBtn.addEventListener('click', () => {
+  const toDark = !darkQuery.matches;
+  themeBtn.setAttribute('aria-checked', String(toDark));   // the knob moves at once
+  api.settings.set({ theme: toDark ? 'dark' : 'light' });
+});
+themeBtn.querySelector('.theme-sun').innerHTML = ICONS.sun;
+themeBtn.querySelector('.theme-moon').innerHTML = ICONS.moon;
+syncThemeSwitch();
+
+// ─── Moving the window from empty space ──────────────────────────────────────
+// The header is a native drag region. Anywhere else that isn't a control,
+// a row or a note moves the window too, once the pointer has travelled a few
+// points; a plain click there still deselects and closes things.
+const NOT_EMPTY = 'button, input, textarea, select, a, .row, .notes, .popover, #prefs, .toast, .grip, [contenteditable="true"]';
+const MOVE_START_PX = 3;
+let justMoved = false;
+pane.addEventListener('pointerdown', (e) => {
+  if (e.button !== 0 || e.target.closest(NOT_EMPTY)) return;
+  const sx = e.screenX, sy = e.screenY;
+  let moving = false;
+  const move = (ev) => {
+    const dx = ev.screenX - sx, dy = ev.screenY - sy;
+    if (!moving) {
+      if (Math.hypot(dx, dy) < MOVE_START_PX) return;
+      moving = true;
+      // Captured only now: captured from the press, a plain click would land
+      // on the pane instead of what was clicked (a section heading).
+      pane.setPointerCapture(e.pointerId);
+      api.window.dragStart();
+      pane.classList.add('moving');
+    }
+    api.window.dragMove(dx, dy);
+  };
+  const up = () => {
+    pane.removeEventListener('pointermove', move);
+    pane.removeEventListener('pointerup', up);
+    pane.removeEventListener('pointercancel', up);
+    if (!moving) return;
+    api.window.dragEnd();
+    pane.classList.remove('moving');
+    // The click that ends a move is not a click on the empty space.
+    justMoved = true;
+    setTimeout(() => { justMoved = false; });
+  };
+  pane.addEventListener('pointermove', move);
+  pane.addEventListener('pointerup', up);
+  pane.addEventListener('pointercancel', up);
+});
 document.getElementById('settings-btn').addEventListener('click', () => (isPrefsOpen() ? closePrefs() : openPrefs()));
 document.getElementById('sort-btn').innerHTML = ICONS.sort;
 document.getElementById('settings-btn').innerHTML = ICONS.gear;
@@ -391,17 +482,19 @@ initDnd(pane, {
   async onDrop(id, { list, listStatus, prevId, nextId }) {
     const task = state.tasks.get(id);
     if (!task) return;
-    // Onto Ongoing: the task keeps its status. Onto Today: To Do and each
-    // board section set their status; '' is the single board list of the
-    // non-default sorts, where a task arriving from To Do starts In Progress
-    // and any other keeps its status.
-    const status = list === 'ongoing' ? task.status
-      : listStatus || (task.status === 'todo' ? 'in_progress' : task.status);
+    // Either list works the same way: its To Do and each board section set
+    // their status; '' is the single board list of the non-default sorts,
+    // where a task arriving from To Do starts In Progress and any other
+    // keeps its status.
+    const status = listStatus || (task.status === 'todo' ? 'in_progress' : task.status);
     const order = orderBetween(state.tasks.get(prevId)?.order ?? null, state.tasks.get(nextId)?.order ?? null);
     await updateTask(id, { list: list === 'ongoing' ? 'ongoing' : 'today', status, order });
     render({ animate: true });
   },
   onHoverTab: (tab) => setSide(tab),
+  // A drag that switched tabs and was then cancelled still owes the board
+  // its new list.
+  onCancel: () => render({ animate: true }),
 });
 
 // ─── Keyboard ────────────────────────────────────────────────────────────────
@@ -488,6 +581,7 @@ async function boot() {
 function applySettings(s, { first = false } = {}) {
   document.getElementById('weekday').hidden = !s.showWeekday;
 
+  state.collapsed = new Set(s.collapsed || []);
   const sortChanged = s.sort !== state.sort;
   const spellChanged = s.spellcheckNotes !== state.spellcheck;
   state.sort = s.sort;

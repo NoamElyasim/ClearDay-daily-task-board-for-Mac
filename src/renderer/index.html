@@ -16,6 +16,9 @@
       <span id="weekday"></span>
     </div>
     <div class="header-actions">
+      <button id="theme-btn" class="theme-switch" role="switch" title="Dark mode" aria-label="Dark mode">
+        <span class="theme-sun"></span><span class="theme-moon"></span><span class="theme-knob"></span>
+      </button>
       <button id="sort-btn" class="icon-btn" title="Sort" aria-label="Sort"></button>
       <button id="settings-btn" class="icon-btn" title="Preferences (⌘,)" aria-label="Preferences"></button>
     </div>
@@ -29,16 +32,16 @@
   <main id="main">
     <section id="board" class="panel" aria-label="Board">
       <div id="sections"></div>
-      <div id="board-empty" class="empty">Nothing on the board yet.<br>Set a task to In Progress to start your day.</div>
+      <div id="board-empty" class="empty"></div>
     </section>
 
     <aside id="side" class="panel" aria-label="To Do and Ongoing">
       <div class="side-tabs" role="tablist">
         <button class="side-tab" data-tab="todo" role="tab">
-          <span class="dot" data-status="todo"></span><span class="title">To Do</span><span class="count"></span>
+          <span class="title">To Do</span><span class="count"></span>
         </button>
         <button class="side-tab" data-tab="ongoing" role="tab">
-          <span class="dot ongoing"></span><span class="title">Ongoing</span><span class="count"></span>
+          <span class="title">Ongoing</span><span class="count"></span>
         </button>
       </div>
       <div class="side-page" data-page="todo">
@@ -46,8 +49,8 @@
         <div class="empty">Nothing to do.</div>
       </div>
       <div class="side-page" data-page="ongoing">
-        <div class="list" data-list="ongoing"></div>
-        <div class="empty">No ongoing projects yet.<br>With this tab open, add one above.</div>
+        <div class="list" data-list="ongoing" data-status="todo"></div>
+        <div class="empty">No ongoing projects waiting.<br>With this tab open, add one above.</div>
       </div>
     </aside>
 

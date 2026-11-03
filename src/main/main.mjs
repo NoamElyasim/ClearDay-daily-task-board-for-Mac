@@ -284,6 +284,21 @@ ipcMain.handle('tasks:restore', (_e, id) => store.restore(id));
 ipcMain.handle('settings:get', () => settings.all());
 ipcMain.handle('settings:set', (_e, patch) => { setSetting(patch || {}); return settings.all(); });
 
+// Moving the window from any empty space on the board. The header is a
+// native drag region; the rest can't be one, or it would swallow the clicks
+// that deselect a row or close a note. The renderer sends how far the
+// pointer has moved since the press, in screen points.
+let dragFrom = null;
+ipcMain.on('win:drag-start', () => { if (win && !win.isDestroyed()) dragFrom = win.getPosition(); });
+ipcMain.on('win:drag-move', (_e, dx, dy) => {
+  if (!dragFrom || !win || win.isDestroyed() || !Number.isFinite(dx) || !Number.isFinite(dy)) return;
+  win.setPosition(Math.round(dragFrom[0] + dx), Math.round(dragFrom[1] + dy));
+});
+ipcMain.on('win:drag-end', () => {
+  dragFrom = null;
+  if (win && !win.isDestroyed()) settings.set({ bounds: win.getBounds() });
+});
+
 ipcMain.handle('menu:sort', () => Menu.buildFromTemplate(sortTemplate()).popup({ window: win }));
 
 ipcMain.handle('app:info', () => ({ version: app.getVersion(), dataFile: store.FILE_PATH }));

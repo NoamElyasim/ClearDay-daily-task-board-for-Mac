@@ -21,7 +21,7 @@ export function closePopover() {
   return true;
 }
 
-// items: { label, icon?: html, swatch?: { color, kind: 'fill'|'ring'|'none' },
+// items: { label, icon?: html, swatch?: { color, kind: 'fill'|'mark'|'none' },
 //          checked?, danger?, onPick } | { sep: true } | { heading: 'text' }
 export function openPopover(anchor, items, { onClose } = {}) {
   const reopen = current?.anchor === anchor;
@@ -46,7 +46,7 @@ export function openPopover(anchor, items, { onClose } = {}) {
     b.setAttribute('role', 'menuitem');
     if (item.swatch) {
       const sw = document.createElement('span');
-      sw.className = 'swatch' + (item.swatch.kind === 'ring' ? ' ring-sw' : item.swatch.kind === 'none' ? ' none' : '');
+      sw.className = 'swatch' + (item.swatch.kind === 'mark' ? ' mark-sw' : item.swatch.kind === 'none' ? ' none' : '');
       if (item.swatch.color) sw.style.setProperty('--sw', item.swatch.color);
       b.append(sw);
     } else if (item.icon) {

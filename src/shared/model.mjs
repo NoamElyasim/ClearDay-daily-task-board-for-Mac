@@ -15,8 +15,6 @@ export const STATUS_LABELS = {
 };
 // Main board sections, top to bottom. To Do has its own side panel.
 export const BOARD_STATUSES = ['in_progress', 'awaiting_approval', 'on_hold', 'done'];
-// The Ongoing list keeps every status in one column, active work first.
-const ONGOING_RANK = { in_progress: 0, awaiting_approval: 1, on_hold: 2, todo: 3, done: 4 };
 
 // Which list a task belongs to: today's board (with its To Do panel), or the
 // Ongoing list of long-term projects beside it.
@@ -222,25 +220,20 @@ export function comparator(sort) {
   return byOrder; // 'default' and 'manual' both follow the drag order
 }
 
-// What the window shows. Default sort groups the main board by status; the
-// others show it as one list in that order. To Do is always its own panel,
-// and Ongoing its own list beside it, holding every status.
-//   → { todo: Task[], sections: [{ status, tasks }], ongoing: Task[] }
+// What the window shows for one list ('today' or 'ongoing'): its To Do in the
+// side panel, everything else on the board. Default sort groups the board by
+// status; the others show it as one list in that order.
+//   → { todo: Task[], sections: [{ status, tasks }] }
 //     (a section with status null is the one flat board list)
-export function arrange(tasks, sort = 'default') {
-  const live = tasks.filter((t) => !t.deletedAt);
+export function arrange(tasks, sort = 'default', list = 'today') {
   const cmp = comparator(sort);
-  const today = live.filter((t) => (t.list || 'today') === 'today');
-  const todo = today.filter((t) => t.status === 'todo').sort(cmp);
-  const board = today.filter((t) => t.status !== 'todo');
+  const mine = tasks.filter((t) => !t.deletedAt && (t.list || 'today') === list);
+  const todo = mine.filter((t) => t.status === 'todo').sort(cmp);
+  const board = mine.filter((t) => t.status !== 'todo');
   const sections = sort === 'default'
     ? BOARD_STATUSES.map((status) => ({ status, tasks: board.filter((t) => t.status === status).sort(cmp) }))
     : [{ status: null, tasks: board.sort(cmp) }];
-  const ongoingCmp = sort === 'default'
-    ? (a, b) => ONGOING_RANK[a.status] - ONGOING_RANK[b.status] || cmp(a, b)
-    : cmp;
-  const ongoing = live.filter((t) => t.list === 'ongoing').sort(ongoingCmp);
-  return { todo, sections, ongoing };
+  return { todo, sections };
 }
 
 // Drag-and-drop works in Default (within and across sections) and Manual.

@@ -1,11 +1,9 @@
 /* ClearDay theme — every colour in the app lives here, as a CSS variable.
 
-   The look follows the references in Design references/: flat surfaces, soft
-   pills, a monochrome UI where colour comes only from statuses and
-   priorities, and Poppins. Dark mode carries pastel statuses with dark text;
-   Light mode carries earthy statuses with white text. Status and priority
-   colours are still placeholders; change them here and nothing else needs
-   touching. */
+   Flat surfaces, soft pills, Poppins, and a monochrome UI where colour comes
+   only from statuses and priorities. The status colours are the same in
+   both modes: a saturated fill with a dark ink of its own hue for the text
+   and icons on it. */
 
 @font-face { font-family: 'Poppins'; font-weight: 400; src: url('fonts/Poppins-Regular.ttf') format('truetype'); }
 @font-face { font-family: 'Poppins'; font-weight: 500; src: url('fonts/Poppins-Medium.ttf') format('truetype'); }
@@ -25,9 +23,21 @@
   --dur-move: 320ms;
 
   --danger: #D9483B;
+
+  /* ── Status fills (the whole row) and the ink on them, both modes ── */
+  --status-todo: #A9A9AC;          --ink-todo: #242426;
+  --status-in-progress: #FDD440;   --ink-in-progress: #5E3A00;   /* yellow */
+  --status-awaiting: #76A9FF;      --ink-awaiting: #0B1A6B;      /* blue */
+  --status-on-hold: #F47A48;       --ink-on-hold: #5A0A00;       /* orange */
+  --status-done: #1FC46F;          --ink-done: #00361A;          /* green */
+
+  /* ── Priority bookmarks ── */
+  --priority-high: #E5383B;
+  --priority-medium: #FF9F1C;
+  --bookmark-keyline: rgba(0, 0, 0, 0.28);
 }
 
-/* ── Dark: the reference's charcoal, pastel statuses, dark text on them ──── */
+/* ── Dark: the reference's charcoal ───────────────────────────────────────── */
 :root {
   color-scheme: dark;
   --bg: #272727;
@@ -42,25 +52,9 @@
   /* The UI's one accent is its own text colour, as a pill: the active
      segment, the + button, switches, focus. */
   --accent: #CECECE;
+  --accent-hover: #FFFFFF;
   --accent-text: #1E1E1E;
-
-  /* ── Status fills: the whole row takes this colour ── */
-  --status-todo: #8E8E8E;
-  --status-in-progress: #ECD98B;   /* yellow */
-  --status-awaiting: #97D4F3;      /* light blue */
-  --status-on-hold: #F2B48A;       /* brown, as a pastel tan */
-  --status-done: #AFEF99;          /* green */
-  --on-fill: #1E1E1E;              /* text and icons on a status fill */
-  --on-fill-dim: rgba(30, 30, 30, 0.62);
-  --on-fill-hover: rgba(0, 0, 0, 0.10);
-
-  /* ── Priority rings ── */
-  --priority-high: #CE3436;
-  --priority-medium: #F28A2E;
-  --ring-keyline: rgba(0, 0, 0, 0.35);
-
-  /* The Ongoing list's colour (its dot and compact edge tab) */
-  --list-ongoing: #6C77D3;
+  --tab-hover: #474747;            /* an inactive pill under the pointer */
 
   /* Floating things: popovers, toasts, the compact drawer, Preferences */
   --popover-bg: #303030;
@@ -68,7 +62,7 @@
   --popover-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
 }
 
-/* ── Light: white, earthy statuses, white text on them ──────────────────── */
+/* ── Light: white ────────────────────────────────────────────────────────── */
 @media (prefers-color-scheme: light) {
   :root {
     color-scheme: light;
@@ -82,22 +76,9 @@
     --selection: rgba(17, 17, 19, 0.14);
 
     --accent: #111113;
+    --accent-hover: #3A3A3D;
     --accent-text: #FFFFFF;
-
-    --status-todo: #8C8C91;
-    --status-in-progress: #C9A23F;
-    --status-awaiting: #6C9FB2;
-    --status-on-hold: #A2826B;
-    --status-done: #1F8466;
-    --on-fill: #FFFFFF;
-    --on-fill-dim: rgba(255, 255, 255, 0.72);
-    --on-fill-hover: rgba(255, 255, 255, 0.18);
-
-    --priority-high: #C85E44;
-    --priority-medium: #E29B3C;
-    --ring-keyline: rgba(0, 0, 0, 0.30);
-
-    --list-ongoing: #39406A;
+    --tab-hover: #DCDCDF;
 
     --popover-bg: #FFFFFF;
     --popover-border: #E6E6E8;

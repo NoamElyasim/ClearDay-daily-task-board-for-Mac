@@ -16,6 +16,11 @@ contextBridge.exposeInMainWorld('clearday', {
     set: (patch) => ipcRenderer.invoke('settings:set', patch),
     onChange: on('settings'),
   },
+  window: {
+    dragStart: () => ipcRenderer.send('win:drag-start'),
+    dragMove: (dx, dy) => ipcRenderer.send('win:drag-move', dx, dy),
+    dragEnd: () => ipcRenderer.send('win:drag-end'),
+  },
   menus: {
     sort: () => ipcRenderer.invoke('menu:sort'),
   },

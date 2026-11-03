@@ -1,20 +1,21 @@
 // Drag and drop by the row's grip. Pointer events rather than HTML5 drag, so
 // the lifted row follows the pointer smoothly and siblings can slide aside.
 // Dropping between the To Do panel and the board changes status; dropping on
-// a board section takes that section's status; dropping on the Ongoing list
-// moves the task there. Hovering a side tab mid-drag switches to it.
+// a board section takes that section's status; dropping on the other side
+// tab's list moves the task to that list. Hovering a side tab mid-drag
+// switches to it.
 const EASE = 'cubic-bezier(0.32, 0.72, 0, 1)';
 const START_PX = 4;
 
 let drag = null;
 
-export function initDnd(pane, { onDrop, onHoverTab }) {
+export function initDnd(pane, { onDrop, onHoverTab, onCancel: onCancelled }) {
   pane.addEventListener('pointerdown', (e) => {
     const grip = e.target.closest('.grip');
     if (!grip || e.button !== 0 || !pane.classList.contains('can-drag')) return;
     e.preventDefault();
     const taskEl = grip.closest('.task');
-    drag = { pane, taskEl, startX: e.clientX, startY: e.clientY, started: false, pointerId: e.pointerId, onDrop, onHoverTab };
+    drag = { pane, taskEl, startX: e.clientX, startY: e.clientY, started: false, pointerId: e.pointerId, onDrop, onHoverTab, onCancelled };
     // Captured on the pane, not the grip: the lifted row is moved in the DOM
     // when the drag starts, and moving an element drops its pointer capture.
     pane.setPointerCapture(e.pointerId);
@@ -180,7 +181,9 @@ function onUp() {
 
 function onCancel() {
   if (!drag) return;
-  if (drag.started) settle(drag.origin.parent, drag.origin.next);
+  const { started, onCancelled } = drag;
+  if (started) settle(drag.origin.parent, drag.origin.next);
   else cleanup();
   drag = null;
+  if (started) onCancelled?.();
 }

@@ -8,7 +8,8 @@ export const state = {
   sort: 'default',
   selectedId: null,
   editingId: null,
-  openNotes: new Set(),   // ids whose notes panel is open
+  openNotes: new Set(),   // the id whose notes panel is open (one at most)
+  collapsed: new Set(),   // folded board sections, as 'list:status' keys
   compact: false,
   side: 'todo',           // side tab showing: 'todo' | 'ongoing'
   spellcheck: true,       // spelling in notes (Preferences)

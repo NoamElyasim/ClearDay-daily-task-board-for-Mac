@@ -69,22 +69,20 @@ function createRow(task) {
   group.append(
     button('ctl', 'edit', ICONS.pencil, 'Edit'),
     button('ctl', 'bold', ICONS.bold, 'Bold (⌘B)'),
-    button('ctl', 'priority', ICONS.flag, 'Priority'),
     button('ctl', 'delete', ICONS.trash, 'Delete (⌘⌫)'),
   );
-  const ringSlot = document.createElement('span');
-  ringSlot.className = 'ring-slot';
-  const ring = document.createElement('span');
-  ring.className = 'ring';
-  ringSlot.append(ring);
+  // The priority is a bookmark hanging from the row's top edge; clicking it
+  // picks the priority. The slot only keeps the text clear of it.
+  const bookmarkSlot = document.createElement('span');
+  bookmarkSlot.className = 'bookmark-slot';
   controls.append(
     group,
     button('ctl more', 'more', ICONS.more, 'More'),
-    ringSlot,
+    bookmarkSlot,
     button('ctl notes-btn', 'notes', ICONS.notes, 'Notes'),
   );
 
-  row.append(grip, status, text, controls);
+  row.append(grip, status, text, controls, button('bookmark', 'priority', '', 'Priority'));
   el.append(row);
   return el;
 }
@@ -158,10 +156,10 @@ function rowFor(task) {
   // The row being edited owns its own text until the edit ends.
   if (state.editingId !== task.id) renderRich(row.querySelector('.text'), task.text, task.bold);
 
-  const ring = row.querySelector('.ring');
-  if (task.priority) ring.dataset.priority = task.priority;
-  else delete ring.dataset.priority;
-  ring.title = task.priority ? `${task.priority === 'high' ? 'High' : 'Medium'} priority` : '';
+  const bookmark = row.querySelector('.bookmark');
+  if (task.priority) bookmark.dataset.priority = task.priority;
+  else delete bookmark.dataset.priority;
+  bookmark.title = task.priority ? `${task.priority === 'high' ? 'High' : 'Medium'} priority` : 'Set priority';
 
   const notesBtn = row.querySelector('.notes-btn');
   notesBtn.classList.toggle('has-notes', task.notes.trim().length > 0);
@@ -188,8 +186,10 @@ function rowFor(task) {
 }
 
 // ─── Layout ──────────────────────────────────────────────────────────────────
-function ensureSkeleton(sections) {
-  const key = sections.map((s) => s.status ?? 'flat').join(',');
+// The board's sections, rebuilt only when the list or the sort changes their
+// set. A section's heading folds it away: the chevron, or anywhere on it.
+function ensureSkeleton(sections, boardList) {
+  const key = boardList + ':' + sections.map((s) => s.status ?? 'flat').join(',');
   if (key === skeletonKey) return;
   skeletonKey = key;
   sectionsEl.replaceChildren(...sections.map((s) => {
@@ -197,20 +197,28 @@ function ensureSkeleton(sections) {
     sec.className = 'section';
     const list = document.createElement('div');
     list.className = 'list';
-    list.dataset.list = 'today';
+    list.dataset.list = boardList;
     list.dataset.status = s.status ?? '';
     if (s.status) {
       sec.dataset.status = s.status;
+      sec.dataset.key = `${boardList}:${s.status}`;
       const head = document.createElement('div');
       head.className = 'section-head';
+      const fold = button('fold', 'fold', ICONS.chevron, `Fold ${STATUS_LABELS[s.status]}`);
+      fold.setAttribute('aria-expanded', 'true');
       head.append(
+        fold,
         Object.assign(document.createElement('span'), { className: 'dot' }),
         Object.assign(document.createElement('span'), { className: 'title', textContent: STATUS_LABELS[s.status] }),
         Object.assign(document.createElement('span'), { className: 'count' }),
       );
       sec.append(head);
     }
-    sec.append(list);
+    // The body animates its height when the section folds.
+    const body = document.createElement('div');
+    body.className = 'section-body';
+    body.append(list);
+    sec.append(body);
     return sec;
   }));
 }
@@ -249,26 +257,42 @@ function play(before) {
   }
 }
 
+const EMPTY_BOARD = {
+  today: 'Nothing on the board yet.\nSet a task to In Progress to start your day.',
+  ongoing: 'No ongoing project is moving yet.\nSet one to In Progress to bring it here.',
+};
+
+// The board shows the list whose side tab is open: today's tasks with the
+// To Do tab, the ongoing projects with the Ongoing tab. Each side tab holds
+// its own list's To Do.
 export function render({ animate = false } = {}) {
   const before = animate ? snapshot() : null;
-  const { todo, sections, ongoing } = arrange([...state.tasks.values()], state.sort);
+  const all = [...state.tasks.values()];
+  const boardList = state.side === 'ongoing' ? 'ongoing' : 'today';
+  const today = arrange(all, state.sort, 'today');
+  const ongoing = arrange(all, state.sort, 'ongoing');
+  const { sections } = boardList === 'ongoing' ? ongoing : today;
 
   pane.classList.toggle('can-drag', canDrag(state.sort));
-  ensureSkeleton(sections);
+  ensureSkeleton(sections, boardList);
   const secEls = sectionsEl.children;
   sections.forEach((s, i) => {
     const sec = secEls[i];
     reconcile(sec.querySelector('.list'), s.tasks);
     sec.classList.toggle('is-empty', s.tasks.length === 0);
+    const folded = !!sec.dataset.key && state.collapsed.has(sec.dataset.key);
+    sec.classList.toggle('collapsed', folded);
+    sec.querySelector('.fold')?.setAttribute('aria-expanded', String(!folded));
     const count = sec.querySelector('.count');
     if (count) count.textContent = s.tasks.length;
   });
-  reconcile(todoList, todo);
-  reconcile(ongoingList, ongoing);
+  reconcile(todoList, today.todo);
+  reconcile(ongoingList, ongoing.todo);
 
   const boardCount = sections.reduce((n, s) => n + s.tasks.length, 0);
   boardEl.classList.toggle('is-empty', boardCount === 0);
-  const counts = { todo: todo.length, ongoing: ongoing.length };
+  document.getElementById('board-empty').innerText = EMPTY_BOARD[boardList];
+  const counts = { todo: today.todo.length, ongoing: ongoing.todo.length };
   for (const tab of ['todo', 'ongoing']) {
     sideEl.querySelector(`[data-page="${tab}"]`).classList.toggle('is-empty', counts[tab] === 0);
     for (const c of pane.querySelectorAll(`[data-tab="${tab}"] .count`)) c.textContent = counts[tab];
@@ -289,7 +313,7 @@ export function showSide(tab) {
 
 // Tasks in the order they appear on screen, for ↑/↓.
 export function visibleOrder() {
-  const lists = [...sectionsEl.querySelectorAll('.list')];
+  const lists = [...sectionsEl.querySelectorAll('.section:not(.collapsed) .list')];
   if (!state.compact || pane.classList.contains('drawer-open')) lists.push(state.side === 'ongoing' ? ongoingList : todoList);
   return lists.flatMap((l) => [...l.children].map((c) => c.dataset.id).filter(Boolean));
 }

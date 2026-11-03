@@ -23,6 +23,7 @@ const DEFAULTS = {
   // Preferences → Behavior
   spellcheckNotes: true,
   sidePanel: 'todo',    // side tab showing: 'todo' | 'ongoing'
+  collapsed: [],        // folded board sections, as 'list:status' keys
 };
 
 const VALID = {
@@ -36,6 +37,7 @@ const VALID = {
   showWeekday: (v) => typeof v === 'boolean',
   spellcheckNotes: (v) => typeof v === 'boolean',
   sidePanel: (v) => ['todo', 'ongoing'].includes(v),
+  collapsed: (v) => Array.isArray(v) && v.length <= 20 && v.every((k) => typeof k === 'string' && k.length < 40),
 };
 
 let cache = null;
