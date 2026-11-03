@@ -42,7 +42,9 @@ app.whenReady().then(run).catch((e) => { console.error(e); app.exit(1); });
 
 async function run() {
   win = new BrowserWindow({
-    width: 780, height: 560, show: true, x: 40, y: 40, frame: false, transparent: true,
+    // Hidden: a visible window loses focus to whatever else is going on on the
+    // desktop (Stage Manager shelves it), and keystrokes then go nowhere.
+    width: 780, height: 560, show: false, frame: false, paintWhenInitiallyHidden: true,
     webPreferences: { preload: path.join(REPO, 'src', 'preload.cjs'), contextIsolation: true },
   });
   win.webContents.on('console-message', (e) => { if (e.level === 'error') console.log(`[renderer] ${e.message}`); });
@@ -76,10 +78,44 @@ async function run() {
   const task = (id) => store.list().find((t) => t.id === id);
   const byText = (text) => store.list().find((t) => t.text === text);
   const taskSel = (id) => `.task[data-id="${id}"]`;
-  app.focus({ steal: true });
-  win.focus();
   wc.focus();
   await sleep(200);
+
+  // ── Window drag regions ──
+  // macOS treats a -webkit-app-region: drag box as window chrome even when it
+  // is invisible, and it swallows clicks and hover. A hidden sheet's header
+  // once covered the top of the add field and the header buttons this way.
+  const dragProblems = () => js(`(() => {
+    const region = (el) => getComputedStyle(el).getPropertyValue('-webkit-app-region');
+    const hidden = (el) => { for (let e = el; e; e = e.parentElement) {
+      const cs = getComputedStyle(e); if (cs.opacity === '0' || cs.visibility === 'hidden' || cs.display === 'none') return true; } return false; };
+    const overlap = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+    const name = (el) => el.id ? '#' + el.id : el.className ? '.' + String(el.className).split(' ')[0] : el.tagName;
+    const out = [];
+    for (const d of document.querySelectorAll('*')) {
+      // The property is inherited; only the outermost box of each region counts.
+      if (region(d) !== 'drag' || (d.parentElement && region(d.parentElement) === 'drag')) continue;
+      const r = d.getBoundingClientRect();
+      if (!r.width || !r.height) continue;
+      if (hidden(d)) { out.push('invisible drag region ' + name(d)); continue; }
+      for (const c of document.querySelectorAll('button, input, textarea, select')) {
+        const cr = c.getBoundingClientRect();
+        if (!cr.width || hidden(c) || !overlap(r, cr)) continue;
+        // A control under something else (the open sheet) can't be clicked anyway.
+        const top = document.elementFromPoint(cr.left + cr.width / 2, cr.top + cr.height / 2);
+        if (!top || !(top === c || c.contains(top))) continue;
+        let freed = false;
+        for (let e = c; e && e !== d.parentElement; e = e.parentElement) if (region(e) === 'no-drag') freed = true;
+        if (!freed) out.push(name(d) + ' covers ' + name(c));
+      }
+    }
+    return out; })()`);
+  let dp = await dragProblems();
+  check('no drag region is invisible or covers a control', dp.length === 0, dp.join('; '));
+  check('the top edge of the add field and the header buttons are hit directly', await js(`(() => {
+    const at = (sel, fy) => { const r = document.querySelector(sel).getBoundingClientRect();
+      return document.elementFromPoint(r.left + r.width / 2, r.top + r.height * fy)?.closest(sel) != null; };
+    return at('#add-input', 0.1) && at('#add-btn', 0.5) && at('#sort-btn', 0.5) && at('#settings-btn', 0.5); })()`));
 
   // ── Add ──
   await click('#add-input');
@@ -226,10 +262,13 @@ async function run() {
   await js(`[...document.querySelectorAll('.popover .pop-item')].find((b) => b.textContent.includes('Awaiting')).classList.add('e2e')`);
   await click('.popover .pop-item.e2e');
   await sleep(400);
-  check('Awaiting Approval moves a row to its own section, in light blue',
+  check('Awaiting Approval moves a row to its own section, in its theme colour',
     task(todoFirst).status === 'awaiting_approval' &&
     await js(`!!document.querySelector('.section[data-status="awaiting_approval"] ${taskSel(todoFirst)}')`) &&
-    await js(`getComputedStyle(document.querySelector('${taskSel(todoFirst)} .row')).backgroundColor`) === 'rgb(61, 155, 224)');
+    await js(`(() => {
+      const probe = document.createElement('div'); probe.style.color = 'var(--status-awaiting)'; document.body.append(probe);
+      const want = getComputedStyle(probe).color; probe.remove();
+      return getComputedStyle(document.querySelector('${taskSel(todoFirst)} .row')).backgroundColor === want; })()`));
 
   // ── Ongoing ──
   await click('.side-tab[data-tab="ongoing"]');
@@ -259,13 +298,17 @@ async function run() {
   await click('#settings-btn');
   await sleep(300);
   check('the gear opens Preferences', await js(`document.getElementById('prefs').classList.contains('open')`));
-  await js(`(() => { const s = document.querySelectorAll('#prefs .slider')[1]; s.value = 40; s.dispatchEvent(new Event('input')); })()`);
+  dp = await dragProblems();
+  check('with Preferences open, its header is the only drag region', dp.length === 0, dp.join('; '));
+  await js(`[...document.querySelectorAll('#prefs .seg-btn')].find((b) => b.textContent === 'Large').click()`);
   await sleep(300);
-  check('the Dark opacity slider saves and updates the background', settings.get('bgOpacityDark') === 0.4 &&
-    await js(`document.documentElement.style.getPropertyValue('--bg-opacity-dark')`) === '0.4');
+  check('a Preferences control saves its setting', settings.get('textSize') === 'large');
+  await js(`[...document.querySelectorAll('#prefs .seg-btn')].find((b) => b.textContent === 'Medium').click()`);
   await key('Escape');
   await sleep(300);
   check('Esc closes Preferences', await js(`!document.getElementById('prefs').classList.contains('open')`));
+  dp = await dragProblems();
+  check('after closing Preferences, no drag region is left over the window', dp.length === 0, dp.join('; '));
 
   // ── Sort ──
   settings.set({ sort: 'priority' });

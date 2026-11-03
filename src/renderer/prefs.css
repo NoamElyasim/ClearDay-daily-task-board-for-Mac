@@ -30,8 +30,12 @@
   display: flex; align-items: center; justify-content: space-between;
   padding: 12px 12px 10px 18px;
   border-bottom: 1px solid var(--hairline);
-  -webkit-app-region: drag;   /* the window stays movable with the sheet open */
+  /* No drag region while closed: macOS keeps one active even when it is
+     invisible, and it would swallow clicks on the header and add field. */
+  -webkit-app-region: no-drag;
 }
+/* The window stays movable with the sheet open. */
+#prefs.open .prefs-head { -webkit-app-region: drag; }
 .prefs-head h2 { font-size: 15px; font-weight: 700; }
 .prefs-done {
   -webkit-app-region: no-drag;
