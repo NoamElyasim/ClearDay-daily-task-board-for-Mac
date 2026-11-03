@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.4.1 — 2026-11-03
+
+- Done tasks show no priority bookmark.
+- The narrow layout's "…" menu drops its Priority section; the bookmark
+  already sets it.
+
 ## v0.4.0 — 2026-11-03
 
 - **New status colours,** the same in Light and Dark: yellow In Progress,

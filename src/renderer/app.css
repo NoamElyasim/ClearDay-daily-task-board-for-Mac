@@ -306,6 +306,8 @@ svg { display: block; }
 }
 .row .bookmark:hover { height: 24px; }
 .row .bookmark:not([data-priority]):hover { --bm: color-mix(in srgb, var(--on-fill) 40%, transparent); height: 18px; }
+/* A done task is finished: no bookmark, and no room kept for one. */
+[data-status="done"] > .row .bookmark, [data-status="done"] > .row .bookmark-slot { display: none; }
 .notes-btn { margin-left: 6px; position: relative; }
 .notes-btn.has-notes::after {
   content: ''; position: absolute; top: 4px; right: 4px;

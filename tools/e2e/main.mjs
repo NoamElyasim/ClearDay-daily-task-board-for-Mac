@@ -210,6 +210,9 @@ async function run() {
     return b.dataset.priority === 'high' && Math.abs(br.top - r.top) < 1 && br.height >= 18; })()`) &&
     await js(`getComputedStyle(document.querySelector('${taskSel(id)} .bookmark')).backgroundColor`) === await cssColor('--priority-high'));
 
+  check('done rows show no bookmark, even with a priority', await js(`[...document.querySelectorAll('.task[data-status="done"] .bookmark')]
+    .every((b) => getComputedStyle(b).display === 'none')`) && store.list().some((t) => t.status === 'done' && t.priority));
+
   // ── Edit, Esc cancels, Enter saves ──
   await click(`${taskSel(id)} [data-action="edit"]`);
   check('pencil makes the text editable', await js(`document.querySelector('${taskSel(id)} .text').isContentEditable`));

@@ -256,9 +256,6 @@ function moreItems(task) {
     { label: 'Edit', icon: ICONS.pencil, onPick: () => startEdit(task.id) },
     { label: 'Bold', icon: ICONS.bold, onPick: () => toggleBoldFor(task.id) },
     { sep: true },
-    { heading: 'Priority' },
-    ...priorityItems(task),
-    { sep: true },
     moveItem(task),
     { label: 'Delete', icon: ICONS.trash, danger: true, onPick: () => deleteTask(task.id) },
   ];
