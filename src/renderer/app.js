@@ -486,9 +486,6 @@ async function boot() {
 // Settings the window shows directly. Text size is applied by the main
 // process as the page zoom.
 function applySettings(s, { first = false } = {}) {
-  const root = document.documentElement.style;
-  root.setProperty('--bg-opacity-light', String(s.bgOpacityLight));
-  root.setProperty('--bg-opacity-dark', String(s.bgOpacityDark));
   document.getElementById('weekday').hidden = !s.showWeekday;
 
   const sortChanged = s.sort !== state.sort;

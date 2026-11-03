@@ -61,24 +61,6 @@ function toggle(key, label) {
   return b;
 }
 
-// 0–100 % slider for a 0–1 setting. Writes as it moves, so the window
-// background previews live.
-function percent(key, label) {
-  const input = h('input', { type: 'range', min: 0, max: 100, step: 1, className: 'slider' });
-  input.setAttribute('aria-label', label);
-  const out = h('output', { className: 'slider-value' });
-  input.addEventListener('input', () => {
-    out.textContent = `${input.value}%`;
-    set({ [key]: Number(input.value) / 100 });
-  });
-  syncers.push((s) => {
-    const v = Math.round((s[key] ?? 0) * 100);
-    if (document.activeElement !== input) input.value = v;
-    out.textContent = `${v}%`;
-  });
-  return h('div', { className: 'slider-wrap' }, input, out);
-}
-
 function select(key, options, label) {
   const sel = h('select', { className: 'pref-select' });
   sel.setAttribute('aria-label', label);
@@ -105,10 +87,6 @@ function build(info) {
       h('section', {},
         h('h3', { textContent: 'Appearance' }),
         row('Theme', segmented('theme', [['system', 'System'], ['light', 'Light'], ['dark', 'Dark']])),
-        row('Background opacity', percent('bgOpacityLight', 'Background opacity in Light mode'), 'Light mode'),
-        row('Background opacity', percent('bgOpacityDark', 'Background opacity in Dark mode'), 'Dark mode'),
-        row('Blur behind window', toggle('blur', 'Blur behind window')),
-        row('Blur style', segmented('blurStyle', [['subtle', 'Subtle'], ['frosted', 'Frosted'], ['vivid', 'Vivid']])),
         row('Text size', segmented('textSize', [['small', 'Small'], ['medium', 'Medium'], ['large', 'Large']])),
         row('Show weekday', toggle('showWeekday', 'Show weekday')),
       ),

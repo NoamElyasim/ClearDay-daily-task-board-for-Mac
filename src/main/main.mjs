@@ -16,8 +16,10 @@ import { SORTS, SORT_LABELS, SCHEMA_VERSION } from '../shared/model.mjs';
 const DIR = import.meta.dirname;
 const DEFAULT_SIZE = { width: 780, height: 560 };
 const MIN_SIZE = { width: 320, height: 360 };
-// Preferences → Blur style: which macOS material sits behind the board.
-const MATERIALS = { subtle: 'under-window', frosted: 'popover', vivid: 'sidebar' };
+// The window's own background, matching --bg in theme.css, so nothing flashes
+// before the page paints or while the appearance changes.
+const BG = { light: '#FFFFFF', dark: '#272727' };
+const bgColor = () => (nativeTheme.shouldUseDarkColors ? BG.dark : BG.light);
 // Preferences → Text size, as page zoom so every part of the UI scales together.
 const ZOOM = { small: 0.9, medium: 1, large: 1.12 };
 
@@ -53,16 +55,11 @@ function createWindow() {
     ...restoreBounds(settings.get('bounds')),
     minWidth: MIN_SIZE.width,
     minHeight: MIN_SIZE.height,
-    // A hidden title bar rather than frame: false. macOS only draws vibrancy
-    // behind a frameless window when it keeps a (hidden) title bar; with
-    // frame: false the background was see-through but never blurred.
+    // A hidden title bar rather than frame: false: the window keeps macOS's
+    // own rounded corners and shadow, with the board's header as all of its
+    // chrome.
     titleBarStyle: 'hidden',
-    transparent: true,
-    // The desktop behind the window is blurred by macOS (unless turned off in
-    // Preferences); the board's own background (theme.css, opacity from
-    // Preferences) is drawn over it.
-    vibrancy: settings.get('blur') ? MATERIALS[settings.get('blurStyle')] : undefined,
-    visualEffectState: 'active',
+    backgroundColor: bgColor(),
     resizable: true,
     hasShadow: true,
     show: false,
@@ -141,6 +138,9 @@ async function showContextMenu(_e, params) {
 function applyTheme() {
   nativeTheme.themeSource = settings.get('theme');
 }
+nativeTheme.on('updated', () => {
+  if (win && !win.isDestroyed()) win.setBackgroundColor(bgColor());
+});
 
 function applyLoginItem() {
   // A dev run would register the bare Electron binary as a login item.
@@ -150,10 +150,6 @@ function applyLoginItem() {
   } catch (e) {
     console.error('could not set login item', e);
   }
-}
-
-function applyBlur() {
-  if (win && !win.isDestroyed()) win.setVibrancy(settings.get('blur') ? MATERIALS[settings.get('blurStyle')] : null);
 }
 
 function applyTextSize() {
@@ -183,7 +179,6 @@ function applySetting(keys) {
   if (keys.includes('alwaysOnTop')) applyAlwaysOnTop();
   if (keys.includes('showIn')) applyShowIn();
   if (keys.includes('textSize')) applyTextSize();
-  if (keys.includes('blur') || keys.includes('blurStyle')) applyBlur();
   if (win && !win.isDestroyed() && keys.length) win.webContents.send('settings', settings.all());
 }
 
