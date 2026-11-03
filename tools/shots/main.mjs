@@ -118,6 +118,7 @@ const SHOTS = {
   'ongoing-dark': { theme: 'dark', width: 780, height: 560, prefs: { sidePanel: 'ongoing' } },
   'ongoing-compact-light': { theme: 'light', width: 420, height: 600, prefs: { sidePanel: 'ongoing' },
     setup: (js) => js('cleardayDebug.setDrawer(true); 1') },
+  'folded-light': { theme: 'light', width: 780, height: 560, prefs: { collapsed: ['today:done'] } },
   'prefs-dark': { theme: 'dark', width: 780, height: 560, setup: (js) => js('cleardayDebug.openPrefs(); 1') },
   'prefs-light-narrow': { theme: 'light', width: 340, height: 600, setup: (js) => js('cleardayDebug.openPrefs(); 1') },
   'hover-row-light': { theme: 'light', width: 780, height: 560, setup: (js) => js(`cleardayDebug.state.selectedId = ${firstId}; cleardayDebug.render(); 1`) },

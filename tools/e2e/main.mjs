@@ -29,6 +29,10 @@ ipcMain.handle('settings:set', (_e, p) => { settings.set(p || {}); win.webConten
 ipcMain.handle('menu:sort', () => {});
 ipcMain.handle('app:info', () => ({ version: app.getVersion(), dataFile: '' }));
 for (const ch of ['app:reveal-data', 'app:export', 'app:reset-bounds', 'app:quit']) ipcMain.handle(ch, () => null);
+const moves = [];   // window moves the renderer asked for: [dx, dy]
+ipcMain.on('win:drag-start', () => { moves.length = 0; });
+ipcMain.on('win:drag-move', (_e, dx, dy) => moves.push([dx, dy]));
+ipcMain.on('win:drag-end', () => {});
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 let failed = 0;
@@ -118,7 +122,34 @@ async function run() {
   check('the top edge of the add field and the header buttons are hit directly', await js(`(() => {
     const at = (sel, fy) => { const r = document.querySelector(sel).getBoundingClientRect();
       return document.elementFromPoint(r.left + r.width / 2, r.top + r.height * fy)?.closest(sel) != null; };
-    return at('#add-input', 0.1) && at('#add-btn', 0.5) && at('#sort-btn', 0.5) && at('#settings-btn', 0.5); })()`));
+    return at('#add-input', 0.1) && at('#add-btn', 0.5) && at('#sort-btn', 0.5) && at('#settings-btn', 0.5) && at('#theme-btn', 0.5); })()`));
+  check('the gear is the solid glyph', await js(`document.querySelector('#settings-btn svg').getAttribute('fill')`) === 'currentColor');
+
+  // ── Light / dark switch ──
+  const wasDark = await js(`matchMedia('(prefers-color-scheme: dark)').matches`);
+  await click('#theme-btn');
+  check('the light/dark switch flips the theme and its knob',
+    settings.get('theme') === (wasDark ? 'light' : 'dark') &&
+    await js(`document.getElementById('theme-btn').getAttribute('aria-checked')`) === String(!wasDark));
+  settings.set({ theme: 'system' });
+  wc.send('settings', settings.all());
+
+  // ── Moving the window from empty space ──
+  const board = await js(`(() => { const r = document.getElementById('board').getBoundingClientRect();
+    return { x: Math.round(r.left + r.width / 2), y: Math.round(r.bottom - 12) }; })()`);
+  check('the spot below the board\'s rows is empty space',
+    await js(`!document.elementFromPoint(${board.x}, ${board.y}).closest('.row, button, input')`));
+  wc.sendInputEvent({ type: 'mouseMove', x: board.x, y: board.y });
+  wc.sendInputEvent({ type: 'mouseDown', x: board.x, y: board.y, globalX: 500, globalY: 500, button: 'left', clickCount: 1 });
+  for (let i = 1; i <= 6; i++) {
+    wc.sendInputEvent({ type: 'mouseMove', x: board.x + i * 5, y: board.y - i * 3, globalX: 500 + i * 5, globalY: 500 - i * 3, button: 'left', modifiers: ['leftButtonDown'] });
+    await sleep(20);
+  }
+  wc.sendInputEvent({ type: 'mouseUp', x: board.x + 30, y: board.y - 18, button: 'left', clickCount: 1 });
+  await sleep(200);
+  const lastMove = moves[moves.length - 1];
+  check('dragging empty space moves the window', !!lastMove && Math.abs(lastMove[0] - 30) <= 2 && Math.abs(lastMove[1] + 18) <= 2,
+    JSON.stringify(moves.slice(-2)));
 
   // ── Add ──
   await click('#add-input');
@@ -143,8 +174,8 @@ async function run() {
     task(id).status === 'in_progress' &&
     await js(`!!document.querySelector('.section[data-status="in_progress"] ${taskSel(id)}')`) &&
     await js(`getComputedStyle(document.querySelector('${taskSel(id)} .row')).backgroundColor`) !== 'rgba(0, 0, 0, 0)');
-  check('row text takes the theme\'s on-fill colour',
-    await js(`getComputedStyle(document.querySelector('${taskSel(id)} .text')).color`) === await cssColor('--on-fill'));
+  check('row text takes its status\'s ink colour',
+    await js(`getComputedStyle(document.querySelector('${taskSel(id)} .text')).color`) === await cssColor('--ink-in-progress'));
 
   // ── Partial bold ──
   await js(`(() => {
@@ -163,12 +194,21 @@ async function run() {
   await click(`${taskSel(id)} [data-action="bold"]`);
   check('B again un-bolds the whole row', task(id).bold.length === 0);
 
-  // ── Priority ──
-  await click(`${taskSel(id)} [data-action="priority"]`);
+  // ── Priority: the bookmark ──
+  check('the row has no flag button', await js(`document.querySelectorAll('${taskSel(id)} [data-action="priority"]').length`) === 1 &&
+    await js(`!!document.querySelector('${taskSel(id)} .bookmark[data-action="priority"]')`));
+  await click(`${taskSel(id)} .text`);
+  await sleep(250);   // the faint bookmark drops in on hover
+  await click(`${taskSel(id)} .bookmark`);
+  check('clicking the bookmark opens the priority picker',
+    await js(`[...document.querySelectorAll('.popover .pop-item')].map((b) => b.textContent).join()`).then((t) => t.includes('High') && t.includes('Medium')));
   await js(`[...document.querySelectorAll('.popover .pop-item')].find((b) => b.textContent.includes('High')).classList.add('e2e')`);
   await click('.popover .pop-item.e2e');
-  check('High priority shows a red ring', task(id).priority === 'high' &&
-    await js(`document.querySelector('${taskSel(id)} .ring').dataset.priority`) === 'high');
+  await sleep(350);
+  check('High priority hangs a red bookmark from the row\'s top edge', task(id).priority === 'high' && await js(`(() => {
+    const b = document.querySelector('${taskSel(id)} .bookmark'), r = b.closest('.row').getBoundingClientRect(), br = b.getBoundingClientRect();
+    return b.dataset.priority === 'high' && Math.abs(br.top - r.top) < 1 && br.height >= 18; })()`) &&
+    await js(`getComputedStyle(document.querySelector('${taskSel(id)} .bookmark')).backgroundColor`) === await cssColor('--priority-high'));
 
   // ── Edit, Esc cancels, Enter saves ──
   await click(`${taskSel(id)} [data-action="edit"]`);
@@ -209,6 +249,15 @@ async function run() {
   await click(`${taskSel(id)} [data-action="notes"]`);
   check('≡ again closes notes; ≡ shows a notes dot',
     await js(`!document.querySelector('${taskSel(id)} .notes') && document.querySelector('${taskSel(id)} .notes-btn').classList.contains('has-notes')`));
+  const other = await js(`[...document.querySelectorAll('#sections .task')].map((e) => e.dataset.id).find((x) => x !== '${id}')`);
+  await click(`${taskSel(id)} [data-action="notes"]`);
+  await click(`${taskSel(other)} [data-action="notes"]`);
+  await sleep(200);
+  check('opening another note closes the first', await js(`document.querySelectorAll('.notes').length`) === 1 &&
+    await js(`!!document.querySelector('${taskSel(other)} .notes')`));
+  await click('#add');   // the form's padding: empty space
+  await sleep(200);
+  check('a click outside the note closes it', await js(`document.querySelectorAll('.notes').length`) === 0);
 
   // ── Delete and undo ──
   await click(`${taskSel(id)} .text`);
@@ -278,24 +327,43 @@ async function run() {
   check('the Ongoing tab shows its list and is remembered',
     settings.get('sidePanel') === 'ongoing' && await js(`document.querySelector('[data-page="ongoing"]').classList.contains('active')`));
   await click('#add-input');
-  await type('Website redesign');
+  await type('Plan the office move');
   await key('Enter');
-  const og = byText('Website redesign');
+  const og = byText('Plan the office move');
   check('adding with Ongoing showing puts the task in Ongoing', og?.list === 'ongoing' &&
     await js(`!!document.querySelector('[data-page="ongoing"] ${taskSel(og?.id)}')`));
   await click(`${taskSel(og.id)} .status-btn`);
   await js(`[...document.querySelectorAll('.popover .pop-item')].find((b) => b.textContent.includes('In Progress')).classList.add('e2e')`);
   await click('.popover .pop-item.e2e');
   await sleep(400);
-  check('an Ongoing task takes a status but stays off the board', task(og.id).status === 'in_progress' &&
-    task(og.id).list === 'ongoing' && await js(`!document.querySelector('#sections ${taskSel(og.id)}')`));
+  check('an Ongoing task set In Progress moves onto the board, which shows only Ongoing', task(og.id).status === 'in_progress' &&
+    task(og.id).list === 'ongoing' && await js(`!!document.querySelector('.section[data-status="in_progress"] ${taskSel(og.id)}')`) &&
+    await js(`!document.querySelector('[data-page="ongoing"] ${taskSel(og.id)}') && !document.querySelector('#sections ${taskSel(id)}')`));
+  await click('.side-tab[data-tab="todo"]');
+  await sleep(400);
+  check('the To Do tab brings back today\'s board', await js(`!document.querySelector('#sections ${taskSel(og.id)}') && !!document.querySelector('#sections ${taskSel(id)}')`));
+  await click('.side-tab[data-tab="ongoing"]');
+  await sleep(400);
   await click(`${taskSel(og.id)} .status-btn`);
   await js(`[...document.querySelectorAll('.popover .pop-item')].find((b) => b.textContent.includes('Move to Today')).classList.add('e2e')`);
   await click('.popover .pop-item.e2e');
   await sleep(400);
-  check('Move to Today puts it on the board, status kept', task(og.id).list === 'today' &&
-    await js(`!!document.querySelector('.section[data-status="in_progress"] ${taskSel(og.id)}')`));
   await click('.side-tab[data-tab="todo"]');
+  await sleep(400);
+  check('Move to Today puts it on today\'s board, status kept', task(og.id).list === 'today' &&
+    await js(`!!document.querySelector('.section[data-status="in_progress"] ${taskSel(og.id)}')`));
+
+  // ── Folding a section ──
+  await click('.section[data-status="in_progress"] .section-head');
+  await sleep(400);
+  check('the chevron folds a section away, and it is remembered', await js(`(() => {
+    const sec = document.querySelector('.section[data-status="in_progress"]');
+    return sec.classList.contains('collapsed') && sec.querySelector('.section-body').getBoundingClientRect().height < 1; })()`) &&
+    settings.get('collapsed').includes('today:in_progress'));
+  await click('.section[data-status="in_progress"] .fold');
+  await sleep(400);
+  check('clicking it again opens the section', await js(`!document.querySelector('.section[data-status="in_progress"]').classList.contains('collapsed')`) &&
+    !settings.get('collapsed').includes('today:in_progress'));
 
   // ── Preferences ──
   await click('#settings-btn');
@@ -324,6 +392,24 @@ async function run() {
   settings.set({ sort: 'default' });
   wc.send('settings', settings.all());
   await sleep(300);
+
+  // ── Compact: the list tabs sit on the bottom edge, clear of the rows ──
+  win.setSize(480, 560);
+  await sleep(600);
+  check('compact tabs sit on the bottom edge, both the same gray, over no row', await js(`(() => {
+    const tabs = [...document.querySelectorAll('.edge-tab')];
+    const rs = tabs.map((t) => t.getBoundingClientRect());
+    // Only what shows: rows scrolled past the board's bottom are clipped by it.
+    const view = document.getElementById('board').getBoundingClientRect();
+    const rows = [...document.querySelectorAll('#sections .row')].map((r) => r.getBoundingClientRect())
+      .map((b) => ({ left: b.left, right: b.right, top: Math.max(b.top, view.top), bottom: Math.min(b.bottom, view.bottom) }))
+      .filter((b) => b.bottom > b.top);
+    const hits = rs.some((a) => rows.some((b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom));
+    const bg = tabs.map((t) => getComputedStyle(t).backgroundColor);
+    return document.getElementById('pane').classList.contains('compact') &&
+      rs.every((r) => Math.abs(r.bottom - innerHeight) < 1) && bg[0] === bg[1] && !hits; })()`));
+  win.setSize(780, 560);
+  await sleep(500);
 
   // ── Persistence ──
   store.flush();
