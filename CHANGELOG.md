@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.3.0 — 2026-11-03
+
+- **New look.** The design is flatter, softer and more modern:
+  - flat soft-pill rows, with no gloss, inner glow or drop shadows
+  - Poppins, bundled with the app
+  - a black-and-white interface with pill controls
+  - per-mode status palettes: pastels with dark text in Dark mode, earthy
+    tones with white text in Light mode
+  - edit tools appear over the row on hover, so the text keeps its full
+    width
+  - priority rings get a solid centre, so they read on any fill
+- **Solid background.** White in Light mode and charcoal (`#272727`) in Dark.
+  The background opacity and blur settings are gone.
+- **Fixed:** the top of the add field and the header buttons (+, sort, gear)
+  ignored clicks and hover. The closed Preferences sheet left an invisible
+  window-drag area over them. The end-to-end test now checks for that.
+
 ## v0.2.1 — 2026-10-27
 
 - **The blur behind the window actually shows.** macOS only blurs behind a

@@ -14,3 +14,6 @@ tools/shots/out/
 
 # The original build brief, kept next to the code but not published
 clearday-prompt.md
+
+# Third-party design references, kept locally only
+Design references/

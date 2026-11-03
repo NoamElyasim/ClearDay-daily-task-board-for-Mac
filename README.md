@@ -17,12 +17,17 @@ projects beside it.
 
 ## Features
 
-- **Translucent window.** The desktop shows through a blurred background. You
-  set how see-through it is, separately for Light and Dark. It has Light,
-  Dark and Follow System themes.
+- **A flat, modern look.**
+  - Soft pill rows set in Poppins, on a solid white (Light) or charcoal
+    (Dark) window.
+  - In Dark mode the statuses are pastels with dark text. In Light mode they
+    are earthy tones with white text.
+  - The rest of the interface stays black and white, so colour only ever
+    means a status or a priority.
+  - Light, Dark and Follow System themes.
 - **Statuses fill the row.** Click the round button on a row and pick To Do,
   In Progress, Awaiting Approval, On Hold or Done. The whole row takes that
-  colour.
+  colour. The edit tools appear when you hover over a row.
 - **To Do in its own panel.** The board lists In Progress first, then
   Awaiting Approval, then On Hold, then Done. A row moves to its new section,
   animated, when its status changes.
@@ -52,8 +57,7 @@ projects beside it.
 - **Your day carries over.** At midnight only the date changes. Nothing is
   cleared or archived.
 - **Preferences** (the gear, or ⌘,):
-  - Appearance: theme, background opacity for Light and Dark, blur, text size
-    and the weekday.
+  - Appearance: theme, text size and the weekday.
   - Behavior: always on top, Dock or menu bar only, launch at login, sort and
     spell checking.
   - Data: show the data folder, export your tasks, reset the window position.
