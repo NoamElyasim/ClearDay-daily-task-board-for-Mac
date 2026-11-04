@@ -420,7 +420,7 @@ async function run() {
   check('clicking it again opens the section', await js(`!document.querySelector('.section[data-status="in_progress"]').classList.contains('collapsed')`) &&
     !settings.get('collapsed').includes('today:in_progress'));
 
-  // ── Collapse all / Expand all ──
+  // ── Collapse / Expand ──
   const toolLabel = (sel) => js(`document.querySelector('${sel} .tool-label').textContent`);
   check('the board tools sit level with the first heading, at the right, clear of it', await js(`(() => {
     const t = document.getElementById('board-tools').getBoundingClientRect();
@@ -428,16 +428,17 @@ async function run() {
     const h = head.getBoundingClientRect();
     const last = head.querySelector('.count').getBoundingClientRect();
     return Math.abs((t.top + t.bottom) / 2 - (h.top + h.bottom - 8) / 2) < 4 && t.left > last.right; })()`));
-  check('with sections open the button says Collapse all', await toolLabel('#fold-all-btn') === 'Collapse all');
+  check('with sections open the button says Collapse, with no icon', await toolLabel('#fold-all-btn') === 'Collapse' &&
+    await js(`!document.querySelector('#fold-all-btn svg')`));
   await click('#fold-all-btn');
   await sleep(450);
-  check('Collapse all folds every section, and the button turns to Expand all', await js(`
+  check('Collapse folds every section, and the button turns to Expand', await js(`
     [...document.querySelectorAll('#sections .section[data-key]:not(.is-empty)')].every((s) => s.classList.contains('collapsed'))`) &&
-    await toolLabel('#fold-all-btn') === 'Expand all');
+    await toolLabel('#fold-all-btn') === 'Expand');
   await click('#fold-all-btn');
   await sleep(450);
-  check('Expand all opens them all again', await js(`!document.querySelector('#sections .section.collapsed')`) &&
-    await toolLabel('#fold-all-btn') === 'Collapse all' && settings.get('collapsed').length === 0);
+  check('Expand opens them all again', await js(`!document.querySelector('#sections .section.collapsed')`) &&
+    await toolLabel('#fold-all-btn') === 'Collapse' && settings.get('collapsed').length === 0);
 
   // ── Select several tasks and delete them together ──
   const picks = await js(`[...document.querySelectorAll('#sections .task')].slice(0, 2).map((e) => e.dataset.id)`);

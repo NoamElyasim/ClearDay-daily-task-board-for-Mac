@@ -319,7 +319,7 @@ export function render({ animate = false } = {}) {
 }
 
 // The board's tools, level with the first heading. One button folds every
-// section, or unfolds them all once every one is folded. Select picks tasks
+// section (Collapse), or unfolds them all once every one is folded (Expand). Select picks tasks
 // to delete together; while it is on, Delete and Cancel stand in.
 function tool(id, icon, label, title = label) {
   const b = document.getElementById(id);
@@ -334,8 +334,8 @@ function renderTools(sections) {
   for (const id of state.picked) if (!state.tasks.has(id)) state.picked.delete(id);
   const keys = foldableKeys(sections);
   const allFolded = keys.length > 0 && keys.every((k) => state.collapsed.has(k));
-  const fold = allFolded ? tool('fold-all-btn', ICONS.expandAll, 'Expand all', 'Unfold every section')
-    : tool('fold-all-btn', ICONS.collapseAll, 'Collapse all', 'Fold every section');
+  const fold = allFolded ? tool('fold-all-btn', '', 'Expand', 'Unfold every section')
+    : tool('fold-all-btn', '', 'Collapse', 'Fold every section');
   fold.hidden = state.selecting || keys.length === 0;
   const n = state.picked.size;
   const del = tool('delete-picked-btn', ICONS.trash, n ? `Delete ${n}` : 'Delete',
@@ -344,7 +344,10 @@ function renderTools(sections) {
   del.disabled = n === 0;
   if (state.selecting) tool('select-btn', ICONS.close, 'Cancel', 'Stop selecting (Esc)');
   else tool('select-btn', ICONS.select, 'Select', 'Select tasks to delete');
-  document.getElementById('board-tools').classList.toggle('flat', !sections.some((s) => s.status));
+  const tools = document.getElementById('board-tools');
+  tools.classList.toggle('flat', !sections.some((s) => s.status));
+  // The first heading keeps clear of the tools, whatever their labels say.
+  boardEl.style.setProperty('--tools-w', `${tools.offsetWidth}px`);
   pane.classList.toggle('selecting', state.selecting);
 }
 

@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- **Collapse all / Expand all:** one button, level with the first section
+- **Collapse / Expand:** one button, level with the first section
   heading, folds every section, and unfolds them all once they are folded.
 - **Select:** beside it, picks several tasks to delete together. Rows show a
   tick circle and a click anywhere on a row picks it; ⌘A picks every task in

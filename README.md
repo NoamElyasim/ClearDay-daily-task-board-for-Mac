@@ -55,9 +55,9 @@ projects beside it.
   animated, when its status changes.
 - **Fold a section away.** Click the chevron beside its heading to hide its
   tasks. The count stays, and the app remembers what you folded.
-  **Collapse all**, level with the first heading, folds every section; once
-  they are all folded it turns into **Expand all**.
-- **Select several tasks.** **Select** (beside Collapse all) puts a tick
+  **Collapse**, level with the first heading, folds every section; once
+  they are all folded it turns into **Expand**.
+- **Select several tasks.** **Select** (beside Collapse) puts a tick
   circle on every row: click rows to pick them, ⌘A picks every task in view,
   then **Delete** removes them together. One Undo (or ⌘Z) brings them all
   back. Cancel or Esc leaves selecting.

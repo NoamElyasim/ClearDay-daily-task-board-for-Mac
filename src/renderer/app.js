@@ -429,7 +429,7 @@ async function deletePicked() {
 document.getElementById('select-btn').addEventListener('click', () => setSelecting(!state.selecting));
 document.getElementById('delete-picked-btn').addEventListener('click', deletePicked);
 
-// Collapse all, or Expand all once every section is folded.
+// Collapse every section, or Expand them all once every one is folded.
 document.getElementById('fold-all-btn').addEventListener('click', () => {
   const keys = foldableKeys();
   if (!keys.length) return;
