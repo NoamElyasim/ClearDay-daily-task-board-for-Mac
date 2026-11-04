@@ -5,7 +5,7 @@ One window, one day: set what's in progress, what's waiting for approval,
 what's on hold and what's done, with the to-do list and your long-term
 projects beside it.
 
-[![ClearDay in 20 seconds: add a task, start it, prioritize it, fold a section, switch to light](docs/film.gif)](https://github.com/NoamElyasim/ClearDay-daily-task-board-for-Mac/releases/download/v0.5.0/ClearDay-film.mp4)
+[![ClearDay in 24 seconds: add a task, start it, prioritize it, write a note, switch to light, quick add with ⌘⌘](docs/film.gif)](https://github.com/NoamElyasim/ClearDay-daily-task-board-for-Mac/releases/download/v0.7.0/ClearDay-film.mp4)
 
 <sub>Click the animation to watch the film with sound.</sub>
 
@@ -15,6 +15,10 @@ projects beside it.
 |---|---|
 | ![ClearDay, light](docs/expanded-light.png) | ![ClearDay, compact](docs/compact-light.png) |
 
+| Notes | Search |
+|---|---|
+| ![Notes with formatting and bullets](docs/notes-rich-dark.png) | ![Live search](docs/search-light.png) |
+
 | Ongoing projects | Preferences |
 |---|---|
 | ![The Ongoing tab](docs/ongoing-dark.png) | ![Preferences](docs/prefs-dark.png) |
@@ -22,7 +26,7 @@ projects beside it.
 ## Features
 
 - **A flat, modern look.**
-  - Soft pill rows set in Poppins, on a solid white (Light) or charcoal
+  - Soft pill rows set in Poppins, on a solid cream (Light) or charcoal
     (Dark) window.
   - Light mode is warm cream with bright status colours; Dark mode is
     charcoal with deeper, muted ones.
@@ -39,7 +43,8 @@ projects beside it.
 - **Add and Search buttons.** Each opens into a field with the caret ready.
   Search shows matching tasks (text and notes, both lists) as you type;
   Enter jumps to the task.
-- **Hide the side panel** from the header to give the board the full width.
+- **Hide the side panel** with the button beside its tabs to give the board
+  the full width.
 - **Move the window from anywhere.** Drag any empty space: the header, the
   gaps between rows, the space under them.
 - **Statuses fill the row.** Click the round button on a row and pick To Do,
@@ -48,9 +53,10 @@ projects beside it.
 - **To Do in its own panel.** The board lists In Progress first, then
   Awaiting Approval, then On Hold, then Done. A row moves to its new section,
   animated, when its status changes.
-- **Fold a section away.** Click the chevron (or anywhere on the heading) to
-  hide its tasks. The count stays, and the app remembers what you folded.
-- **Ongoing projects.** Long-term work lives in an Ongoing tab beside To Do.
+- **Fold a section away.** Click the chevron beside its heading to hide its
+  tasks. The count stays, and the app remembers what you folded.
+- **Ongoing projects.** Long-term work lives in an Ongoing tab beside To Do;
+  To Do | Ongoing is a switch with a sliding knob.
   - With that tab open, the board shows your ongoing projects in the same
     status sections, and the side keeps their To Do. The To Do tab brings
     back today's board.
@@ -60,11 +66,16 @@ projects beside it.
 - **Priority bookmarks.** A red (High) or amber (Medium) bookmark hangs from
   the top of the row. Click it to change the priority; on a row without one,
   a faint bookmark appears when you point at the row.
+- **Edit in place.** Double-click a task to change its text.
 - **Partial bold.** Select a word and press ⌘B or the B button. With nothing
   selected, B bolds the whole row.
 - **Notes.** The ≡ button opens a notes panel attached under the task. The
   same button closes it, and so does a click anywhere else. One note is
   open at a time.
+  - Notes are rich text: bold, underline, strikethrough and four text sizes
+    from a small menu at the note's side, which folds away to an arrow.
+  - Type "- " to start a bulleted list. Enter continues it, and Backspace on
+    an empty bullet ends it.
   - It saves as you type and resizes from its bottom edge.
   - Right-click in a note for spelling suggestions, Look Up, speech, and
     writing direction: left to right or right to left, kept per note.
@@ -92,9 +103,12 @@ projects beside it.
 | Key | Action |
 |---|---|
 | Enter | Add the task you typed. On a selected row, edit it |
-| ⌘N | Jump to the add field |
+| ⌘ ⌘ (twice, in any app) | Quick add |
+| ⌘N | Open Add a task |
+| ⌘F | Search |
 | ↑ / ↓ | Select a row |
-| ⌘B | Bold the selection, or the whole row |
+| ⌘B | Bold the selection, or the whole row. In a note: bold |
+| ⌘U / ⇧⌘X | In a note: underline / strikethrough |
 | ⌘⌫ | Delete the selected task |
 | ⌘Z | Undo the last delete |
 | ⌘, | Preferences |

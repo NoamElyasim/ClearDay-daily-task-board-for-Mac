@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.7.0 — 2026-11-04
+
+- **Rich notes:** bold, underline, strikethrough and four text sizes from a
+  small menu at the note's side, which folds away to an arrow. Type "- " to
+  start a bulleted list; Enter continues it, Backspace on an empty bullet
+  ends it.
+- The notes card takes the row's rounded shape, without the coloured edge.
+- **To Do | Ongoing is a switch** with a sliding knob, like the quick-add bar.
+- The side panel button sits beside the tabs, and clears the first row when
+  the panel is hidden.
+- No pencil button: double-click a task to edit it. Sections fold only from
+  their chevron.
+- The header fits every width: the weekday gives way first.
+- Dark mode: Done's check sits on a dark disc again; grey control tracks.
+- **A new README film** showing the new features: the Add button, rich
+  notes, cream Light mode and quick add with ⌘⌘.
+
 ## v0.6.0 — 2026-11-04
 
 - **Quick add from anywhere:** press ⌘ twice in any app. A rounded bar rises
