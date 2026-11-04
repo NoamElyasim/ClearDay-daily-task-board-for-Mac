@@ -55,6 +55,13 @@ svg { display: block; }
 .icon-btn:hover { background: var(--accent); color: var(--accent-text); }
 .icon-btn:active { transform: scale(0.92); }
 #sidebar-btn { position: absolute; top: 9px; right: 18px; z-index: 6; width: 28px; height: 28px; }
+/* With the panel hidden the button sits higher, level with the first
+   section heading, clear of the first row (and its hover circle with it). */
+#pane.side-hidden:not(.compact) #sidebar-btn { top: -3px; right: 12px; }
+#sidebar-btn { transition: top var(--dur-move) var(--ease-out), right var(--dur-move) var(--ease-out), background-color var(--dur-fast) ease, color var(--dur-fast) ease, transform var(--dur-fast) ease; }
+/* A flat board (sorted by priority or date) has no heading to sit beside:
+   leave it a line of room. */
+#pane.side-hidden:not(.compact) #sections > .section:first-child:not([data-status]) { margin-top: 30px; }
 #side .side-tabs { margin-right: 34px; }
 #sidebar-btn .chev { transition: transform var(--dur-move) var(--ease-out); transform-origin: 6.4px 8px; }
 #pane.side-hidden:not(.compact) #sidebar-btn .chev, #pane.compact:not(.drawer-open) #sidebar-btn .chev { transform: scaleX(-1); }

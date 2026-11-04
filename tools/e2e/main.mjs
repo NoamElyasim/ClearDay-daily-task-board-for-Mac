@@ -442,6 +442,10 @@ async function run() {
   await sleep(500);
   check('the sidebar button hides the side panel, and it is remembered', settings.get('showSide') === false &&
     await js(`document.getElementById('pane').classList.contains('side-hidden') && document.getElementById('side').getBoundingClientRect().width < 2`));
+  check('with the panel hidden, the button sits clear of the first row', await js(`(() => {
+    const b = document.getElementById('sidebar-btn').getBoundingClientRect();
+    const row = document.querySelector('#sections .row').getBoundingClientRect();
+    return b.bottom <= row.top - 4; })()`));
   await click('#sidebar-btn');
   await sleep(500);
   check('and shows it again', settings.get('showSide') === true &&
