@@ -58,6 +58,10 @@ function createRow(task) {
   grip.innerHTML = ICONS.grip;
 
   const status = button('status-btn', 'status', '', 'Set status');
+  // While selecting, a tick circle takes the status button's place.
+  const pick = document.createElement('span');
+  pick.className = 'pick';
+  pick.innerHTML = ICONS.check;
 
   const text = document.createElement('div');
   text.className = 'text';
@@ -82,7 +86,7 @@ function createRow(task) {
     button('ctl notes-btn', 'notes', ICONS.notes, 'Notes'),
   );
 
-  row.append(grip, status, text, controls, button('bookmark', 'priority', '', 'Priority'));
+  row.append(grip, pick, status, text, controls, button('bookmark', 'priority', '', 'Priority'));
   el.append(row);
   return el;
 }
@@ -135,7 +139,7 @@ function signature(task) {
   return [
     task.updatedAt, task.text, JSON.stringify(task.bold), task.status, task.priority,
     task.notes.length > 0, task.notesHtml.length, task.notesHeight, task.notesDir, state.spellcheck, state.notesTools,
-    state.selectedId === task.id, state.editingId === task.id, state.openNotes.has(task.id),
+    state.selectedId === task.id, state.editingId === task.id, state.openNotes.has(task.id), state.picked.has(task.id),
   ].join('|');
 }
 
@@ -153,6 +157,7 @@ function rowFor(task) {
   el.dataset.status = task.status;
   const row = el.querySelector('.row');
   row.classList.toggle('selected', state.selectedId === task.id);
+  row.classList.toggle('picked', state.picked.has(task.id));
 
   const status = row.querySelector('.status-btn');
   status.innerHTML = task.status === 'done' ? ICONS.check : '';
@@ -305,11 +310,53 @@ export function render({ animate = false } = {}) {
     for (const c of pane.querySelectorAll(`[data-tab="${tab}"] .count`)) c.textContent = counts[tab];
   }
   showSide(state.side);
+  renderTools(sections);
 
   for (const [id, { el }] of els) {
     if (!state.tasks.has(id)) { el.remove(); els.delete(id); }
   }
   if (before) play(before);
+}
+
+// The board's tools, level with the first heading. One button folds every
+// section, or unfolds them all once every one is folded. Select picks tasks
+// to delete together; while it is on, Delete and Cancel stand in.
+function tool(id, icon, label, title = label) {
+  const b = document.getElementById(id);
+  b.querySelector('.tool-icon').innerHTML = icon;
+  b.querySelector('.tool-label').textContent = label;
+  b.title = title;
+  b.setAttribute('aria-label', title);
+  return b;
+}
+
+function renderTools(sections) {
+  for (const id of state.picked) if (!state.tasks.has(id)) state.picked.delete(id);
+  const keys = foldableKeys(sections);
+  const allFolded = keys.length > 0 && keys.every((k) => state.collapsed.has(k));
+  const fold = allFolded ? tool('fold-all-btn', ICONS.expandAll, 'Expand all', 'Unfold every section')
+    : tool('fold-all-btn', ICONS.collapseAll, 'Collapse all', 'Fold every section');
+  fold.hidden = state.selecting || keys.length === 0;
+  const n = state.picked.size;
+  const del = tool('delete-picked-btn', ICONS.trash, n ? `Delete ${n}` : 'Delete',
+    n ? `Delete ${n} task${n === 1 ? '' : 's'} (⌘⌫)` : 'Pick the tasks to delete');
+  del.hidden = !state.selecting;
+  del.disabled = n === 0;
+  if (state.selecting) tool('select-btn', ICONS.close, 'Cancel', 'Stop selecting (Esc)');
+  else tool('select-btn', ICONS.select, 'Select', 'Select tasks to delete');
+  document.getElementById('board-tools').classList.toggle('flat', !sections.some((s) => s.status));
+  pane.classList.toggle('selecting', state.selecting);
+}
+
+// The keys of the board's sections that have tasks to fold.
+export function foldableKeys(sections = currentSections()) {
+  const list = state.side === 'ongoing' ? 'ongoing' : 'today';
+  return sections.filter((s) => s.status && s.tasks.length).map((s) => `${list}:${s.status}`);
+}
+
+function currentSections() {
+  const list = state.side === 'ongoing' ? 'ongoing' : 'today';
+  return arrange([...state.tasks.values()], state.sort, list).sections;
 }
 
 // Which side tab is showing: 'todo' or 'ongoing'.

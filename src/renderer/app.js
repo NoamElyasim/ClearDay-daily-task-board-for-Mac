@@ -5,7 +5,7 @@ import {
   STATUSES, STATUS_LABELS, PRIORITIES, toggleBold, trimRich, orderBetween, arrange,
 } from '../shared/model.mjs';
 import { state, load, changed, onChange, createTask, updateTask, removeTask, restoreTask } from './state.js';
-import { initBoard, render, taskEl, textEl, visibleOrder, showSide } from './board.js';
+import { initBoard, render, taskEl, textEl, visibleOrder, showSide, foldableKeys } from './board.js';
 import { renderRich, serialize, selectionOffsets, setSelection, caretToEnd } from './richtext.js';
 import { openPopover, closePopover, handlePopoverKey, isOpen as popoverOpen } from './popover.js';
 import { showToast } from './toast.js';
@@ -192,7 +192,7 @@ pane.addEventListener('paste', (e) => {
 });
 pane.addEventListener('dblclick', (e) => {
   const t = e.target.closest('.text');
-  if (t && !t.isContentEditable) startEdit(t.closest('.task').dataset.id);
+  if (t && !t.isContentEditable && !state.selecting) startEdit(t.closest('.task').dataset.id);
 });
 
 // ─── Bold ────────────────────────────────────────────────────────────────────
@@ -378,28 +378,71 @@ document.addEventListener('contextmenu', (e) => {
 }, true);
 
 // ─── Delete and undo ─────────────────────────────────────────────────────────
-const deleted = [];   // ids, most recent last, for ⌘Z
+const deleted = [];   // groups of ids deleted together, most recent last, for ⌘Z
 
-async function deleteTask(id) {
-  if (state.editingId === id) cancelEdit();
-  const el = taskEl(id);
-  if (el) {
-    await el.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'scale(0.96)' }],
-      { duration: 150, easing: 'ease-in', fill: 'forwards' }).finished.catch(() => {});
-  }
-  await removeTask(id);
+const deleteTask = (id) => deleteTasks([id]);
+
+async function deleteTasks(ids) {
+  ids = ids.filter((id) => state.tasks.has(id));
+  if (!ids.length) return;
+  if (ids.includes(state.editingId)) cancelEdit();
+  await Promise.all(ids.map((id) => taskEl(id)?.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'scale(0.96)' }],
+    { duration: 150, easing: 'ease-in', fill: 'forwards' }).finished.catch(() => {})));
+  for (const id of ids) await removeTask(id);
   render({ animate: true });
-  deleted.push(id);
-  showToast('Task deleted', { action: 'Undo', onAction: () => undoDelete(id) });
+  deleted.push(ids);
+  const message = ids.length === 1 ? 'Task deleted' : `${ids.length} tasks deleted`;
+  showToast(message, { action: 'Undo', onAction: () => undoDelete(ids) });
 }
 
-async function undoDelete(id = deleted[deleted.length - 1]) {
-  if (!id) return;
-  const i = deleted.lastIndexOf(id);
+async function undoDelete(group = deleted[deleted.length - 1]) {
+  if (!group) return;
+  const i = deleted.lastIndexOf(group);
   if (i >= 0) deleted.splice(i, 1);
-  const t = await restoreTask(id);
-  if (t) render({ animate: true });
+  let any = false;
+  for (const id of group) if (await restoreTask(id)) any = true;
+  if (any) render({ animate: true });
 }
+
+// ─── Select: pick several tasks, delete them together ───────────────────────
+function setSelecting(on) {
+  if (state.selecting === on) return;
+  if (on && state.editingId) commitEdit();
+  closePopover();
+  state.selecting = on;
+  state.picked.clear();
+  render();
+}
+
+function togglePick(id) {
+  if (state.picked.has(id)) state.picked.delete(id); else state.picked.add(id);
+  render();
+}
+
+async function deletePicked() {
+  const ids = [...state.picked];
+  if (!ids.length) return;
+  setSelecting(false);
+  await deleteTasks(ids);
+}
+
+document.getElementById('select-btn').addEventListener('click', () => setSelecting(!state.selecting));
+document.getElementById('delete-picked-btn').addEventListener('click', deletePicked);
+
+// Collapse all, or Expand all once every section is folded.
+document.getElementById('fold-all-btn').addEventListener('click', () => {
+  const keys = foldableKeys();
+  if (!keys.length) return;
+  const unfold = keys.every((k) => state.collapsed.has(k));
+  for (const k of keys) if (unfold) state.collapsed.delete(k); else state.collapsed.add(k);
+  for (const sec of document.querySelectorAll('#sections .section[data-key]')) {
+    sec.classList.add('folding');
+    clearTimeout(sec.foldTimer);
+    sec.foldTimer = setTimeout(() => sec.classList.remove('folding'), 360);
+  }
+  render();
+  api.settings.set({ collapsed: [...state.collapsed] });
+});
 
 // ─── Clicks ──────────────────────────────────────────────────────────────────
 // Buttons keep the text selection: the B button has to see what was selected.
@@ -414,6 +457,8 @@ pane.addEventListener('click', (e) => {
   const id = taskNode?.dataset.id;
   const task = id && state.tasks.get(id);
 
+  // Selecting: a click anywhere on a row picks it, or unpicks it.
+  if (state.selecting && task && e.target.closest('.row')) { togglePick(id); return; }
   const fold = e.target.closest('.fold');
   if (fold) { toggleFold(fold.closest('.section')); return; }
   if (btn && task) {
@@ -716,12 +761,25 @@ window.addEventListener('keydown', (e) => {
     if (isPrefsOpen()) { closePrefs(); return; }
     if (state.editingId) { cancelEdit(); return; }
     if (addForm.classList.contains('open')) { closeAdd(); return; }
+    if (state.selecting) { setSelecting(false); return; }
     if (pane.classList.contains('drawer-open')) { setDrawer(false); return; }
     select(null);
     return;
   }
   if (typing(e.target) || isPrefsOpen()) return;
 
+  if (cmd && (e.key === 'Backspace' || e.key === 'Delete') && state.selecting) {
+    e.preventDefault();
+    deletePicked();
+    return;
+  }
+  // ⌘A while selecting picks every task in view.
+  if (cmd && e.key.toLowerCase() === 'a' && state.selecting) {
+    e.preventDefault();
+    for (const id of visibleOrder()) state.picked.add(id);
+    render();
+    return;
+  }
   if (cmd && (e.key === 'Backspace' || e.key === 'Delete')) {
     if (state.selectedId) { e.preventDefault(); deleteTask(state.selectedId); }
     return;
@@ -742,7 +800,7 @@ window.addEventListener('keydown', (e) => {
     taskEl(order[next])?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     return;
   }
-  if (e.key === 'Enter' && state.selectedId) {
+  if (e.key === 'Enter' && state.selectedId && !state.selecting) {
     e.preventDefault();
     startEdit(state.selectedId);
   }

@@ -55,6 +55,12 @@ projects beside it.
   animated, when its status changes.
 - **Fold a section away.** Click the chevron beside its heading to hide its
   tasks. The count stays, and the app remembers what you folded.
+  **Collapse all**, level with the first heading, folds every section; once
+  they are all folded it turns into **Expand all**.
+- **Select several tasks.** **Select** (beside Collapse all) puts a tick
+  circle on every row: click rows to pick them, ⌘A picks every task in view,
+  then **Delete** removes them together. One Undo (or ⌘Z) brings them all
+  back. Cancel or Esc leaves selecting.
 - **Ongoing projects.** Long-term work lives in an Ongoing tab beside To Do;
   To Do | Ongoing is a switch with a sliding knob.
   - With that tab open, the board shows your ongoing projects in the same
@@ -109,7 +115,8 @@ projects beside it.
 | ↑ / ↓ | Select a row |
 | ⌘B | Bold the selection, or the whole row. In a note: bold |
 | ⌘U / ⇧⌘X | In a note: underline / strikethrough |
-| ⌘⌫ | Delete the selected task |
+| ⌘⌫ | Delete the selected task, or the picked tasks while selecting |
+| ⌘A | While selecting: pick every task in view |
 | ⌘Z | Undo the last delete |
 | ⌘, | Preferences |
 | Esc | Cancel an edit, or close a picker, the drawer or Preferences |

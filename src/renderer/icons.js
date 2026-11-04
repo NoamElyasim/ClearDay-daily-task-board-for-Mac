@@ -20,6 +20,11 @@ export const ICONS = {
   // the panel will move.
   sidebar: svg('<rect x="1.75" y="2.25" width="12.5" height="11.5" rx="2.6"/><path d="M10.2 2.5v11"/><path class="chev" d="m5.4 5.9 2.1 2.1-2.1 2.1"/>'),
   search: svg('<circle cx="7" cy="7" r="4.4"/><path d="m10.3 10.3 3.2 3.2"/>', ' stroke-width="1.7"'),
+  // Two chevrons closing on the middle (fold all) or opening from it (unfold all).
+  collapseAll: svg('<path d="m4.8 2.6 3.2 3 3.2-3M4.8 13.4 8 10.4l3.2 3"/>', ' stroke-width="1.7"'),
+  expandAll: svg('<path d="M4.8 5.6 8 2.6l3.2 3M4.8 10.4 8 13.4l3.2-3"/>', ' stroke-width="1.7"'),
+  // Select: a ticked circle.
+  select: svg('<circle cx="8" cy="8" r="5.7"/><path d="m5.5 8.2 1.7 1.7 3.3-3.5"/>'),
   chevron: svg('<path d="m4.5 6.2 3.5 3.6 3.5-3.6"/>', ' stroke-width="1.8"'),
   sun: svg('<circle cx="8" cy="8" r="2.4"/><path d="M8 1.6v1.5M8 12.9v1.5M14.4 8h-1.5M3.1 8H1.6M12.5 3.5l-1 1M4.5 11.5l-1 1M12.5 12.5l-1-1M4.5 4.5l-1-1"/>'),
   moon: svgFill('<path d="M13.6 10.1A5.9 5.9 0 0 1 5.9 2.4a5.9 5.9 0 1 0 7.7 7.7Z"/>'),

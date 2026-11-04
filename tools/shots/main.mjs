@@ -139,6 +139,15 @@ const SHOTS = {
       cleardayDebug.state.tasks.set(id, (await window.clearday.tasks.list()).find((t) => t.id === id)); cleardayDebug.toggleNotes(id); document.activeElement.blur(); 1 })()`);
   } },
   'folded-light': { theme: 'light', width: 780, height: 560, prefs: { collapsed: ['today:done'] } },
+  'all-folded-dark': { theme: 'dark', width: 420, height: 600, setup: clickFirst('#fold-all-btn') },
+  'selecting-light': { theme: 'light', width: 340, height: 600, setup: async (js) => {
+    await js(`document.getElementById('select-btn').click(); 1`);
+    await js(`[...document.querySelectorAll('#sections .row')].slice(0, 2).forEach((r) => r.click()); 1`);
+  } },
+  'selecting-dark': { theme: 'dark', width: 780, height: 560, setup: async (js) => {
+    await js(`document.getElementById('select-btn').click(); 1`);
+    await js(`[...document.querySelectorAll('#sections .row')].slice(1, 3).forEach((r) => r.click()); 1`);
+  } },
   'prefs-dark': { theme: 'dark', width: 780, height: 560, setup: (js) => js('cleardayDebug.openPrefs(); 1') },
   'prefs-light-narrow': { theme: 'light', width: 340, height: 600, setup: (js) => js('cleardayDebug.openPrefs(); 1') },
   'hover-row-light': { theme: 'light', width: 780, height: 560, setup: (js) => js(`cleardayDebug.state.selectedId = ${firstId}; cleardayDebug.render(); 1`) },

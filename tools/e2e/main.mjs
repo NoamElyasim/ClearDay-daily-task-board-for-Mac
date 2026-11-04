@@ -420,6 +420,54 @@ async function run() {
   check('clicking it again opens the section', await js(`!document.querySelector('.section[data-status="in_progress"]').classList.contains('collapsed')`) &&
     !settings.get('collapsed').includes('today:in_progress'));
 
+  // ── Collapse all / Expand all ──
+  const toolLabel = (sel) => js(`document.querySelector('${sel} .tool-label').textContent`);
+  check('the board tools sit level with the first heading, at the right, clear of it', await js(`(() => {
+    const t = document.getElementById('board-tools').getBoundingClientRect();
+    const head = document.querySelector('#sections .section-head');
+    const h = head.getBoundingClientRect();
+    const last = head.querySelector('.count').getBoundingClientRect();
+    return Math.abs((t.top + t.bottom) / 2 - (h.top + h.bottom - 8) / 2) < 4 && t.left > last.right; })()`));
+  check('with sections open the button says Collapse all', await toolLabel('#fold-all-btn') === 'Collapse all');
+  await click('#fold-all-btn');
+  await sleep(450);
+  check('Collapse all folds every section, and the button turns to Expand all', await js(`
+    [...document.querySelectorAll('#sections .section[data-key]:not(.is-empty)')].every((s) => s.classList.contains('collapsed'))`) &&
+    await toolLabel('#fold-all-btn') === 'Expand all');
+  await click('#fold-all-btn');
+  await sleep(450);
+  check('Expand all opens them all again', await js(`!document.querySelector('#sections .section.collapsed')`) &&
+    await toolLabel('#fold-all-btn') === 'Collapse all' && settings.get('collapsed').length === 0);
+
+  // ── Select several tasks and delete them together ──
+  const picks = await js(`[...document.querySelectorAll('#sections .task')].slice(0, 2).map((e) => e.dataset.id)`);
+  const keepId = await js(`document.querySelector('#side .side-page.active .task')?.dataset.id`);
+  await click('#select-btn');
+  check('Select turns on picking: tick circles, Delete and Cancel', await js(`document.getElementById('pane').classList.contains('selecting') &&
+    getComputedStyle(document.querySelector('#sections .pick')).display !== 'none' &&
+    getComputedStyle(document.querySelector('#sections .status-btn')).display === 'none' &&
+    document.getElementById('fold-all-btn').hidden && !document.getElementById('delete-picked-btn').hidden &&
+    document.getElementById('delete-picked-btn').disabled`) && await toolLabel('#select-btn') === 'Cancel');
+  await click(`${taskSel(picks[0])} .text`);
+  await click(`${taskSel(picks[1])} [data-action="notes"]`);   // anywhere on the row picks it
+  await click(`${taskSel(keepId)} .text`);
+  await click(`${taskSel(keepId)} .text`);                    // and a second click unpicks it
+  check('clicking rows picks them, opens nothing, and counts them', await js(`
+    ${JSON.stringify(picks)}.every((x) => document.querySelector('.task[data-id="' + x + '"] .row').classList.contains('picked')) &&
+    !document.querySelector('.task[data-id="${keepId}"] .row').classList.contains('picked') &&
+    !document.querySelector('.notes') && !document.querySelector('.popover')`) && await toolLabel('#delete-picked-btn') === 'Delete 2');
+  await click('#delete-picked-btn');
+  await sleep(500);
+  check('Delete removes the picked tasks and leaves selecting', picks.every((x) => !task(x)) && !!task(keepId) &&
+    await js(`!document.getElementById('pane').classList.contains('selecting') && !document.querySelector('.row.picked')`));
+  check('one toast for both', await js(`[...document.querySelectorAll('.toast span')].some((s) => s.textContent === '2 tasks deleted')`));
+  await key('z', ['meta']);
+  await sleep(400);
+  check('⌘Z brings both back', picks.every((x) => !!task(x)));
+  await click('#select-btn');
+  await key('Escape');
+  check('Esc stops selecting', await js(`!document.getElementById('pane').classList.contains('selecting')`));
+
   // ── Search: results as you type, Enter goes to the task ──
   await key('Escape');
   await click('#search-open');

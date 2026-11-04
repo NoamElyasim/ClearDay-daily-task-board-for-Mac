@@ -7,6 +7,8 @@ export const state = {
   tasks: new Map(),       // id → Task (live tasks only)
   sort: 'default',
   selectedId: null,
+  selecting: false,       // picking tasks to delete together
+  picked: new Set(),      // the ids picked while selecting
   editingId: null,
   openNotes: new Set(),   // the id whose notes panel is open (one at most)
   collapsed: new Set(),   // folded board sections, as 'list:status' keys
@@ -42,6 +44,7 @@ export async function removeTask(id) {
   const t = await api.tasks.remove(id);
   state.tasks.delete(id);
   state.openNotes.delete(id);
+  state.picked.delete(id);
   if (state.selectedId === id) state.selectedId = null;
   return t;
 }

@@ -44,6 +44,12 @@
 
   <main id="main">
     <section id="board" class="panel" aria-label="Board">
+      <!-- Level with the first heading: fold every section, and pick tasks to delete. -->
+      <div id="board-tools">
+        <button id="fold-all-btn" class="tool-btn"><span class="tool-icon"></span><span class="tool-label"></span></button>
+        <button id="delete-picked-btn" class="tool-btn danger"><span class="tool-icon"></span><span class="tool-label"></span></button>
+        <button id="select-btn" class="tool-btn"><span class="tool-icon"></span><span class="tool-label"></span></button>
+      </div>
       <div id="sections"></div>
       <div id="board-empty" class="empty"></div>
     </section>

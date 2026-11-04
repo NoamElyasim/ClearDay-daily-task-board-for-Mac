@@ -409,6 +409,49 @@ svg { display: block; }
 #pane.can-drag .grip { display: grid; }
 .row:hover .grip { opacity: 1; }
 
+/* ─── Board tools: Collapse all / Expand all, and Select ──────────────────── */
+/* Level with the first section heading, at the board's right edge; they
+   scroll with the board. */
+#board { position: relative; }
+#board-tools { position: absolute; top: 4px; right: 8px; z-index: 5; display: flex; gap: 6px; }
+#pane.side-hidden:not(.compact) #board-tools { right: 46px; }   /* clear of the sidebar button */
+#board.is-empty #board-tools { display: none; }
+/* A flat board (sorted by priority or date) has no heading to sit beside. */
+#board-tools.flat ~ #sections > .section:first-child { margin-top: 32px; }
+.tool-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  height: 24px; padding: 0 10px 0 7px;
+  border-radius: var(--radius-control);
+  background: var(--surface); color: var(--text);
+  font-size: 11.5px; font-weight: 500; white-space: nowrap;
+  transition: background-color var(--dur-fast) ease, color var(--dur-fast) ease, opacity var(--dur-fast) ease;
+}
+.tool-btn[hidden] { display: none; }
+.tool-btn:hover:not(:disabled) { background: var(--accent); color: var(--accent-text); }
+.tool-icon { display: grid; place-items: center; }
+.tool-icon svg { width: 13px; height: 13px; }
+.tool-btn.danger { background: var(--priority-high); color: #FFFFFF; }
+.tool-btn.danger:hover:not(:disabled) { background: color-mix(in srgb, var(--priority-high) 82%, #000); color: #FFFFFF; }
+.tool-btn:disabled { opacity: 0.45; }
+
+/* Selecting: a tick circle stands in for the status button, a click anywhere
+   on the row picks it, and the row tools stay out of the way. */
+.pick {
+  flex: none; width: 18px; height: 18px; border-radius: 50%;
+  display: none; place-items: center;
+  border: 1.5px solid currentColor; color: var(--on-fill);
+  transition: background-color var(--dur-fast) ease, transform var(--dur-fast) ease;
+}
+.pick svg { width: 11px; height: 11px; opacity: 0; }
+#pane.selecting .pick { display: grid; }
+#pane.selecting .status-btn, #pane.selecting .grip, #pane.selecting .edit-group, #pane.selecting .ctl.more { display: none; }
+#pane.selecting .row * { pointer-events: none; }
+#pane.selecting .row:hover .pick { transform: scale(1.12); }
+.row.picked .pick { background: var(--on-fill); border-color: var(--on-fill); color: var(--fill); }
+.row.picked .pick svg { opacity: 1; }
+#pane.selecting .row.picked { outline: 2px solid var(--accent); outline-offset: 2px; }
+#pane.selecting .row.selected:not(.picked) { outline: none; }
+
 /* ─── Notes, attached under the row ──────────────────────────────────────── */
 .notes {
   position: relative;

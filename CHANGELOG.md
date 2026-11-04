@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- **Collapse all / Expand all:** one button, level with the first section
+  heading, folds every section, and unfolds them all once they are folded.
+- **Select:** beside it, picks several tasks to delete together. Rows show a
+  tick circle and a click anywhere on a row picks it; ⌘A picks every task in
+  view. Delete removes them with one Undo toast ("3 tasks deleted"), and ⌘Z
+  brings them all back. Cancel or Esc leaves selecting.
+
 ## v0.7.0 — 2026-11-04
 
 - **Rich notes:** bold, underline, strikethrough and four text sizes from a
