@@ -226,9 +226,10 @@ async function run() {
   check('done rows show no bookmark, even with a priority', await js(`[...document.querySelectorAll('.task[data-status="done"] .bookmark')]
     .every((b) => getComputedStyle(b).display === 'none')`) && store.list().some((t) => t.status === 'done' && t.priority));
 
-  // ── Edit, Esc cancels, Enter saves ──
-  await click(`${taskSel(id)} [data-action="edit"]`);
-  check('pencil makes the text editable', await js(`document.querySelector('${taskSel(id)} .text').isContentEditable`));
+  // ── Edit (double-click), Esc cancels, Enter saves ──
+  check('the row has no pencil: double-click edits', await js(`!document.querySelector('${taskSel(id)} [data-action="edit"]')`));
+  await click(`${taskSel(id)} .text`, 2);
+  check('double-click makes the text editable', await js(`document.querySelector('${taskSel(id)} .text').isContentEditable`));
   await type(' XYZ');
   await key('Escape');
   check('Esc cancels the edit', task(id).text === 'Plan the sprint review' &&
@@ -247,14 +248,48 @@ async function run() {
   await type('Bring the burndown chart');
   await sleep(700);
   check('notes save automatically', task(id).notes === 'Bring the burndown chart');
+  check('the notes card has the row\'s radius and the row keeps its own', await js(`(() => {
+    const n = getComputedStyle(document.querySelector('${taskSel(id)} .notes')), r = getComputedStyle(document.querySelector('${taskSel(id)} .row'));
+    return n.borderTopLeftRadius === r.borderTopLeftRadius && r.borderBottomLeftRadius === r.borderTopLeftRadius && n.boxShadow === 'none'; })()`));
+  // Formatting from the side menu, and bullets that carry on with Enter.
+  await js(`(() => { const ed = document.querySelector('${taskSel(id)} .notes-editor');
+    const t = document.createTreeWalker(ed, NodeFilter.SHOW_TEXT).nextNode();
+    const r = document.createRange(); r.setStart(t, 0); r.setEnd(t, 5);
+    const s = getSelection(); s.removeAllRanges(); s.addRange(r); return 1; })()`);
+  await click(`${taskSel(id)} .nt-bold`);
+  await click(`${taskSel(id)} .nt-under`);
+  await sleep(600);
+  check('the notes menu bolds and underlines the selected word', /<b>/.test(task(id).notesHtml) && /<u>/.test(task(id).notesHtml),
+    task(id).notesHtml);
+  await js(`(() => { const ed = document.querySelector('${taskSel(id)} .notes-editor'); ed.focus();
+    const r = document.createRange(); r.selectNodeContents(ed); r.collapse(false); const s = getSelection(); s.removeAllRanges(); s.addRange(r); return 1; })()`);
+  await key('Enter');
+  await type('- ');
+  await type('first');
+  await key('Enter');
+  await type('second');
+  await sleep(600);
+  check('"- " starts a bullet point, and Enter makes the next one', task(id).notes.includes('- first\n- second') &&
+    await js(`document.querySelectorAll('${taskSel(id)} .notes-editor li').length`) === 2, JSON.stringify(task(id).notes) + ' ' + await js(`document.querySelector('${taskSel(id)} .notes-editor').innerHTML`));
+  await key('Enter');
+  await key('Backspace');
+  await type('after');
+  await sleep(600);
+  check('Backspace on an empty bullet removes it', /second\n(?!- )after/.test(task(id).notes), JSON.stringify(task(id).notes));
+  await click(`${taskSel(id)} .nt-toggle`);
+  await sleep(450);
+  check('the menu folds to its arrow, and stays folded', settings.get('notesTools') === 'min' &&
+    await js(`document.querySelector('${taskSel(id)} .nt-list').getBoundingClientRect().height < 1`));
+  await click(`${taskSel(id)} .nt-toggle`);
+  await sleep(300);
   await key('Escape');
   check('Esc does not close notes', await js(`!!document.querySelector('${taskSel(id)} .notes')`));
-  check('notes have no X button', await js(`!document.querySelector('${taskSel(id)} .notes button')`));
+  check('notes have no X button', await js(`![...document.querySelectorAll('${taskSel(id)} .notes button')].some((b) => /close/i.test(b.title + b.getAttribute('aria-label')))`));
   await wc.executeJavaScript('0');
   win.webContents.send('notes:dir', { id, dir: 'rtl' });
   await sleep(300);
   check('Writing Direction sets the note right-to-left', task(id).notesDir === 'rtl' &&
-    await js(`document.querySelector('${taskSel(id)} .notes textarea').dir`) === 'rtl');
+    await js(`document.querySelector('${taskSel(id)} .notes-editor').dir`) === 'rtl');
   const grip = await rect(`${taskSel(id)} .notes-resize`);
   wc.sendInputEvent({ type: 'mouseMove', x: grip.x, y: grip.y });
   wc.sendInputEvent({ type: 'mouseDown', x: grip.x, y: grip.y, button: 'left', clickCount: 1 });
@@ -370,7 +405,11 @@ async function run() {
     await js(`!!document.querySelector('.section[data-status="in_progress"] ${taskSel(og.id)}')`));
 
   // ── Folding a section ──
-  await click('.section[data-status="in_progress"] .section-head');
+  await click('.section[data-status="in_progress"] .section-head .title');
+  await sleep(400);
+  check('clicking the heading text does not fold the section',
+    await js(`!document.querySelector('.section[data-status="in_progress"]').classList.contains('collapsed')`));
+  await click('.section[data-status="in_progress"] .fold');
   await sleep(400);
   check('the chevron folds a section away, and it is remembered', await js(`(() => {
     const sec = document.querySelector('.section[data-status="in_progress"]');
@@ -407,9 +446,10 @@ async function run() {
   await sleep(500);
   check('and shows it again', settings.get('showSide') === true &&
     await js(`document.getElementById('side').getBoundingClientRect().width > 200`));
-  check('open notes and the unselected side tab sit on a lighter grey than the side card',
-    await cssColor('--raised') !== await cssColor('--surface') &&
-    await js(`getComputedStyle(document.querySelector('.side-tab:not(.active)')).backgroundColor`) === await cssColor('--raised'));
+  check('the To Do | Ongoing tabs are a switch whose knob slides to the chosen list', await js(`(() => {
+    const tabs = document.querySelector('.side-tabs'), knob = tabs.querySelector('.tab-knob');
+    return tabs.dataset.active === 'todo' && getComputedStyle(knob).transform === 'none'; })()`));
+  check('open notes sit on a lighter grey than the side card', await cssColor('--raised') !== await cssColor('--surface'));
 
   // ── Preferences ──
   await click('#settings-btn');
@@ -462,7 +502,7 @@ async function run() {
   const onDisk = JSON.parse(fs.readFileSync(path.join(TMP, 'tasks.json'), 'utf8'));
   const saved = onDisk.tasks.find((x) => x.id === id);
   check('everything is on disk after a save',
-    saved && saved.text === 'Plan the sprint review today' && saved.priority === 'high' && saved.notes === 'Bring the burndown chart' &&
+    saved && saved.text === 'Plan the sprint review today' && saved.priority === 'high' && saved.notes.startsWith('Bring the burndown chart') &&
     saved.status === 'in_progress' && saved.notesDir === 'rtl' && !saved.deletedAt && typeof saved.updatedAt === 'string');
 
   console.log(failed ? `\n${failed} check(s) failed` : '\nall checks passed');

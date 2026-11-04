@@ -67,7 +67,7 @@
 /* Segmented control: a pill track with the active segment as a pill */
 .seg {
   display: inline-flex; padding: 3px; gap: 2px; border-radius: var(--radius-control);
-  background: var(--surface);
+  background: var(--track);
 }
 .seg-btn {
   height: 26px; padding: 0 12px; border-radius: var(--radius-control);
@@ -80,7 +80,7 @@
 /* Switch */
 .switch {
   position: relative; width: 36px; height: 22px; border-radius: 11px; flex: none;
-  background: var(--surface-hover);
+  background: var(--track);
   transition: background-color var(--dur-fast) ease;
 }
 .switch .knob {
@@ -95,7 +95,7 @@
 
 .pref-select {
   height: 30px; padding: 0 12px; border-radius: var(--radius-control);
-  border: 0; background: var(--surface); color: var(--text);
+  border: 0; background: var(--track); color: var(--text);
   font: inherit; font-size: 12px;
 }
 

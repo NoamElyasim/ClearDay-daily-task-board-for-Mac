@@ -5,6 +5,7 @@ import { arrange, canDrag, STATUS_LABELS } from '../shared/model.mjs';
 import { state } from './state.js';
 import { renderRich } from './richtext.js';
 import { ICONS } from './icons.js';
+import { buildEditor, plainToHtml } from './notes.js';
 
 const MOVE_MS = 320;
 const EASE = 'cubic-bezier(0.32, 0.72, 0, 1)';
@@ -67,7 +68,6 @@ function createRow(task) {
   const group = document.createElement('div');
   group.className = 'edit-group';
   group.append(
-    button('ctl', 'edit', ICONS.pencil, 'Edit'),
     button('ctl', 'bold', ICONS.bold, 'Bold (⌘B)'),
     button('ctl', 'delete', ICONS.trash, 'Delete (⌘⌫)'),
   );
@@ -87,20 +87,25 @@ function createRow(task) {
   return el;
 }
 
+const notesHtml = (task) => task.notesHtml || plainToHtml(task.notes);
+
 function createNotes(task) {
   const n = document.createElement('div');
   n.className = 'notes';
   // Closed with the ≡ button that opened it; there is no close button here.
   const label = Object.assign(document.createElement('span'), { className: 'notes-label', textContent: 'Notes' });
-  const ta = document.createElement('textarea');
-  ta.placeholder = 'Write notes for this task…';
-  ta.value = task.notes;
-  ta.addEventListener('input', () => notesHandlers.onNotesInput(task.id, ta.value));
+  n.append(label);
+  n.ed = buildEditor(n, {
+    html: notesHtml(task),
+    placeholder: 'Write notes for this task…',
+    onChange: (text, html) => notesHandlers.onNotesInput(task.id, text, html),
+    onToolsToggle: () => notesHandlers.onToolsToggle(),
+  });
   const grip = document.createElement('div');
   grip.className = 'notes-resize';
   grip.title = 'Drag to resize';
   grip.addEventListener('pointerdown', (e) => startNotesResize(e, task.id, n));
-  n.append(label, ta, grip);
+  n.append(grip);
   return n;
 }
 
@@ -129,7 +134,7 @@ function startNotesResize(e, id, notesEl) {
 function signature(task) {
   return [
     task.updatedAt, task.text, JSON.stringify(task.bold), task.status, task.priority,
-    task.notes.length > 0, task.notesHeight, task.notesDir, state.spellcheck,
+    task.notes.length > 0, task.notesHtml.length, task.notesHeight, task.notesDir, state.spellcheck, state.notesTools,
     state.selectedId === task.id, state.editingId === task.id, state.openNotes.has(task.id),
   ].join('|');
 }
@@ -172,22 +177,24 @@ function rowFor(task) {
     notes = createNotes(task);
     el.append(notes);
   } else if (!open && notes) {
+    notes.ed.dispose();
     notes.remove();
     notes = null;
   }
   if (notes) {
     notes.style.height = `${task.notesHeight}px`;
-    const ta = notes.querySelector('textarea');
-    ta.dir = task.notesDir || 'auto';
-    ta.spellcheck = state.spellcheck;
-    if (document.activeElement !== ta && ta.value !== task.notes) ta.value = task.notes;
+    notes.classList.toggle('tools-min', state.notesTools === 'min');
+    const ed = notes.ed.editor;
+    ed.dir = task.notesDir || 'auto';
+    ed.spellcheck = state.spellcheck;
+    notes.ed.setHtml(notesHtml(task));
   }
   return el;
 }
 
 // ─── Layout ──────────────────────────────────────────────────────────────────
 // The board's sections, rebuilt only when the list or the sort changes their
-// set. A section's heading folds it away: the chevron, or anywhere on it.
+// set. A section's chevron folds it away.
 function ensureSkeleton(sections, boardList) {
   const key = boardList + ':' + sections.map((s) => s.status ?? 'flat').join(',');
   if (key === skeletonKey) return;
@@ -308,6 +315,7 @@ export function render({ animate = false } = {}) {
 // Which side tab is showing: 'todo' or 'ongoing'.
 export function showSide(tab) {
   for (const el of sideEl.querySelectorAll('.side-tab')) el.classList.toggle('active', el.dataset.tab === tab);
+  sideEl.querySelector('.side-tabs').dataset.active = tab;
   for (const el of sideEl.querySelectorAll('.side-page')) el.classList.toggle('active', el.dataset.page === tab);
 }
 

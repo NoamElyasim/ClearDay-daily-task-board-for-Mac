@@ -295,14 +295,22 @@ function moreItems(task) {
 
 // ─── Notes ───────────────────────────────────────────────────────────────────
 const noteTimers = new Map();
+const pendingNotes = new Map();   // id → the latest { notes, notesHtml } not yet saved
 const notesHandlers = {
-  onNotesInput(id, value) {
+  onNotesInput(id, text, html) {
     clearTimeout(noteTimers.get(id));
+    pendingNotes.set(id, { notes: text, notesHtml: html });
     noteTimers.set(id, setTimeout(async () => {
       noteTimers.delete(id);
-      await updateTask(id, { notes: value });
+      const patch = pendingNotes.get(id);
+      pendingNotes.delete(id);
+      await updateTask(id, patch);
       render();
     }, NOTES_SAVE_MS));
+  },
+  // The formatting menu, folded or open, the same for every note.
+  onToolsToggle() {
+    api.settings.set({ notesTools: state.notesTools === 'min' ? 'open' : 'min' });
   },
   async onNotesResize(id, height) {
     await updateTask(id, { notesHeight: height });
@@ -317,16 +325,25 @@ function toggleNotes(id) {
   for (const other of [...state.openNotes]) closeNotes(other, { draw: false });
   state.openNotes.add(id);
   render({ animate: true });
-  taskEl(id)?.querySelector('.notes textarea')?.focus();
+  const ed = taskEl(id)?.querySelector('.notes-editor');
+  if (ed) {
+    ed.focus();
+    const r = document.createRange();
+    r.selectNodeContents(ed);
+    r.collapse(false);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(r);
+  }
 }
 
 function closeNotes(id, { draw = true } = {}) {
   // A note closed mid-typing still saves what was typed.
-  const ta = taskEl(id)?.querySelector('.notes textarea');
-  if (ta && noteTimers.has(id)) {
+  if (noteTimers.has(id)) {
     clearTimeout(noteTimers.get(id));
     noteTimers.delete(id);
-    updateTask(id, { notes: ta.value });
+    updateTask(id, pendingNotes.get(id));
+    pendingNotes.delete(id);
   }
   state.openNotes.delete(id);
   if (draw) render({ animate: true });
@@ -351,7 +368,7 @@ api.onNotesDir(async ({ id, dir }) => {
 // Tells the right-click menu what was clicked: a note (and whose), a row's
 // text being edited, the add field, or nothing editable.
 document.addEventListener('contextmenu', (e) => {
-  const ta = e.target.closest?.('.notes textarea');
+  const ta = e.target.closest?.('.notes-editor');
   const id = e.target.closest?.('.task')?.dataset.id || null;
   window.cleardayContext = ta
     ? { field: 'notes', taskId: id, notesDir: state.tasks.get(id)?.notesDir || 'auto' }
@@ -397,7 +414,7 @@ pane.addEventListener('click', (e) => {
   const id = taskNode?.dataset.id;
   const task = id && state.tasks.get(id);
 
-  const fold = e.target.closest('.section-head');
+  const fold = e.target.closest('.fold');
   if (fold) { toggleFold(fold.closest('.section')); return; }
   if (btn && task) {
     const action = btn.dataset.action;
@@ -763,6 +780,7 @@ function applySettings(s, { first = false } = {}) {
   document.getElementById('weekday').hidden = !s.showWeekday;
 
   state.collapsed = new Set(s.collapsed || []);
+  if (s.notesTools !== state.notesTools) { state.notesTools = s.notesTools; if (!first) render(); }
   showSidePanel(s.showSide !== false);
   const sortChanged = s.sort !== state.sort;
   const spellChanged = s.spellcheckNotes !== state.spellcheck;

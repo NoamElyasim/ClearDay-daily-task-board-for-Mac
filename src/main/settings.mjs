@@ -26,6 +26,7 @@ const DEFAULTS = {
   collapsed: [],        // folded board sections, as 'list:status' keys
   showSide: true,       // the side panel (To Do | Ongoing) in the wide layout
   quickAdd: true,       // press ⌘ twice anywhere for the quick-add bar
+  notesTools: 'open',   // the notes' formatting menu: 'open' | 'min'
 };
 
 const VALID = {
@@ -41,6 +42,7 @@ const VALID = {
   sidePanel: (v) => ['todo', 'ongoing'].includes(v),
   showSide: (v) => typeof v === 'boolean',
   quickAdd: (v) => typeof v === 'boolean',
+  notesTools: (v) => ['open', 'min'].includes(v),
   collapsed: (v) => Array.isArray(v) && v.length <= 20 && v.every((k) => typeof k === 'string' && k.length < 40),
 };
 

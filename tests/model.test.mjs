@@ -177,3 +177,13 @@ test('list and notesDir default, validate and survive a patch', () => {
   assert.equal(v.list, 'today');
   assert.equal(v.notesDir, 'auto');
 });
+
+test('notes formatting rides along with the plain text, and plain notes alone clear it', () => {
+  const t = createTask({ text: 'x' });
+  assert.equal(t.notesHtml, '');
+  const rich = applyPatch(t, { notes: 'Call Dana', notesHtml: '<b>Call</b> Dana' });
+  assert.equal(rich.notesHtml, '<b>Call</b> Dana');
+  assert.equal(applyPatch(rich, { status: 'done' }).notesHtml, '<b>Call</b> Dana');
+  assert.equal(applyPatch(rich, { notes: 'Email Dana' }).notesHtml, '');
+  assert.equal(validateTask({ id: 'old', text: 'v0.5' }).notesHtml, '');
+});

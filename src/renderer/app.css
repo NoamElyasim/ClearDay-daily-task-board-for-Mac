@@ -33,14 +33,17 @@ svg { display: block; }
 /* ─── Header ─────────────────────────────────────────────────────────────── */
 #header {
   flex: none;
-  display: flex; align-items: center; justify-content: space-between;
+  container-type: inline-size;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
   padding: 14px 12px 10px 18px;
   -webkit-app-region: drag;
 }
-.date { display: flex; align-items: baseline; gap: 8px; }
-#date { font-size: 20px; font-weight: 600; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
-#weekday { font-size: 12.5px; font-weight: 400; color: var(--text-dim); }
-.header-actions { display: flex; gap: 4px; -webkit-app-region: no-drag; }
+.date { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+#date { flex: none; font-size: 20px; font-weight: 600; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+/* The weekday gives way first when the window narrows; the buttons never do. */
+#weekday { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12.5px; font-weight: 400; color: var(--text-dim); }
+@container (max-width: 330px) { #weekday { display: none; } }
+.header-actions { flex: none; display: flex; gap: 4px; -webkit-app-region: no-drag; }
 .header-actions { align-items: center; }
 /* Hover inverts a control (the accent pill with its text colour), so the
    change is plain to see. */
@@ -51,13 +54,15 @@ svg { display: block; }
 }
 .icon-btn:hover { background: var(--accent); color: var(--accent-text); }
 .icon-btn:active { transform: scale(0.92); }
+#sidebar-btn { position: absolute; top: 9px; right: 18px; z-index: 6; width: 28px; height: 28px; }
+#side .side-tabs { margin-right: 34px; }
 #sidebar-btn .chev { transition: transform var(--dur-move) var(--ease-out); transform-origin: 6.4px 8px; }
 #pane.side-hidden:not(.compact) #sidebar-btn .chev, #pane.compact:not(.drawer-open) #sidebar-btn .chev { transform: scaleX(-1); }
 
 /* Light / dark switch: a pill with a sun and a moon, and a knob that slides
    over whichever one is not in use. */
 .theme-switch {
-  position: relative; width: 46px; height: 24px; margin-right: 4px;
+  position: relative; width: 40px; height: 22px; margin-right: 4px;
   border-radius: var(--radius-control);
   background: var(--accent); color: var(--accent-text);
   transition: background-color var(--dur-fast) ease;
@@ -65,17 +70,17 @@ svg { display: block; }
 .theme-switch:hover { background: var(--accent-hover); }
 .theme-sun, .theme-moon {
   position: absolute; top: 50%; translate: 0 -50%;
-  width: 14px; height: 14px; display: grid; place-items: center;
+  width: 12px; height: 12px; display: grid; place-items: center;
   transition: opacity var(--dur-move) ease, transform var(--dur-move) var(--ease-out);
 }
 .theme-sun { left: 5px; }
 .theme-moon { right: 5px; }
-.theme-sun svg, .theme-moon svg { width: 14px; height: 14px; }
+.theme-sun svg, .theme-moon svg { width: 12px; height: 12px; }
 .theme-knob {
   position: absolute; top: 3px; left: 3px;
-  width: 18px; height: 18px; border-radius: 50%;
+  width: 16px; height: 16px; border-radius: 50%;
   background: var(--accent-text);
-  transform: translateX(22px);
+  transform: translateX(18px);
   transition: transform var(--dur-move) var(--ease-out);
 }
 .theme-switch[aria-checked="true"] .theme-knob { transform: none; }
@@ -197,24 +202,30 @@ svg { display: block; }
 }
 #side .side-tabs { margin-bottom: 14px; }
 
-/* To Do | Ongoing, as a pill segmented control */
+/* To Do | Ongoing, a switch like the quick-add bar's: a knob slides behind
+   the chosen list. */
 .side-tabs {
-  flex: none;
-  display: flex; gap: 3px;
+  position: relative; flex: none;
+  display: flex;
   margin-bottom: 10px; padding: 3px;
   border-radius: var(--radius-control);
   background: var(--bg);
 }
+.tab-knob {
+  position: absolute; left: 3px; top: 3px; bottom: 3px; width: calc(50% - 3px);
+  border-radius: var(--radius-control); background: var(--accent);
+  transition: transform var(--dur-move) var(--ease-out);
+}
+.side-tabs[data-active="ongoing"] .tab-knob { transform: translateX(100%); }
 .side-tab {
-  flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
+  position: relative; flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
   height: 28px; border-radius: var(--radius-control);
   font-size: 12px; font-weight: 500; color: var(--text-dim);
-  transition: background-color var(--dur-fast) ease, color var(--dur-fast) ease;
+  transition: color var(--dur-move) ease;
 }
-.side-tab:not(.active) { background: var(--raised); }
-.side-tab:hover { background: var(--tab-hover); color: var(--text); }
-.side-tab.active { background: var(--accent); color: var(--accent-text); }
-.side-tab.active .count { color: inherit; opacity: 0.6; }
+.side-tab:not(.active):hover { color: var(--text); }
+.side-tab.active { color: var(--accent-text); }
+.side-tab .count { color: inherit; opacity: 0.6; }
 #pane.dragging .side-tab:not(.active) { outline: 1.5px dashed var(--text-faint); outline-offset: -3px; }
 .side-page { display: none; }
 .side-page.active {
@@ -238,7 +249,7 @@ svg { display: block; }
   transition: transform var(--dur-move) var(--ease-out), background-color var(--dur-fast) ease, color var(--dur-fast) ease;
 }
 .fold svg { width: 13px; height: 13px; }
-.section-head:hover .fold { background: var(--accent); color: var(--accent-text); }
+.fold:hover { background: var(--accent); color: var(--accent-text); }
 .section.collapsed .fold { transform: rotate(-90deg); }
 .section.collapsed .section-head { padding-bottom: 0; }
 .section-body {
@@ -392,13 +403,11 @@ svg { display: block; }
 .row:hover .grip { opacity: 1; }
 
 /* ─── Notes, attached under the row ──────────────────────────────────────── */
-.task.notes-open > .row { border-bottom-left-radius: 8px; border-bottom-right-radius: 8px; }
 .notes {
   position: relative;
-  margin-top: 3px;
-  border-radius: 8px 8px var(--radius-card) var(--radius-card);
+  margin-top: 6px;
+  border-radius: var(--radius-row);
   background: var(--raised);
-  box-shadow: inset 0 2px 0 var(--fill);
   padding: 30px 14px 14px 16px;
   min-height: 72px;
   animation: notes-in var(--dur-move) var(--ease-out);
@@ -411,13 +420,55 @@ svg { display: block; }
   position: absolute; top: 10px; left: 16px;
   font-size: 11px; font-weight: 500; color: var(--text-dim);
 }
-.notes textarea {
-  display: block; width: 100%; height: 100%;
-  resize: none; border: 0; outline: none; background: transparent;
-  color: var(--text); font: inherit; font-size: 12.5px; line-height: 1.55;
-  user-select: text;
+.notes-editor {
+  height: 100%; overflow-y: auto; scrollbar-width: thin;
+  padding-right: 40px; outline: none;
+  color: var(--text); font-size: 12.5px; line-height: 1.55;
+  user-select: text; cursor: text; overflow-wrap: anywhere;
 }
-.notes textarea::placeholder { color: var(--text-faint); }
+.notes-editor:empty::before { content: attr(data-placeholder); color: var(--text-faint); pointer-events: none; }
+.notes-editor b { font-weight: 600; }
+.notes-editor ul { margin: 0; padding-inline-start: 20px; list-style: disc; }
+.notes-editor li::marker { color: var(--text-dim); }
+.notes-editor .fs-s { font-size: 11px; }
+.notes-editor .fs-l { font-size: 15px; }
+.notes-editor .fs-xl { font-size: 18px; font-weight: 600; }
+
+/* The formatting menu, down the note's right side. Folded, only its toggle
+   shows: a dash while open, a chevron pointing down while folded. */
+.notes-tools {
+  position: absolute; top: 8px; right: 8px; z-index: 2;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 3px; border-radius: 14px;
+  background: var(--surface);
+  transition: background-color var(--dur-move) ease;
+}
+.notes.tools-min .notes-tools { background: transparent; }
+.nt-list {
+  display: flex; flex-direction: column; gap: 2px; overflow: hidden;
+  max-height: 140px; opacity: 1;
+  transition: max-height var(--dur-move) var(--ease-out), opacity 200ms ease;
+}
+.notes.tools-min .nt-list { max-height: 0; opacity: 0; pointer-events: none; }
+.nt-btn {
+  width: 26px; height: 26px; border-radius: 9px;
+  font-size: 13px; color: var(--text-dim);
+  transition: background-color var(--dur-fast) ease, color var(--dur-fast) ease;
+}
+.nt-btn:hover { background: var(--accent); color: var(--accent-text); }
+.nt-btn.on { color: var(--text); background: var(--tab-hover); }
+.nt-btn b { font-weight: 700; }
+.nt-aa { font-weight: 600; font-size: 13px; }
+.nt-aa small { font-size: 9px; }
+.nt-toggle { position: relative; }
+.nt-toggle .nt-dash, .nt-toggle svg {
+  position: absolute; left: 50%; top: 50%; translate: -50% -50%;
+  transition: opacity 220ms ease, transform var(--dur-move) var(--ease-out);
+}
+.nt-toggle .nt-dash { width: 12px; height: 2px; border-radius: 1px; background: currentColor; }
+.nt-toggle svg { width: 13px; height: 13px; opacity: 0; transform: rotate(-90deg) scale(0.6); }
+.notes.tools-min .nt-toggle .nt-dash { opacity: 0; transform: scaleX(0.3); }
+.notes.tools-min .nt-toggle svg { opacity: 1; transform: none; }
 .notes-resize {
   position: absolute; left: 0; right: 0; bottom: 0; height: 10px;
   cursor: ns-resize;
@@ -445,6 +496,7 @@ svg { display: block; }
   transition: transform var(--dur-move) var(--ease-out);
 }
 #pane.compact #side .side-tabs { background: var(--surface); }
+#pane.compact #sidebar-btn { display: none; }
 #pane.compact.drawer-open #side { transform: none; }
 /* Two tabs rising from the bottom edge, each opening the drawer on its own
    list; the taller one is the list the board shows. */

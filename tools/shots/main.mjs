@@ -132,6 +132,12 @@ const SHOTS = {
     await js(`(() => { const i = document.getElementById('search-input'); i.value = 'booth'; i.dispatchEvent(new Event('input')); return 1; })()`);
   } },
   'side-hidden-dark': { theme: 'dark', width: 780, height: 560, prefs: { showSide: false } },
+  'narrow-light': { theme: 'light', width: 320, height: 520 },
+  'notes-rich-dark': { theme: 'dark', width: 780, height: 560, setup: async (js) => {
+    await js(`(async () => { const id = ${firstId}; const html = '<div><b>Slides 4–7</b> still use the <u>old logo</u>.</div><ul><li>Ask Ben for the booth photo</li><li><s>Check the venue</s></li></ul><div><span class="fs-l">Next week</span></div>';
+      await window.clearday.tasks.update(id, { notes: 'x', notesHtml: html });
+      cleardayDebug.state.tasks.set(id, (await window.clearday.tasks.list()).find((t) => t.id === id)); cleardayDebug.toggleNotes(id); document.activeElement.blur(); 1 })()`);
+  } },
   'folded-light': { theme: 'light', width: 780, height: 560, prefs: { collapsed: ['today:done'] } },
   'prefs-dark': { theme: 'dark', width: 780, height: 560, setup: (js) => js('cleardayDebug.openPrefs(); 1') },
   'prefs-light-narrow': { theme: 'light', width: 340, height: 600, setup: (js) => js('cleardayDebug.openPrefs(); 1') },

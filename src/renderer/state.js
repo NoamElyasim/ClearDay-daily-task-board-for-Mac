@@ -13,6 +13,7 @@ export const state = {
   compact: false,
   side: 'todo',           // side tab showing: 'todo' | 'ongoing'
   sideHidden: false,      // the side panel folded away (wide layout)
+  notesTools: 'open',     // the notes' formatting menu: 'open' | 'min'
   spellcheck: true,       // spelling in notes (Preferences)
 };
 

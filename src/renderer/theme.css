@@ -51,6 +51,10 @@
   /* A step up from the side card, a step below the To Do grey: open notes
      and the side tab that isn't selected. */
   --raised: #4A4A4A;
+  --track: #4A4A4A;                /* the track of a segmented control or switch */
+  /* Done's check: the green cut out of a dark disc. */
+  --done-disc: #123A22;
+  --done-check: #2F9051;
 
   /* ── Status fills (the whole row) and the ink on them ── */
   --status-todo: #A9A9AC;          --ink-todo: #242426;
@@ -83,6 +87,7 @@
     --accent-text: #FFFFFF;
     --tab-hover: #E3DCC6;
     --raised: #FBF8EE;
+    --track: #ECE6D3;
 
     --status-todo: #A9A9AC;          --ink-todo: #242426;
     --status-in-progress: #FDD440;   --ink-in-progress: #5E3A00;   /* yellow */

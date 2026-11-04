@@ -135,6 +135,7 @@ export function createTask({ text = '', bold = [], status = 'todo', priority = n
     priority: PRIORITIES.includes(priority) ? priority : null,
     list: LISTS.includes(list) ? list : 'today',
     notes: '',
+    notesHtml: '',
     notesHeight: DEFAULT_NOTES_HEIGHT,
     notesDir: 'auto',
     order,
@@ -144,7 +145,10 @@ export function createTask({ text = '', bold = [], status = 'todo', priority = n
   };
 }
 
-const EDITABLE = ['text', 'bold', 'status', 'priority', 'list', 'notes', 'notesHeight', 'notesDir', 'order', 'deletedAt'];
+// notes is the plain text (search, Claude); notesHtml, when set, is the same
+// note with its formatting (bold, underline, strikethrough, sizes, bullets),
+// already cleaned by the editor. Setting notes alone clears the formatting.
+const EDITABLE = ['text', 'bold', 'status', 'priority', 'list', 'notes', 'notesHtml', 'notesHeight', 'notesDir', 'order', 'deletedAt'];
 
 // Applies a partial update. Unknown keys are dropped and every field is
 // validated, so a bad patch from either side can never corrupt the store.
@@ -158,6 +162,8 @@ export function applyPatch(task, patch, now = Date.now()) {
   if (!LISTS.includes(next.list)) next.list = LISTS.includes(task.list) ? task.list : 'today';
   if (!NOTES_DIRS.includes(next.notesDir)) next.notesDir = NOTES_DIRS.includes(task.notesDir) ? task.notesDir : 'auto';
   next.notes = String(next.notes ?? '');
+  if ('notes' in patch && !('notesHtml' in patch)) next.notesHtml = '';
+  next.notesHtml = String(next.notesHtml ?? '');
   next.notesHeight = clampNotesHeight(next.notesHeight);
   if (!Number.isFinite(next.order)) next.order = task.order;
   if (next.deletedAt !== null && typeof next.deletedAt !== 'string') next.deletedAt = task.deletedAt;
@@ -184,6 +190,7 @@ export function validateTask(raw) {
     priority: PRIORITIES.includes(raw.priority) ? raw.priority : null,
     list: LISTS.includes(raw.list) ? raw.list : 'today',
     notes: String(raw.notes ?? ''),
+    notesHtml: String(raw.notesHtml ?? ''),
     notesHeight: clampNotesHeight(raw.notesHeight),
     notesDir: NOTES_DIRS.includes(raw.notesDir) ? raw.notesDir : 'auto',
     order: Number.isFinite(raw.order) ? raw.order : created || 0,
