@@ -28,6 +28,13 @@ ipcMain.handle('settings:get', () => settings.all());
 ipcMain.handle('settings:set', (_e, p) => { settings.set(p || {}); win.webContents.send('settings', settings.all()); return settings.all(); });
 ipcMain.handle('menu:sort', () => {});
 ipcMain.handle('app:info', () => ({ version: app.getVersion(), dataFile: '' }));
+
+// Quick add and the Claude connection aren't exercised here; Preferences
+// asks for their status.
+ipcMain.handle('quick:status', () => 'ready');
+for (const ch of ['quick:show', 'quick:open-permission']) ipcMain.handle(ch, () => null);
+ipcMain.handle('mcp:status', () => ({ desktop: false, desktopInstalled: true, code: false, command: '' }));
+for (const ch of ['mcp:connect-desktop', 'mcp:copy-code-command']) ipcMain.handle(ch, () => true);
 for (const ch of ['app:reveal-data', 'app:export', 'app:reset-bounds', 'app:quit']) ipcMain.handle(ch, () => null);
 const moves = [];   // window moves the renderer asked for: [dx, dy]
 ipcMain.on('win:drag-start', () => { moves.length = 0; });
@@ -119,10 +126,11 @@ async function run() {
     return out; })()`);
   let dp = await dragProblems();
   check('no drag region is invisible or covers a control', dp.length === 0, dp.join('; '));
-  check('the top edge of the add field and the header buttons are hit directly', await js(`(() => {
+  check('the Add and Search buttons and the header buttons are hit directly, edge to edge', await js(`(() => {
     const at = (sel, fy) => { const r = document.querySelector(sel).getBoundingClientRect();
       return document.elementFromPoint(r.left + r.width / 2, r.top + r.height * fy)?.closest(sel) != null; };
-    return at('#add-input', 0.1) && at('#add-btn', 0.5) && at('#sort-btn', 0.5) && at('#settings-btn', 0.5) && at('#theme-btn', 0.5); })()`));
+    return ['#add-open', '#search-open'].every((s) => at(s, 0.1) && at(s, 0.9)) &&
+      ['#sort-btn', '#settings-btn', '#theme-btn', '#sidebar-btn'].every((s) => at(s, 0.5)); })()`));
   check('the gear is the solid glyph', await js(`document.querySelector('#settings-btn svg').getAttribute('fill')`) === 'currentColor');
 
   // ── Light / dark switch ──
@@ -151,8 +159,13 @@ async function run() {
   check('dragging empty space moves the window', !!lastMove && Math.abs(lastMove[0] - 30) <= 2 && Math.abs(lastMove[1] + 18) <= 2,
     JSON.stringify(moves.slice(-2)));
 
-  // ── Add ──
-  await click('#add-input');
+  // ── Add: a button that opens into the field ──
+  await click('#add-open');
+  await sleep(450);
+  check('the Add button opens into a wide field with the caret in it', await js(`(() => {
+    const add = document.getElementById('add');
+    return add.classList.contains('open') && document.activeElement?.id === 'add-input' &&
+      add.getBoundingClientRect().width > 500 && getComputedStyle(document.getElementById('search')).opacity === '0'; })()`));
   await type('Plan the sprint review');
   const typed = await js(`document.getElementById('add-input').value`);
   await key('Enter');
@@ -367,6 +380,36 @@ async function run() {
   await sleep(400);
   check('clicking it again opens the section', await js(`!document.querySelector('.section[data-status="in_progress"]').classList.contains('collapsed')`) &&
     !settings.get('collapsed').includes('today:in_progress'));
+
+  // ── Search: results as you type, Enter goes to the task ──
+  await key('Escape');
+  await click('#search-open');
+  await sleep(450);
+  check('the Search button opens into a field with the caret in it',
+    await js(`document.getElementById('search').classList.contains('open') && document.activeElement?.id === 'search-input'`));
+  await type('booth');
+  await sleep(150);
+  const found = await js(`[...document.querySelectorAll('#search-results .result')].map((b) => b.textContent)`);
+  check('results appear while typing, from both text and notes', found.length >= 2 && found.every((t) => /booth/i.test(t.split('Today ·')[0].split('Ongoing ·')[0]) || /in notes/.test(t)) && found.some((t) => /in notes/.test(t)), found.join(' | '));
+  const firstHit = store.list().filter((x) => /booth/i.test(x.text) || /booth/i.test(x.notes))
+    .find((x) => found[0].startsWith(x.text));
+  await key('Enter');
+  await sleep(500);
+  check('Enter shows the first result: selected, search closed', !!firstHit &&
+    await js(`!document.getElementById('search').classList.contains('open') && document.querySelector('${taskSel(firstHit?.id)} .row')?.classList.contains('selected')`));
+
+  // ── Side panel: hide and show ──
+  await click('#sidebar-btn');
+  await sleep(500);
+  check('the sidebar button hides the side panel, and it is remembered', settings.get('showSide') === false &&
+    await js(`document.getElementById('pane').classList.contains('side-hidden') && document.getElementById('side').getBoundingClientRect().width < 2`));
+  await click('#sidebar-btn');
+  await sleep(500);
+  check('and shows it again', settings.get('showSide') === true &&
+    await js(`document.getElementById('side').getBoundingClientRect().width > 200`));
+  check('open notes and the unselected side tab sit on a lighter grey than the side card',
+    await cssColor('--raised') !== await cssColor('--surface') &&
+    await js(`getComputedStyle(document.querySelector('.side-tab:not(.active)')).backgroundColor`) === await cssColor('--raised'));
 
   // ── Preferences ──
   await click('#settings-btn');

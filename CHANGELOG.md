@@ -1,5 +1,23 @@
 # Changelog
 
+## v0.6.0 — 2026-11-04
+
+- **Quick add from anywhere:** press ⌘ twice in any app. A rounded bar rises
+  above the Dock, in the app's colours, with a priority bookmark and a
+  To Do / Ongoing switch. Enter adds the task and the bar fades away;
+  ClearDay doesn't come forward. Needs Input Monitoring (asked once).
+- **Claude (MCP):** Claude Code and Claude Desktop can read and change the
+  board. Connect from Preferences → Claude.
+- **Add and Search are buttons** that open into fields with the caret ready.
+  Search shows results as you type and jumps to the task.
+- **Hide or show the side panel** from a new header button.
+- **Light mode is cream** (`#F5F0E0`); **Dark mode has new status colours:**
+  mustard, steel blue, terracotta and green.
+- Open notes and the unselected side tab sit on a lighter grey than the
+  side card in Dark mode.
+- Header icons match the light/dark switch; Done's check sits on a white
+  disc in Light mode.
+
 ## v0.5.0 — 2026-11-03
 
 - **New app icon:** a clear sky with a sun whose centre is a checkmark. The

@@ -24,11 +24,22 @@ projects beside it.
 - **A flat, modern look.**
   - Soft pill rows set in Poppins, on a solid white (Light) or charcoal
     (Dark) window.
-  - Each status has one bright colour, the same in both modes, with dark
-    text in a deeper shade of that colour.
+  - Light mode is warm cream with bright status colours; Dark mode is
+    charcoal with deeper, muted ones.
   - The rest of the interface stays black and white, so colour only ever
     means a status or a priority. Buttons invert when you point at them.
   - A light/dark switch in the header. Follow System is in Preferences.
+- **Quick add from anywhere.** Press ⌘ twice in any app and a small bar
+  rises above the Dock: type the task, pick To Do or Ongoing and a priority,
+  press Enter. The task goes onto the board without ClearDay coming forward.
+  It needs the Input Monitoring permission, which macOS asks for once.
+- **Works with Claude.** ClearDay includes an MCP server, so Claude Code and
+  Claude Desktop can list, add, update, move, search and delete your tasks.
+  Connect it from Preferences → Claude.
+- **Add and Search buttons.** Each opens into a field with the caret ready.
+  Search shows matching tasks (text and notes, both lists) as you type;
+  Enter jumps to the task.
+- **Hide the side panel** from the header to give the board the full width.
 - **Move the window from anywhere.** Drag any empty space: the header, the
   gaps between rows, the space under them.
 - **Statuses fill the row.** Click the round button on a row and pick To Do,
@@ -121,6 +132,22 @@ npm run install:mac      # builds, signs locally, copies to /Applications, opens
 ```
 
 `npm run dist:mac` builds both DMGs into `dist/`.
+
+## Claude (MCP)
+
+Preferences → Claude connects ClearDay to Claude Desktop in one click, and
+copies the command that adds it to Claude Code. Claude then has these tools:
+`list_tasks`, `add_task`, `update_task`, `delete_task` and `search_tasks`.
+With ClearDay open, changes appear on the board at once; with it closed,
+they are saved to the board's file for next time.
+
+The server runs on ClearDay's own binary, so nothing else needs installing:
+
+```bash
+claude mcp add clearday --scope user --env ELECTRON_RUN_AS_NODE=1 -- \
+  /Applications/ClearDay.app/Contents/MacOS/ClearDay \
+  /Applications/ClearDay.app/Contents/Resources/app.asar.unpacked/src/mcp/server.mjs
+```
 
 ## Develop
 

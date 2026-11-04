@@ -41,6 +41,13 @@ ipcMain.handle('settings:set', (_e, p) => {
 });
 ipcMain.handle('menu:sort', () => {});
 ipcMain.handle('app:info', () => ({ version: app.getVersion(), dataFile: '' }));
+
+// Quick add and the Claude connection aren't exercised here; Preferences
+// asks for their status.
+ipcMain.handle('quick:status', () => 'ready');
+for (const ch of ['quick:show', 'quick:open-permission']) ipcMain.handle(ch, () => null);
+ipcMain.handle('mcp:status', () => ({ desktop: false, desktopInstalled: true, code: false, command: '' }));
+for (const ch of ['mcp:connect-desktop', 'mcp:copy-code-command']) ipcMain.handle(ch, () => true);
 for (const ch of ['app:reveal-data', 'app:export', 'app:reset-bounds', 'app:quit']) ipcMain.handle(ch, () => null);
 const DEFAULT_SETTINGS = { ...settings.all() };
 
@@ -118,6 +125,13 @@ const SHOTS = {
   'ongoing-dark': { theme: 'dark', width: 780, height: 560, prefs: { sidePanel: 'ongoing' } },
   'ongoing-compact-light': { theme: 'light', width: 420, height: 600, prefs: { sidePanel: 'ongoing' },
     setup: (js) => js('cleardayDebug.setDrawer(true); 1') },
+  'add-open-dark': { theme: 'dark', width: 780, height: 560, setup: clickFirst('#add-open') },
+  'search-light': { theme: 'light', width: 780, height: 560, setup: async (js) => {
+    await js(`document.getElementById('search-open').click(); 1`);
+    await js(`new Promise((r) => setTimeout(r, 500))`);
+    await js(`(() => { const i = document.getElementById('search-input'); i.value = 'booth'; i.dispatchEvent(new Event('input')); return 1; })()`);
+  } },
+  'side-hidden-dark': { theme: 'dark', width: 780, height: 560, prefs: { showSide: false } },
   'folded-light': { theme: 'light', width: 780, height: 560, prefs: { collapsed: ['today:done'] } },
   'prefs-dark': { theme: 'dark', width: 780, height: 560, setup: (js) => js('cleardayDebug.openPrefs(); 1') },
   'prefs-light-narrow': { theme: 'light', width: 340, height: 600, setup: (js) => js('cleardayDebug.openPrefs(); 1') },
