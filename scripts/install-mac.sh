@@ -30,6 +30,8 @@ npx electron-builder --mac dir "--$arch"
 # Quit the app only. Claude's MCP servers run on the same binary (with
 # server.mjs after it), and killing them disconnects Claude until it restarts.
 pkill -f "/$name.app/Contents/MacOS/$name\$" 2>/dev/null || true
+# Opening it again while it is still quitting fails (LaunchServices -609).
+for _ in $(seq 20); do pgrep -f "/$name.app/Contents/MacOS/$name\$" >/dev/null || break; sleep 0.25; done
 rm -rf "/Applications/$name.app"
 ditto "$out" "/Applications/$name.app"
 open "/Applications/$name.app"
