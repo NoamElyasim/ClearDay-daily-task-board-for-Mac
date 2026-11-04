@@ -1,9 +1,9 @@
 /* ClearDay theme — every colour in the app lives here, as a CSS variable.
 
    Flat surfaces, soft pills, Poppins, and a monochrome UI where colour comes
-   only from statuses and priorities. The status colours are the same in
-   both modes: a saturated fill with a dark ink of its own hue for the text
-   and icons on it. */
+   only from statuses and priorities. Each status is a fill with an ink for
+   the text and icons on it: bright fills with inks of their own hue in
+   Light, deeper muted fills in Dark. */
 
 @font-face { font-family: 'Poppins'; font-weight: 400; src: url('fonts/Poppins-Regular.ttf') format('truetype'); }
 @font-face { font-family: 'Poppins'; font-weight: 500; src: url('fonts/Poppins-Medium.ttf') format('truetype'); }
@@ -23,13 +23,6 @@
   --dur-move: 320ms;
 
   --danger: #D9483B;
-
-  /* ── Status fills (the whole row) and the ink on them, both modes ── */
-  --status-todo: #A9A9AC;          --ink-todo: #242426;
-  --status-in-progress: #FDD440;   --ink-in-progress: #5E3A00;   /* yellow */
-  --status-awaiting: #76A9FF;      --ink-awaiting: #0B1A6B;      /* blue */
-  --status-on-hold: #F47A48;       --ink-on-hold: #5A0A00;       /* orange */
-  --status-done: #1FC46F;          --ink-done: #00361A;          /* green */
 
   /* ── Priority bookmarks ── */
   --priority-high: #E5383B;
@@ -55,6 +48,16 @@
   --accent-hover: #FFFFFF;
   --accent-text: #1E1E1E;
   --tab-hover: #474747;            /* an inactive pill under the pointer */
+  /* A step up from the side card, a step below the To Do grey: open notes
+     and the side tab that isn't selected. */
+  --raised: #4A4A4A;
+
+  /* ── Status fills (the whole row) and the ink on them ── */
+  --status-todo: #A9A9AC;          --ink-todo: #242426;
+  --status-in-progress: #CD8D00;   --ink-in-progress: #2B1B00;   /* mustard */
+  --status-awaiting: #56768D;      --ink-awaiting: #FFFFFF;      /* steel blue */
+  --status-on-hold: #C86339;       --ink-on-hold: #FFFFFF;       /* terracotta */
+  --status-done: #2F9051;          --ink-done: #FFFFFF;          /* green */
 
   /* Floating things: popovers, toasts, the compact drawer, Preferences */
   --popover-bg: #303030;
@@ -62,26 +65,36 @@
   --popover-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
 }
 
-/* ── Light: white ────────────────────────────────────────────────────────── */
+/* ── Light: cream ────────────────────────────────────────────────────────── */
 @media (prefers-color-scheme: light) {
   :root {
     color-scheme: light;
-    --bg: #FFFFFF;
-    --surface: #F2F2F3;
-    --surface-hover: #E6E6E8;
-    --hairline: #E6E6E8;
+    --bg: #F5F0E0;
+    --surface: #ECE6D3;
+    --surface-hover: #E3DCC6;
+    --hairline: #E3DCC6;
     --text: #111113;
-    --text-dim: #6D6E69;
-    --text-faint: #A3A3A6;
+    --text-dim: #6D6A60;
+    --text-faint: #A8A292;
     --selection: rgba(17, 17, 19, 0.14);
 
     --accent: #111113;
     --accent-hover: #3A3A3D;
     --accent-text: #FFFFFF;
-    --tab-hover: #DCDCDF;
+    --tab-hover: #E3DCC6;
+    --raised: #FBF8EE;
 
-    --popover-bg: #FFFFFF;
-    --popover-border: #E6E6E8;
-    --popover-shadow: 0 8px 28px rgba(0, 0, 0, 0.12);
+    --status-todo: #A9A9AC;          --ink-todo: #242426;
+    --status-in-progress: #FDD440;   --ink-in-progress: #5E3A00;   /* yellow */
+    --status-awaiting: #76A9FF;      --ink-awaiting: #0B1A6B;      /* blue */
+    --status-on-hold: #F47A48;       --ink-on-hold: #5A0A00;       /* orange */
+    --status-done: #1FC46F;          --ink-done: #00361A;          /* green */
+    /* Done's check sits on a white disc here. */
+    --done-disc: #FFFFFF;
+    --done-check: #00361A;
+
+    --popover-bg: #FBF8EE;
+    --popover-border: #E3DCC6;
+    --popover-shadow: 0 8px 28px rgba(60, 45, 10, 0.14);
   }
 }

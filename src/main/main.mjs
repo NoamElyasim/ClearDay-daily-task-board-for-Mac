@@ -3,14 +3,17 @@
 // the app's settings.
 import {
   app, BrowserWindow, Menu, Tray, dialog, nativeImage, nativeTheme, powerMonitor,
-  screen, shell, ipcMain,
+  screen, shell, ipcMain, clipboard,
 } from 'electron';
+import os from 'node:os';
 import fs from 'node:fs';
 import path from 'node:path';
 import './paths.mjs';
 import * as settings from './settings.mjs';
 import * as store from './store.mjs';
 import { buildTemplate } from './context-menu.mjs';
+import { initQuick, setQuickEnabled, stopQuick, showQuick, quickAdd, quickHidden, quickStatus } from './quick.mjs';
+import { startBridge } from './bridge.mjs';
 import { SORTS, SORT_LABELS, SCHEMA_VERSION } from '../shared/model.mjs';
 
 const DIR = import.meta.dirname;
@@ -18,7 +21,7 @@ const DEFAULT_SIZE = { width: 780, height: 560 };
 const MIN_SIZE = { width: 320, height: 360 };
 // The window's own background, matching --bg in theme.css, so nothing flashes
 // before the page paints or while the appearance changes.
-const BG = { light: '#FFFFFF', dark: '#272727' };
+const BG = { light: '#F5F0E0', dark: '#272727' };
 const bgColor = () => (nativeTheme.shouldUseDarkColors ? BG.dark : BG.light);
 // Preferences → Text size, as page zoom so every part of the UI scales together.
 const ZOOM = { small: 0.9, medium: 1, large: 1.12 };
@@ -173,7 +176,14 @@ async function applyShowIn() {
   }
 }
 
+// The board changed somewhere other than the window (quick add, Claude):
+// the window reloads it.
+function tasksChangedElsewhere() {
+  if (win && !win.isDestroyed()) win.webContents.send('tasks:changed');
+}
+
 function applySetting(keys) {
+  if (keys.includes('quickAdd')) setQuickEnabled(settings.get('quickAdd'));
   if (keys.includes('theme')) applyTheme();
   if (keys.includes('openAtLogin')) applyLoginItem();
   if (keys.includes('alwaysOnTop')) applyAlwaysOnTop();
@@ -229,6 +239,7 @@ function createTray() {
   });
   tray.on('right-click', () => tray.popUpContextMenu(Menu.buildFromTemplate([
     { label: 'Show ClearDay', click: showWindow },
+    { label: 'Quick Add…', click: showQuick },
     { label: 'Preferences…', click: openPreferences },
     { type: 'separator' },
     { label: 'Quit ClearDay', click: () => app.quit() },
@@ -253,6 +264,7 @@ function appMenu() {
         { role: 'about' },
         { type: 'separator' },
         { label: 'Preferences…', accelerator: 'Cmd+,', click: openPreferences },
+        { label: 'Quick Add…', click: showQuick },
         { type: 'separator' },
         { role: 'hide' },
         { role: 'hideOthers' },
@@ -322,13 +334,69 @@ ipcMain.handle('app:reset-bounds', () => {
 });
 ipcMain.handle('app:quit', () => app.quit());
 
+// ─── Quick add (⌘⌘) ──────────────────────────────────────────────────────────
+initQuick({
+  add: (fields) => {
+    const t = store.create({ text: String(fields?.text || '').trim(), status: 'todo', list: fields?.list, priority: fields?.priority ?? null });
+    tasksChangedElsewhere();
+    return t;
+  },
+  statusChanged: (s) => { if (win && !win.isDestroyed()) win.webContents.send('quick:status', s); },
+});
+ipcMain.handle('quick:add', (_e, fields) => quickAdd(fields));
+ipcMain.on('quick:hidden', () => quickHidden());
+ipcMain.handle('quick:status', () => quickStatus());
+ipcMain.handle('quick:show', () => showQuick());
+ipcMain.handle('quick:open-permission', () =>
+  shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent'));
+
+// ─── Claude (MCP) ────────────────────────────────────────────────────────────
+// Claude starts ClearDay's MCP server itself, as this app's binary in Node
+// mode; the server reaches the running app over the bridge socket.
+const CLAUDE_DESKTOP_CONFIG = path.join(os.homedir(), 'Library', 'Application Support', 'Claude', 'claude_desktop_config.json');
+const CLAUDE_CODE_CONFIG = path.join(os.homedir(), '.claude.json');
+
+function mcpLaunch() {
+  const server = app.isPackaged
+    ? path.join(process.resourcesPath, 'app.asar.unpacked', 'src', 'mcp', 'server.mjs')
+    : path.join(DIR, '..', 'mcp', 'server.mjs');
+  return { command: process.execPath, args: [server], env: { ELECTRON_RUN_AS_NODE: '1' } };
+}
+
+const readJson = (file) => { try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch (_) { return null; } };
+const shellQuote = (s) => `"${String(s).replace(/(["\\$`])/g, '\\$1')}"`;
+
+function claudeCodeCommand() {
+  const l = mcpLaunch();
+  return `claude mcp add clearday --scope user --env ELECTRON_RUN_AS_NODE=1 -- ${shellQuote(l.command)} ${l.args.map(shellQuote).join(' ')}`;
+}
+
+ipcMain.handle('mcp:status', () => ({
+  desktop: !!readJson(CLAUDE_DESKTOP_CONFIG)?.mcpServers?.clearday,
+  desktopInstalled: fs.existsSync(path.dirname(CLAUDE_DESKTOP_CONFIG)),
+  code: !!readJson(CLAUDE_CODE_CONFIG)?.mcpServers?.clearday,
+  command: claudeCodeCommand(),
+}));
+// Adds (or refreshes) ClearDay in Claude Desktop's config, keeping a copy of
+// the file as it was.
+ipcMain.handle('mcp:connect-desktop', () => {
+  const cfg = readJson(CLAUDE_DESKTOP_CONFIG) || {};
+  if (fs.existsSync(CLAUDE_DESKTOP_CONFIG)) fs.copyFileSync(CLAUDE_DESKTOP_CONFIG, `${CLAUDE_DESKTOP_CONFIG}.before-clearday`);
+  cfg.mcpServers = { ...(cfg.mcpServers || {}), clearday: mcpLaunch() };
+  fs.mkdirSync(path.dirname(CLAUDE_DESKTOP_CONFIG), { recursive: true });
+  fs.writeFileSync(CLAUDE_DESKTOP_CONFIG, JSON.stringify(cfg, null, 2));
+  return true;
+});
+ipcMain.handle('mcp:copy-code-command', () => { clipboard.writeText(claudeCodeCommand()); return true; });
+
 // ─── Startup ─────────────────────────────────────────────────────────────────
 if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
   app.on('second-instance', showWindow);
   app.on('activate', showWindow);
-  app.on('before-quit', () => { quitting = true; store.flush(); });
+  let stopBridge = () => {};
+  app.on('before-quit', () => { quitting = true; store.flush(); stopQuick(); stopBridge(); });
 
   app.whenReady().then(async () => {
     app.setAboutPanelOptions({ applicationName: 'ClearDay', applicationVersion: app.getVersion() });
@@ -337,6 +405,13 @@ if (!app.requestSingleInstanceLock()) {
     applyLoginItem();
     await applyShowIn();
     createWindow();
+    setQuickEnabled(settings.get('quickAdd'));
+    stopBridge = startBridge(path.join(app.getPath('userData'), 'clearday.sock'), {
+      list: () => store.list(),
+      create: (fields) => { const t = store.create(fields || {}); tasksChangedElsewhere(); return t; },
+      update: (id, patch) => { const t = store.update(id, patch || {}); tasksChangedElsewhere(); return t; },
+      remove: (id) => { const t = store.remove(id); tasksChangedElsewhere(); return t; },
+    });
     // The header date has to roll over after a night asleep, when no timer
     // fired at midnight.
     powerMonitor.on('resume', () => win?.webContents.send('clock:resume'));
