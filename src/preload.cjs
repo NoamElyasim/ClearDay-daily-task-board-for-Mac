@@ -31,6 +31,18 @@ contextBridge.exposeInMainWorld('clearday', {
     resetBounds: () => ipcRenderer.invoke('app:reset-bounds'),
     quit: () => ipcRenderer.invoke('app:quit'),
   },
+  quick: {
+    status: () => ipcRenderer.invoke('quick:status'),
+    show: () => ipcRenderer.invoke('quick:show'),
+    openPermission: () => ipcRenderer.invoke('quick:open-permission'),
+    onStatus: on('quick:status'),
+  },
+  mcp: {
+    status: () => ipcRenderer.invoke('mcp:status'),
+    connectDesktop: () => ipcRenderer.invoke('mcp:connect-desktop'),
+    copyCodeCommand: () => ipcRenderer.invoke('mcp:copy-code-command'),
+  },
+  onTasksChanged: on('tasks:changed'),
   onPrefsOpen: on('prefs:open'),
   onNotesDir: on('notes:dir'),
   onClockResume: on('clock:resume'),

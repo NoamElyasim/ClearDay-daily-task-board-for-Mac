@@ -1,0 +1,63 @@
+/* The quick-add bar: a big rounded pill above the Dock, in the app's colours. */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 100%; height: 100%; background: transparent; overflow: hidden; }
+body { font-family: var(--font); font-size: 13px; color: var(--text); -webkit-font-smoothing: antialiased; user-select: none; }
+button { font: inherit; color: inherit; background: none; border: 0; display: inline-grid; place-items: center; cursor: default; }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+#q {
+  position: absolute; left: 22px; right: 22px; top: 20px; height: 64px;
+  display: flex; align-items: center; gap: 12px;
+  padding: 0 12px 0 20px;
+  border-radius: 32px;
+  background: var(--bg);
+  box-shadow: 0 0 0 1px var(--popover-border), 0 18px 40px rgba(0, 0, 0, 0.32), 0 3px 10px rgba(0, 0, 0, 0.16);
+  opacity: 0; transform: translateY(14px) scale(0.97);
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+#q.in { opacity: 1; transform: none; transition: opacity 240ms ease, transform 320ms var(--ease-out); }
+#q.done { opacity: 0; transform: translateY(-6px) scale(0.98); }
+
+#q-input {
+  flex: 1; min-width: 0; height: 40px; border: 0; outline: none; background: transparent;
+  color: var(--text); font: inherit; font-size: 15px; user-select: text;
+}
+#q-input::placeholder { color: var(--text-dim); }
+
+/* Priority: the app's bookmark. Empty outline, amber Medium, red High. */
+#q-prio { flex: none; width: 26px; height: 36px; border-radius: 8px; transition: background-color var(--dur-fast) ease; }
+#q-prio:hover { background: var(--surface); }
+#q-prio .mark {
+  width: 13px; height: 20px; border-radius: 1.5px 1.5px 6.5px 6.5px;
+  box-shadow: inset 0 0 0 1.6px var(--text-faint);
+  transition: background-color var(--dur-fast) ease, box-shadow var(--dur-fast) ease, transform 220ms var(--ease-out);
+}
+#q-prio[data-priority="medium"] .mark { background: var(--priority-medium); box-shadow: inset 0 0 0 1px var(--bookmark-keyline); }
+#q-prio[data-priority="high"] .mark { background: var(--priority-high); box-shadow: inset 0 0 0 1px var(--bookmark-keyline); }
+#q-prio.bump .mark { transform: translateY(2px); }
+
+/* To Do | Ongoing: a switch whose knob slides behind the chosen word. */
+#q-list {
+  position: relative; flex: none; display: flex; width: 140px; height: 32px; padding: 3px;
+  border-radius: var(--radius-control); background: var(--surface);
+}
+#q-list .knob {
+  position: absolute; left: 3px; top: 3px; width: 67px; height: 26px; border-radius: var(--radius-control);
+  background: var(--accent);
+  transition: transform var(--dur-move) var(--ease-out);
+}
+#q-list[aria-checked="true"] .knob { transform: translateX(67px); }
+#q-list .opt {
+  position: relative; flex: 1; text-align: center; font-size: 12px; font-weight: 500; color: var(--text-dim);
+  transition: color var(--dur-move) ease;
+}
+#q-list[aria-checked="false"] .opt[data-v="todo"], #q-list[aria-checked="true"] .opt[data-v="ongoing"] { color: var(--accent-text); }
+
+#q-add {
+  flex: none; width: 40px; height: 40px; border-radius: 50%;
+  background: var(--accent); color: var(--accent-text);
+  transition: transform var(--dur-fast) ease, background-color var(--dur-fast) ease;
+}
+#q-add:hover { background: var(--accent-hover); transform: scale(1.06); }
+#q-add:active { transform: scale(0.94); }
+#q-add svg { width: 18px; height: 18px; }

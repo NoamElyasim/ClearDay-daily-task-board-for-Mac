@@ -24,6 +24,7 @@ fi
 SIGN_ID=${SIGN_ID:--}
 export MAC_SIGN_IDENTITY=$SIGN_ID
 
+bash scripts/build-native.sh
 npx electron-builder --mac dir "--$arch"
 
 pkill -x "$name" 2>/dev/null || true

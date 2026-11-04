@@ -1,7 +1,7 @@
 {
   "name": "clearday",
   "productName": "ClearDay",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "A compact, Monday-style daily task board that floats on your Mac desktop",
   "main": "src/main/main.mjs",
   "license": "MIT",
@@ -12,8 +12,10 @@
     "shots": "electron tools/shots/main.mjs",
     "e2e": "electron tools/e2e/main.mjs",
     "make-icon": "electron scripts/make-icon.mjs",
-    "dist:mac": "electron-builder --mac",
-    "install:mac": "bash scripts/install-mac.sh"
+    "dist:mac": "bash scripts/build-native.sh && electron-builder --mac",
+    "install:mac": "bash scripts/install-mac.sh",
+    "build:native": "bash scripts/build-native.sh",
+    "mcp": "node src/mcp/server.mjs"
   },
   "devDependencies": {
     "electron": "44.9.3",
@@ -45,7 +47,17 @@
     },
     "dmg": {
       "artifactName": "ClearDay-${version}-${arch}.${ext}"
-    }
+    },
+    "asarUnpack": [
+      "src/mcp/**",
+      "src/shared/**"
+    ],
+    "extraResources": [
+      {
+        "from": "build/native/cmdtap",
+        "to": "cmdtap"
+      }
+    ]
   },
   "allowScripts": {
     "electron@44.9.3": true
