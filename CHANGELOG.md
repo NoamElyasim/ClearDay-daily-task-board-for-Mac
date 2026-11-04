@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.7.1 — 2026-11-04
 
 - **Collapse / Expand:** one button, level with the first section
   heading, folds every section, and unfolds them all once they are folded.
@@ -8,6 +8,7 @@
   tick circle and a click anywhere on a row picks it; ⌘A picks every task in
   view. Delete removes them with one Undo toast ("3 tasks deleted"), and ⌘Z
   brings them all back. Cancel or Esc leaves selecting.
+- The README film shows both: Collapse / Expand, and Select → Delete 2.
 
 ## v0.7.0 — 2026-11-04
 
