@@ -27,7 +27,9 @@ export MAC_SIGN_IDENTITY=$SIGN_ID
 bash scripts/build-native.sh
 npx electron-builder --mac dir "--$arch"
 
-pkill -x "$name" 2>/dev/null || true
+# Quit the app only. Claude's MCP servers run on the same binary (with
+# server.mjs after it), and killing them disconnects Claude until it restarts.
+pkill -f "/$name.app/Contents/MacOS/$name\$" 2>/dev/null || true
 rm -rf "/Applications/$name.app"
 ditto "$out" "/Applications/$name.app"
 open "/Applications/$name.app"
