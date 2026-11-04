@@ -24,6 +24,8 @@ const DEFAULTS = {
   spellcheckNotes: true,
   sidePanel: 'todo',    // side tab showing: 'todo' | 'ongoing'
   collapsed: [],        // folded board sections, as 'list:status' keys
+  showSide: true,       // the side panel (To Do | Ongoing) in the wide layout
+  quickAdd: true,       // press ⌘ twice anywhere for the quick-add bar
 };
 
 const VALID = {
@@ -37,6 +39,8 @@ const VALID = {
   showWeekday: (v) => typeof v === 'boolean',
   spellcheckNotes: (v) => typeof v === 'boolean',
   sidePanel: (v) => ['todo', 'ongoing'].includes(v),
+  showSide: (v) => typeof v === 'boolean',
+  quickAdd: (v) => typeof v === 'boolean',
   collapsed: (v) => Array.isArray(v) && v.length <= 20 && v.every((k) => typeof k === 'string' && k.length < 40),
 };
 

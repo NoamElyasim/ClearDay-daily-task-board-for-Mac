@@ -122,3 +122,8 @@ kbd {
   background: var(--surface);
 }
 .about p { font-size: 12.5px; color: var(--text-dim); margin-bottom: 10px; }
+
+.pref-note { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 0 0 8px; }
+.pref-note[hidden] { display: none; }
+.claude-intro { display: block; margin: -2px 0 6px; }
+.pref-action:disabled { opacity: 0.45; }

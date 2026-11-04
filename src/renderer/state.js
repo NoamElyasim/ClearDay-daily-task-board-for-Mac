@@ -12,6 +12,7 @@ export const state = {
   collapsed: new Set(),   // folded board sections, as 'list:status' keys
   compact: false,
   side: 'todo',           // side tab showing: 'todo' | 'ongoing'
+  sideHidden: false,      // the side panel folded away (wide layout)
   spellcheck: true,       // spelling in notes (Preferences)
 };
 

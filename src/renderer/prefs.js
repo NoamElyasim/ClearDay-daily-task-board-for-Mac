@@ -11,7 +11,9 @@ const syncers = [];   // (settings) => void, one per control
 
 const SHORTCUTS = [
   ['Enter', 'Add the task you typed; on a selected row, edit it'],
-  ['⌘N', 'Jump to the add field'],
+  ['⌘N', 'Open the add field'],
+  ['⌘F', 'Search tasks'],
+  ['⌘ ⌘', 'Quick add from anywhere (press ⌘ twice)'],
   ['↑ / ↓', 'Select a row'],
   ['⌘B', 'Bold the selection, or the whole row'],
   ['⌘⌫', 'Delete the selected task'],
@@ -81,6 +83,38 @@ function build(info) {
   done.addEventListener('click', closePrefs);
   const exportNote = h('span', { className: 'pref-hint export-note' });
 
+  // Quick add needs Input Monitoring; say so, with the way to it.
+  const quickHint = h('span', { className: 'pref-hint' });
+  const quickAllow = action('Open Input Monitoring…', () => api.quick.openPermission());
+  const quickNote = h('div', { className: 'pref-note' }, quickHint, quickAllow);
+  const QUICK_TEXT = {
+    permission: 'Allow ClearDay under System Settings → Privacy & Security → Input Monitoring.',
+    starting: 'Starting…',
+    missing: 'Not available in this build.',
+  };
+  const showQuickStatus = (st) => {
+    quickHint.textContent = QUICK_TEXT[st] || '';
+    quickAllow.hidden = st !== 'permission';
+    quickNote.hidden = !QUICK_TEXT[st];
+  };
+  api.quick.status().then(showQuickStatus);
+  api.quick.onStatus(showQuickStatus);
+
+  // Connecting to Claude
+  const desktopBtn = action('Connect', async () => { await api.mcp.connectDesktop(); refreshClaude(); });
+  const codeBtn = action('Copy command', async () => {
+    await api.mcp.copyCodeCommand();
+    codeBtn.textContent = 'Copied';
+    setTimeout(refreshClaude, 1600);
+  });
+  async function refreshClaude() {
+    const st = await api.mcp.status();
+    desktopBtn.textContent = st.desktop ? 'Connected ✓' : 'Connect';
+    desktopBtn.disabled = !st.desktopInstalled && !st.desktop;
+    codeBtn.textContent = st.code ? 'Connected ✓ · Copy again' : 'Copy command';
+  }
+  refreshClaude();
+
   const sheet = h('div', { className: 'prefs-sheet' },
     h('header', { className: 'prefs-head' }, h('h2', { textContent: 'Preferences' }), done),
     h('div', { className: 'prefs-body' },
@@ -97,6 +131,14 @@ function build(info) {
         row('Launch at login', toggle('openAtLogin', 'Launch at login')),
         row('Sort', select('sort', SORTS.map((s) => [s, SORT_LABELS[s]]), 'Sort')),
         row('Check spelling in notes', toggle('spellcheckNotes', 'Check spelling in notes')),
+        row('Quick add', toggle('quickAdd', 'Quick add'), 'Press ⌘ twice anywhere to add a task'),
+        quickNote,
+      ),
+      h('section', {},
+        h('h3', { textContent: 'Claude' }),
+        h('p', { className: 'pref-hint claude-intro', textContent: 'Let Claude read and update your board: add tasks, change their status, search them.' }),
+        row('Claude Desktop', desktopBtn, 'Restart Claude Desktop after connecting'),
+        row('Claude Code', codeBtn, 'Copies a command; paste it into Terminal'),
       ),
       h('section', {},
         h('h3', { textContent: 'Data' }),

@@ -314,6 +314,7 @@ export function showSide(tab) {
 // Tasks in the order they appear on screen, for ↑/↓.
 export function visibleOrder() {
   const lists = [...sectionsEl.querySelectorAll('.section:not(.collapsed) .list')];
-  if (!state.compact || pane.classList.contains('drawer-open')) lists.push(state.side === 'ongoing' ? ongoingList : todoList);
+  const sideShows = state.compact ? pane.classList.contains('drawer-open') : !state.sideHidden;
+  if (sideShows) lists.push(state.side === 'ongoing' ? ongoingList : todoList);
   return lists.flatMap((l) => [...l.children].map((c) => c.dataset.id).filter(Boolean));
 }

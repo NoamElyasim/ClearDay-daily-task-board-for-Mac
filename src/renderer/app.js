@@ -76,12 +76,44 @@ function setSide(tab, { save = true } = {}) {
   if (save) api.settings.set({ sidePanel: tab });
 }
 
-// ─── Adding ──────────────────────────────────────────────────────────────────
+// ─── Add and Search: buttons that open into bars ─────────────────────────────
+// Pressing one widens it across the row and turns it into its field, with
+// the caret already in; the other folds away. Esc, or leaving it empty,
+// closes it again.
+const bar = document.getElementById('bar');
+const searchBox = document.getElementById('search');
+const searchInput = document.getElementById('search-input');
+const resultsEl = document.getElementById('search-results');
+
+function openAdd() {
+  closeSearch();
+  bar.classList.add('adding');
+  addForm.classList.add('open');
+  addInput.tabIndex = 0;
+  addInput.focus();
+}
+function closeAdd() {
+  if (!addForm.classList.contains('open')) return;
+  addInput.value = '';
+  addInput.tabIndex = -1;
+  addForm.classList.remove('open');
+  bar.classList.remove('adding');
+  if (document.activeElement === addInput) addInput.blur();
+}
+document.getElementById('add-open').addEventListener('click', openAdd);
+addInput.addEventListener('blur', () => {
+  // Pressing + moves focus to it first; only an empty field closes.
+  setTimeout(() => {
+    if (!addForm.contains(document.activeElement) && !addInput.value.trim()) closeAdd();
+  }, 120);
+});
+
 addForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   const text = addInput.value.trim();
-  if (!text) return;
+  if (!text) { closeAdd(); return; }
   addInput.value = '';
+  addInput.focus();   // stays open for the next one
   await createTask({ text, status: 'todo', list: state.side === 'ongoing' ? 'ongoing' : 'today' });
   render({ animate: true });
   if (state.compact && !pane.classList.contains('drawer-open')) {
@@ -412,6 +444,21 @@ function select(id) {
 
 document.getElementById('sort-btn').addEventListener('click', () => api.menus.sort());
 
+// ─── Side panel: shown or hidden ─────────────────────────────────────────────
+// The header button folds the To Do | Ongoing panel away so the board gets
+// the width. In the narrow layout the panel is a drawer, so it opens that.
+const sidebarBtn = document.getElementById('sidebar-btn');
+sidebarBtn.innerHTML = ICONS.sidebar;
+sidebarBtn.addEventListener('click', () => {
+  if (state.compact) { setDrawer(!pane.classList.contains('drawer-open')); return; }
+  api.settings.set({ showSide: pane.classList.contains('side-hidden') });
+});
+function showSidePanel(show) {
+  state.sideHidden = !show;
+  pane.classList.toggle('side-hidden', !show);
+  sidebarBtn.title = show ? 'Hide the side panel' : 'Show the side panel';
+}
+
 // ─── Light / dark switch ─────────────────────────────────────────────────────
 // Flips the window to the other appearance. "System" stays in Preferences.
 const themeBtn = document.getElementById('theme-btn');
@@ -473,6 +520,133 @@ document.getElementById('settings-btn').addEventListener('click', () => (isPrefs
 document.getElementById('sort-btn').innerHTML = ICONS.sort;
 document.getElementById('settings-btn').innerHTML = ICONS.gear;
 document.getElementById('add-btn').innerHTML = ICONS.plus;
+document.getElementById('add-open-icon').innerHTML = ICONS.plus;
+document.getElementById('search-icon').innerHTML = ICONS.search;
+
+// ─── Search: results as you type ─────────────────────────────────────────────
+let results = [];
+let activeResult = -1;
+
+function openSearch() {
+  closeAdd();
+  bar.classList.add('searching');
+  searchBox.classList.add('open');
+  searchInput.tabIndex = 0;
+  searchInput.focus();
+  runSearch();
+}
+function closeSearch() {
+  if (!searchBox.classList.contains('open')) return;
+  searchInput.value = '';
+  searchInput.tabIndex = -1;
+  searchBox.classList.remove('open');
+  bar.classList.remove('searching');
+  showResults([]);
+  if (document.activeElement === searchInput) searchInput.blur();
+}
+document.getElementById('search-open').addEventListener('click', openSearch);
+searchInput.addEventListener('input', runSearch);
+searchInput.addEventListener('blur', () => {
+  // A result is pressed with the mouse after the field loses focus.
+  setTimeout(() => { if (document.activeElement !== searchInput) closeSearch(); }, 160);
+});
+searchInput.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    e.preventDefault(); e.stopPropagation();
+    if (!results.length) return;
+    activeResult = (activeResult + (e.key === 'ArrowDown' ? 1 : -1) + results.length) % results.length;
+    paintActive();
+  } else if (e.key === 'Enter') {
+    e.preventDefault(); e.stopPropagation();
+    const pick = results[Math.max(0, activeResult)];
+    if (pick) revealTask(pick.id);
+  } else if (e.key === 'Escape') {
+    e.preventDefault(); e.stopPropagation();
+    closeSearch();
+  }
+});
+
+// Matches in the task's text first, then in its notes; both lists.
+function runSearch() {
+  const q = searchInput.value.trim().toLowerCase();
+  if (!q) { showResults([]); return; }
+  const hits = [];
+  for (const t of state.tasks.values()) {
+    const inText = t.text.toLowerCase().indexOf(q);
+    const inNotes = inText < 0 ? t.notes.toLowerCase().indexOf(q) : -1;
+    if (inText >= 0 || inNotes >= 0) hits.push({ t, rank: inText >= 0 ? 0 : 1, at: inText >= 0 ? inText : inNotes });
+  }
+  hits.sort((a, b) => a.rank - b.rank || a.at - b.at || a.t.text.localeCompare(b.t.text));
+  showResults(hits.slice(0, 8).map((h) => h.t), q);
+}
+
+function showResults(list, q = '') {
+  results = list;
+  activeResult = list.length ? 0 : -1;
+  resultsEl.replaceChildren();
+  if (!q) { resultsEl.classList.remove('show'); return; }
+  if (!list.length) {
+    resultsEl.append(Object.assign(document.createElement('div'), { className: 'result-none', textContent: 'No tasks match.' }));
+  }
+  for (const t of list) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'result';
+    b.dataset.status = t.status;
+    b.setAttribute('role', 'option');
+    const text = document.createElement('span');
+    text.className = 'result-text';
+    const i = t.text.toLowerCase().indexOf(q);
+    if (i >= 0) {
+      const mark = document.createElement('mark');
+      mark.textContent = t.text.slice(i, i + q.length);
+      text.append(t.text.slice(0, i), mark, t.text.slice(i + q.length));
+    } else {
+      text.textContent = t.text;   // matched in its notes
+    }
+    const meta = Object.assign(document.createElement('span'), {
+      className: 'result-meta',
+      textContent: `${t.list === 'ongoing' ? 'Ongoing' : 'Today'} · ${STATUS_LABELS[t.status]}${i < 0 ? ' · in notes' : ''}`,
+    });
+    b.append(Object.assign(document.createElement('span'), { className: 'dot' }), text, meta);
+    b.addEventListener('mousedown', (e) => e.preventDefault());   // keep the field's focus
+    b.addEventListener('click', () => revealTask(t.id));
+    resultsEl.append(b);
+  }
+  resultsEl.classList.add('show');
+  paintActive();
+}
+
+function paintActive() {
+  [...resultsEl.querySelectorAll('.result')].forEach((b, i) => b.classList.toggle('active', i === activeResult));
+  resultsEl.querySelector('.result.active')?.scrollIntoView({ block: 'nearest' });
+}
+
+// Shows a task wherever it lives: its list's tab, its section unfolded, the
+// side panel or drawer open for a To Do, then selects it and flashes it.
+function revealTask(id) {
+  const t = state.tasks.get(id);
+  closeSearch();
+  if (!t) return;
+  setSide(t.list === 'ongoing' ? 'ongoing' : 'todo');
+  const key = `${t.list || 'today'}:${t.status}`;
+  if (state.collapsed.has(key)) {
+    state.collapsed.delete(key);
+    api.settings.set({ collapsed: [...state.collapsed] });
+  }
+  if (t.status === 'todo') {
+    if (state.compact) setDrawer(true);
+    else if (state.sideHidden) api.settings.set({ showSide: true });
+  }
+  state.selectedId = id;
+  render();
+  const el = taskEl(id);
+  if (!el) return;
+  el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  el.classList.remove('found');
+  void el.offsetWidth;
+  el.classList.add('found');
+}
 
 // ─── Drag and drop ───────────────────────────────────────────────────────────
 initDnd(pane, {
@@ -513,13 +687,18 @@ window.addEventListener('keydown', (e) => {
   }
   if (cmd && e.key.toLowerCase() === 'n') {
     e.preventDefault();
-    addInput.focus();
+    openAdd();
+    return;
+  }
+  if (cmd && e.key.toLowerCase() === 'f') {
+    e.preventDefault();
+    openSearch();
     return;
   }
   if (e.key === 'Escape') {
     if (isPrefsOpen()) { closePrefs(); return; }
     if (state.editingId) { cancelEdit(); return; }
-    if (document.activeElement === addInput) { addInput.value = ''; addInput.blur(); return; }
+    if (addForm.classList.contains('open')) { closeAdd(); return; }
     if (pane.classList.contains('drawer-open')) { setDrawer(false); return; }
     select(null);
     return;
@@ -554,6 +733,11 @@ window.addEventListener('keydown', (e) => {
 
 // ─── Boot ────────────────────────────────────────────────────────────────────
 onChange((opts) => render(opts));
+// Added or changed outside the window (quick add, Claude): reload the board.
+api.onTasksChanged(async () => {
+  await load();
+  render({ animate: true });
+});
 
 async function boot() {
   initBoard(notesHandlers);
@@ -579,6 +763,7 @@ function applySettings(s, { first = false } = {}) {
   document.getElementById('weekday').hidden = !s.showWeekday;
 
   state.collapsed = new Set(s.collapsed || []);
+  showSidePanel(s.showSide !== false);
   const sortChanged = s.sort !== state.sort;
   const spellChanged = s.spellcheckNotes !== state.spellcheck;
   state.sort = s.sort;
