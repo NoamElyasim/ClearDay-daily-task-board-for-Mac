@@ -36,7 +36,9 @@ projects beside it.
 - **Quick add from anywhere.** Press ⌘ twice in any app and a small bar
   rises above the Dock: type the task, pick To Do or Ongoing and a priority,
   press Enter. The task goes onto the board without ClearDay coming forward.
-  It needs the Input Monitoring permission, which macOS asks for once.
+  Rather tap ⌥, ⌃ or ⇧ twice? Click the keycaps in Preferences and press
+  your key twice. It needs the Input Monitoring permission, which macOS asks
+  for once.
 - **Works with Claude.** ClearDay includes an MCP server, so Claude Code and
   Claude Desktop can list, add, update, move, search and delete your tasks.
   Connect it from Preferences → Claude.
@@ -99,8 +101,8 @@ projects beside it.
   cleared or archived.
 - **Preferences** (the gear, or ⌘,):
   - Appearance: theme, text size and the weekday.
-  - Behavior: always on top, Dock or menu bar only, launch at login, sort and
-    spell checking.
+  - Behavior: always on top, Dock or menu bar only, launch at login, sort,
+    spell checking, and quick add with its key.
   - Data: show the data folder, export your tasks, reset the window position.
   - A list of keyboard shortcuts.
 
@@ -109,7 +111,7 @@ projects beside it.
 | Key | Action |
 |---|---|
 | Enter | Add the task you typed. On a selected row, edit it |
-| ⌘ ⌘ (twice, in any app) | Quick add |
+| ⌘ ⌘ (twice, in any app) | Quick add. ⌥, ⌃ or ⇧ instead: Preferences → Shortcut |
 | ⌘N | Open Add a task |
 | ⌘F | Search |
 | ↑ / ↓ | Select a row |

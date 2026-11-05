@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- **Pick quick add's key.** ⌘ twice is the default; Preferences → Shortcut
+  shows it as two keycaps. Click them and press ⌥, ⌃, ⇧ or ⌘ twice: the
+  first tap lights one cap, the second lights the other and saves. Any other
+  key shakes them, and Esc keeps the old one.
+
 ## v0.7.1 — 2026-11-04
 
 - **Collapse / Expand:** one button, level with the first section

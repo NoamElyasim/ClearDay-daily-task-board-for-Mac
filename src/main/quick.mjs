@@ -1,12 +1,13 @@
-// Quick add: press ⌘ twice anywhere and a small bar rises above the Dock.
+// Quick add: press ⌘ twice anywhere (or ⌥, ⌃ or ⇧: Preferences picks the
+// key) and a small bar rises above the Dock.
 // Type, pick To Do or Ongoing and a priority, press Enter: the task goes
 // straight into the store and the bar fades away. ClearDay's window is left
 // alone, and the app doesn't come to the front: the bar is a non-activating
 // panel.
 //
-// macOS only tells an app about ⌘ on its own through an event tap, which
-// Electron doesn't have, so a small helper (native/cmdtap.swift) watches
-// the keys and prints "double" here. It needs the Input Monitoring
+// macOS only tells an app about a modifier on its own through an event tap,
+// which Electron doesn't have, so a small helper (native/cmdtap.swift)
+// watches the keys and prints "double" here. It needs the Input Monitoring
 // permission, asked for once.
 import { app, BrowserWindow, screen, nativeTheme } from 'electron';
 import { spawn } from 'node:child_process';
@@ -21,6 +22,8 @@ const ABOVE_DOCK = 6;
 
 let panel = null;
 let helper = null;
+let key = 'command';            // see QUICK_KEYS in model.mjs
+let paused = false;             // Preferences is recording a new key
 let status = 'off';             // 'off' | 'starting' | 'permission' | 'ready' | 'missing'
 let onStatus = () => {};
 let addTask = () => {};
@@ -38,7 +41,7 @@ function helperPath() {
     : path.join(DIR, '..', '..', 'build', 'native', 'cmdtap');
 }
 
-// ─── The ⌘⌘ listener ─────────────────────────────────────────────────────────
+// ─── The double-tap listener ─────────────────────────────────────────────────
 export function setQuickEnabled(on) {
   if (process.platform !== 'darwin') return;
   if (!on) { stopHelper(); setStatus('off'); return; }
@@ -46,9 +49,9 @@ export function setQuickEnabled(on) {
   const bin = helperPath();
   if (!fs.existsSync(bin)) { setStatus('missing'); return; }
   setStatus('starting');
-  helper = spawn(bin, [], { stdio: ['pipe', 'pipe', 'ignore'] });
+  helper = spawn(bin, ['--key', key], { stdio: ['pipe', 'pipe', 'ignore'] });
   readline.createInterface({ input: helper.stdout }).on('line', (line) => {
-    if (line === 'double') toggleQuick();
+    if (line === 'double') { if (!paused) toggleQuick(); }
     else if (line === 'permission') setStatus('permission');
     else if (line === 'ready') setStatus('ready');
   });
@@ -57,6 +60,15 @@ export function setQuickEnabled(on) {
     if (status !== 'off') setStatus('off');
   });
 }
+
+export function setQuickKey(k) {
+  key = k;
+  helper?.stdin.write(`key ${k}\n`);
+}
+
+// While Preferences listens for a new key, pressing the current one twice
+// mustn't open the bar over it.
+export function pauseQuick(on) { paused = !!on; }
 
 function stopHelper() {
   if (!helper) return;

@@ -32,6 +32,8 @@ ipcMain.handle('app:info', () => ({ version: app.getVersion(), dataFile: '' }));
 // Quick add and the Claude connection aren't exercised here; Preferences
 // asks for their status.
 ipcMain.handle('quick:status', () => 'ready');
+const recordingCalls = [];   // what Preferences told main while picking a key
+ipcMain.on('quick:recording', (_e, on) => recordingCalls.push(on));
 for (const ch of ['quick:show', 'quick:open-permission']) ipcMain.handle(ch, () => null);
 ipcMain.handle('mcp:status', () => ({ desktop: false, desktopInstalled: true, code: false, command: '' }));
 for (const ch of ['mcp:connect-desktop', 'mcp:copy-code-command']) ipcMain.handle(ch, () => true);
@@ -514,6 +516,40 @@ async function run() {
   await sleep(300);
   check('a Preferences control saves its setting', settings.get('textSize') === 'large');
   await js(`[...document.querySelectorAll('#prefs .seg-btn')].find((b) => b.textContent === 'Medium').click()`);
+
+  // Quick add's key: click the caps, press ⌥ twice
+  const caps = () => js(`[...document.querySelectorAll('.key-rec .glyph')].map((g) => g.textContent).join(' ')`);
+  await js(`document.querySelector('.key-rec').scrollIntoView({ block: 'center' })`);
+  await sleep(200);
+  check('Preferences shows the quick-add shortcut as two keycaps', await caps() === '⌘ ⌘');
+  await click('.key-rec');
+  check('clicking the caps listens for a key, and main ignores the old one meanwhile',
+    await js(`document.querySelector('.key-rec').classList.contains('listening')`) && recordingCalls.at(-1) === true);
+  await key('a');
+  check('a letter is refused: the caps shake and nothing is saved', settings.get('quickKey') === 'command' &&
+    await js(`document.querySelector('.key-rec').classList.contains('wrong')`));
+  await key('Alt');
+  check('the first tap lights the first cap', await js(`(() => {
+    const [a, b] = document.querySelectorAll('.key-rec .keycap');
+    return a.classList.contains('lit') && a.textContent === '⌥' && !b.classList.contains('lit'); })()`));
+  await key('Alt');
+  await sleep(300);
+  check('a second tap saves the key, and main listens again', settings.get('quickKey') === 'option' &&
+    await caps() === '⌥ ⌥' && recordingCalls.at(-1) === false &&
+    await js(`!document.querySelector('.key-rec').classList.contains('listening')`));
+  check('the Quick add line and the shortcut list name the new key', await js(`(() => {
+    const t = document.getElementById('prefs').textContent;
+    return t.includes('Press ⌥ twice anywhere') && t.includes('⌥ ⌥') && t.includes('press Option twice'); })()`));
+  await click('.key-rec');
+  await key('Shift');
+  await key('Escape');
+  check('Esc stops listening, keeps the old key and leaves Preferences open', settings.get('quickKey') === 'option' &&
+    await caps() === '⌥ ⌥' && await js(`document.getElementById('prefs').classList.contains('open')`) &&
+    await js(`!document.querySelector('.key-rec').classList.contains('listening')`));
+  settings.set({ quickKey: 'command' });
+  wc.send('settings', settings.all());
+  await sleep(200);
+
   await key('Escape');
   await sleep(300);
   check('Esc closes Preferences', await js(`!document.getElementById('prefs').classList.contains('open')`));

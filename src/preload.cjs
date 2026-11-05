@@ -35,6 +35,7 @@ contextBridge.exposeInMainWorld('clearday', {
     status: () => ipcRenderer.invoke('quick:status'),
     show: () => ipcRenderer.invoke('quick:show'),
     openPermission: () => ipcRenderer.invoke('quick:open-permission'),
+    recording: (on) => ipcRenderer.send('quick:recording', on),
     onStatus: on('quick:status'),
   },
   mcp: {

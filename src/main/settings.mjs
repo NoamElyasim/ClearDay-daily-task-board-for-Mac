@@ -4,7 +4,7 @@
 import { app } from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
-import { SORTS } from '../shared/model.mjs';
+import { SORTS, QUICK_KEYS } from '../shared/model.mjs';
 
 const FILE = path.join(app.getPath('userData'), 'settings.json');
 
@@ -26,6 +26,7 @@ const DEFAULTS = {
   collapsed: [],        // folded board sections, as 'list:status' keys
   showSide: true,       // the side panel (To Do | Ongoing) in the wide layout
   quickAdd: true,       // press ⌘ twice anywhere for the quick-add bar
+  quickKey: 'command',  // …or another modifier: see QUICK_KEYS
   notesTools: 'open',   // the notes' formatting menu: 'open' | 'min'
 };
 
@@ -42,6 +43,7 @@ const VALID = {
   sidePanel: (v) => ['todo', 'ongoing'].includes(v),
   showSide: (v) => typeof v === 'boolean',
   quickAdd: (v) => typeof v === 'boolean',
+  quickKey: (v) => typeof v === 'string' && Object.hasOwn(QUICK_KEYS, v),
   notesTools: (v) => ['open', 'min'].includes(v),
   collapsed: (v) => Array.isArray(v) && v.length <= 20 && v.every((k) => typeof k === 'string' && k.length < 40),
 };

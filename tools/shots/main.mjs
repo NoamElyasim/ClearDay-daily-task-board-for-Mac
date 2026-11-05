@@ -110,6 +110,15 @@ const firstId = `cleardayDebug.state.tasks.values().next().value.id`;
 const openNotes = (js) => js(`cleardayDebug.toggleNotes(${firstId}); document.activeElement.blur(); 1`);
 const clickFirst = (sel) => (js) => js(`document.querySelector(${JSON.stringify(sel)}).click(); 1`);
 
+// Preferences scrolled to the quick-add shortcut, listening, after these taps.
+async function recordKey(js, taps) {
+  await js(`cleardayDebug.openPrefs(); document.querySelector('.key-rec').scrollIntoView({ block: 'center' }); 1`);
+  await sleep(400);
+  await js(`(() => { document.querySelector('.key-rec').click();
+    for (const key of ${JSON.stringify(taps)}) for (const type of ['keydown', 'keyup']) window.dispatchEvent(new KeyboardEvent(type, { key }));
+    return 1; })()`);
+}
+
 // Hebrew notes, written right to left.
 const RTL_NOTE = 'לבדוק את השקפים 4–7\nלבקש מבן את תמונת הביתן';
 
@@ -150,6 +159,10 @@ const SHOTS = {
   } },
   'prefs-dark': { theme: 'dark', width: 780, height: 560, setup: (js) => js('cleardayDebug.openPrefs(); 1') },
   'prefs-light-narrow': { theme: 'light', width: 340, height: 600, setup: (js) => js('cleardayDebug.openPrefs(); 1') },
+  // The quick-add key recorder listening: dark after one ⌥ tap, light empty.
+  'shortcut-dark': { theme: 'dark', width: 780, height: 560, setup: (js) => recordKey(js, ['Alt']) },
+  'shortcut-light': { theme: 'light', width: 420, height: 600, setup: (js) => recordKey(js, []) },
+  'shortcut-idle-light': { theme: 'light', width: 420, height: 600, setup: async (js) => { await recordKey(js, []); await js(`document.querySelector('.key-rec').click(); 1`); } },
   'hover-row-light': { theme: 'light', width: 780, height: 560, setup: (js) => js(`cleardayDebug.state.selectedId = ${firstId}; cleardayDebug.render(); 1`) },
   'notes-light': { theme: 'light', width: 780, height: 560, setup: openNotes },
   'notes-rtl-dark': { theme: 'dark', width: 780, height: 560, setup: async (js) => {

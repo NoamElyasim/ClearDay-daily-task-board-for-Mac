@@ -1,11 +1,14 @@
-// cmdtap: tells ClearDay when ⌘ is pressed twice, from anywhere.
+// cmdtap: tells ClearDay when a modifier key (⌘ by default) is pressed
+// twice, from anywhere.
 //
 // A listen-only event tap on modifier changes and key presses. A "tap" is
-// ⌘ pressed and released on its own (no other key or modifier in between,
-// under 0.35 s); two taps within 0.45 s print "double". Other lines:
+// the key pressed and released on its own (no other key or modifier in
+// between, under 0.35 s); two taps within 0.45 s print "double". Other lines:
 //   "permission"  macOS hasn't allowed Input Monitoring yet (asked once)
 //   "ready"       listening
-// It exits when ClearDay closes its stdin.
+// The key is "command", "option", "control" or "shift": "--key option" at
+// launch, and a "key option" line on stdin to change it. It exits when
+// ClearDay closes its stdin.
 import Cocoa
 import IOKit.hid
 
@@ -13,12 +16,26 @@ setvbuf(stdout, nil, _IOLBF, 0)
 
 let maxPress: CFTimeInterval = 0.35
 let maxGap: CFTimeInterval = 0.45
-let otherModifiers: CGEventFlags = [.maskShift, .maskControl, .maskAlternate, .maskSecondaryFn]
+let keys: [String: CGEventFlags] = [
+  "command": .maskCommand, "option": .maskAlternate, "control": .maskControl, "shift": .maskShift,
+]
+let allModifiers: CGEventFlags = [.maskCommand, .maskShift, .maskControl, .maskAlternate, .maskSecondaryFn]
 
 var tap: CFMachPort?
-var cmdDownAt: CFTimeInterval?
+var target: CGEventFlags = .maskCommand
+var otherModifiers = allModifiers.subtracting(target)
+var downAt: CFTimeInterval?
 var keyWhileDown = false
 var lastTap: CFTimeInterval = 0
+
+// On the main thread, where the tap runs.
+func use(_ name: String) {
+  guard let flags = keys[name] else { return }
+  target = flags
+  otherModifiers = allModifiers.subtracting(flags)
+  downAt = nil
+  lastTap = 0
+}
 
 func say(_ line: String) { print(line); fflush(stdout) }
 
@@ -32,15 +49,15 @@ let callback: CGEventTapCallBack = { _, type, event, _ in
   case .flagsChanged:
     let flags = event.flags
     if !flags.intersection(otherModifiers).isEmpty {
-      cmdDownAt = nil
+      downAt = nil
       lastTap = 0
       break
     }
     let now = CACurrentMediaTime()
-    if flags.contains(.maskCommand) {
-      if cmdDownAt == nil { cmdDownAt = now; keyWhileDown = false }
-    } else if let down = cmdDownAt {
-      cmdDownAt = nil
+    if flags.contains(target) {
+      if downAt == nil { downAt = now; keyWhileDown = false }
+    } else if let down = downAt {
+      downAt = nil
       if !keyWhileDown && now - down < maxPress {
         if lastTap > 0 && now - lastTap < maxGap { say("double"); lastTap = 0 } else { lastTap = now }
       } else {
@@ -65,9 +82,18 @@ func startTap() -> Bool {
   return true
 }
 
-// ClearDay going away closes our stdin: leave with it.
+let args = CommandLine.arguments
+if let i = args.firstIndex(of: "--key"), i + 1 < args.count { use(args[i + 1]) }
+
+// "key option" lines switch the key; ClearDay going away closes our stdin:
+// leave with it.
 Thread.detachNewThread {
-  while readLine() != nil {}
+  while let line = readLine() {
+    if line.hasPrefix("key ") {
+      let name = String(line.dropFirst(4))
+      DispatchQueue.main.async { use(name) }
+    }
+  }
   exit(0)
 }
 

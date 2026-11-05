@@ -12,7 +12,7 @@ import './paths.mjs';
 import * as settings from './settings.mjs';
 import * as store from './store.mjs';
 import { buildTemplate } from './context-menu.mjs';
-import { initQuick, setQuickEnabled, stopQuick, showQuick, quickAdd, quickHidden, quickStatus } from './quick.mjs';
+import { initQuick, setQuickEnabled, setQuickKey, pauseQuick, stopQuick, showQuick, quickAdd, quickHidden, quickStatus } from './quick.mjs';
 import { startBridge } from './bridge.mjs';
 import { SORTS, SORT_LABELS, SCHEMA_VERSION } from '../shared/model.mjs';
 
@@ -183,6 +183,7 @@ function tasksChangedElsewhere() {
 }
 
 function applySetting(keys) {
+  if (keys.includes('quickKey')) setQuickKey(settings.get('quickKey'));
   if (keys.includes('quickAdd')) setQuickEnabled(settings.get('quickAdd'));
   if (keys.includes('theme')) applyTheme();
   if (keys.includes('openAtLogin')) applyLoginItem();
@@ -345,6 +346,7 @@ initQuick({
 });
 ipcMain.handle('quick:add', (_e, fields) => quickAdd(fields));
 ipcMain.on('quick:hidden', () => quickHidden());
+ipcMain.on('quick:recording', (_e, on) => pauseQuick(on));
 ipcMain.handle('quick:status', () => quickStatus());
 ipcMain.handle('quick:show', () => showQuick());
 ipcMain.handle('quick:open-permission', () =>
@@ -405,6 +407,7 @@ if (!app.requestSingleInstanceLock()) {
     applyLoginItem();
     await applyShowIn();
     createWindow();
+    setQuickKey(settings.get('quickKey'));
     setQuickEnabled(settings.get('quickAdd'));
     stopBridge = startBridge(path.join(app.getPath('userData'), 'clearday.sock'), {
       list: () => store.list(),
