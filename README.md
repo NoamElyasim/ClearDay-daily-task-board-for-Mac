@@ -5,7 +5,7 @@ One window, one day: set what's in progress, what's waiting for approval,
 what's on hold and what's done, with the to-do list and your long-term
 projects beside it.
 
-[![ClearDay in 29 seconds: add a task, start it, prioritize it, write a note, switch to light, collapse the sections, select and delete, quick add with ⌘⌘](docs/film.gif)](https://github.com/NoamElyasim/ClearDay-daily-task-board-for-Mac/releases/download/v0.7.1/ClearDay-film.mp4)
+[![ClearDay in 33 seconds: add a task, start it, prioritize it, write a note, switch to light, collapse the sections, select and delete, quick add with ⌘⌘, then pick your own shortcut](docs/film.gif)](https://github.com/NoamElyasim/ClearDay-daily-task-board-for-Mac/releases/download/v0.8.0/ClearDay-film.mp4)
 
 <sub>Click the animation to watch the film with sound.</sub>
 
@@ -22,6 +22,10 @@ projects beside it.
 | Ongoing projects | Preferences |
 |---|---|
 | ![The Ongoing tab](docs/ongoing-dark.png) | ![Preferences](docs/prefs-dark.png) |
+
+| Quick task shortcut | Side panel hidden |
+|---|---|
+| ![Picking the quick task shortcut: ⌃⇧ held, waiting for a key](docs/shortcut-dark.png) | ![The board full width, the side panel button beside Add and Search](docs/side-hidden-dark.png) |
 
 ## Features
 

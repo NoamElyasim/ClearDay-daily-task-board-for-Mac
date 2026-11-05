@@ -206,7 +206,8 @@ async function run() {
 
   if (process.argv.includes('--docs')) {
     fs.mkdirSync(DOCS, { recursive: true });
-    for (const n of ['expanded-dark', 'expanded-light', 'compact-light', 'ongoing-dark', 'prefs-dark', 'notes-rich-dark', 'search-light']) {
+    for (const n of ['expanded-dark', 'expanded-light', 'compact-light', 'ongoing-dark', 'prefs-dark', 'notes-rich-dark', 'search-light',
+      'shortcut-dark', 'side-hidden-dark']) {
       fs.copyFileSync(path.join(OUT, `${n}.png`), path.join(DOCS, `${n}.png`));
     }
     console.log('copied README images to docs/');
