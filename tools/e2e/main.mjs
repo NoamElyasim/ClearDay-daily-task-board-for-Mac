@@ -536,6 +536,23 @@ async function run() {
   await click('.key-rec');
   check('clicking the caps listens, with the keyboard handed to the recorder',
     await listening() && recordingCalls.at(-1) === true);
+  // In a narrow window the hint wraps: the caps and the row below hold still
+  // while it changes from "Press a key twice…" to "Once more" to "Saved".
+  win.setContentSize(340, 560);
+  await sleep(300);
+  const spot = () => js(`(() => { const r = document.querySelector('.key-rec').getBoundingClientRect();
+    const next = document.querySelector('.key-row').closest('section').nextElementSibling.getBoundingClientRect();
+    return [Math.round(r.top), Math.round(r.right), Math.round(next.top)].join(','); })()`);
+  const spots = [await spot()];
+  await key('Shift'); spots.push(await spot());
+  await key('Shift'); await sleep(300); spots.push(await spot());
+  await sleep(1200); spots.push(await spot());
+  check('in a narrow window the caps stay put as the hint changes', new Set(spots).size === 1, spots.join(' | '));
+  win.setContentSize(780, 560);
+  settings.set({ quickKey: 'command' });
+  wc.send('settings', settings.all());
+  await sleep(300);
+  await click('.key-rec');
   await key('Capslock');
   check('a key it cannot listen for shakes the caps, and nothing is saved', settings.get('quickKey') === 'command' &&
     await js(`document.querySelector('.key-rec').classList.contains('wrong')`));

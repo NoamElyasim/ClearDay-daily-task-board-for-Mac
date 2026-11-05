@@ -35,7 +35,14 @@ const SLOT = { slot: true };
 // shortcut; recording(on) tells the main process it started or stopped.
 export function shortcutRecorder({ hint, save, recording }) {
   const el = Object.assign(document.createElement('button'), { className: 'key-rec', type: 'button' });
-  hint.setAttribute('aria-live', 'polite');
+  // The hint's text sits over an invisible copy of its longest line, so it
+  // keeps one height whatever it says and nothing around it moves.
+  const text = document.createElement('span');
+  const sizer = Object.assign(document.createElement('span'), { className: 'key-hint-sizer', textContent: HINTS.listening });
+  sizer.setAttribute('aria-hidden', 'true');
+  text.setAttribute('aria-live', 'polite');
+  hint.classList.add('key-hint');
+  hint.replaceChildren(text, sizer);
 
   let value = 'command';
   let listening = false;
@@ -45,8 +52,8 @@ export function shortcutRecorder({ hint, save, recording }) {
   let first = null;         // { value, label, at }: the first tap
   let timer = 0;
 
-  const say = (text, warn = false) => {
-    hint.textContent = text;
+  const say = (words, warn = false) => {
+    text.textContent = words;
     hint.classList.toggle('warn', warn);
   };
 
@@ -207,12 +214,12 @@ export function shortcutRecorder({ hint, save, recording }) {
       const mods = sorted(held).filter((m) => m !== 'fn');
       if (mods.length) {
         chord.keyed = true;
-        if (!canCombo(code)) { wrong(`${keyLabel(code)} can't be in a combination. Try another key.`); return; }
+        if (!canCombo(code)) { wrong(`Can't combine ${keyLabel(code)}. Try another key.`); return; }
         draw([...mods.map((m) => ({ label: modLabel(m), lit: true })), { label: keyLabel(code), lit: true }]);
         saveShortcut(combo(mods, code));
         return;
       }
-      if (!canDoubleTap(code)) { wrong(`ClearDay can't listen for ${key || 'that key'}. Try another one.`); return; }
+      if (!canDoubleTap(code)) { wrong(`Can't use ${key || 'that key'}. Try another one.`); return; }
       down = { code, at: now };
       return;
     }

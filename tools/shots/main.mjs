@@ -164,7 +164,7 @@ const SHOTS = {
   // and set to a combination (light).
   'shortcut-dark': { theme: 'dark', width: 780, height: 560,
     setup: (js) => recordKey(js, [['keydown', 'Control', 'ControlLeft'], ['keydown', 'Shift', 'ShiftLeft']]) },
-  'shortcut-light': { theme: 'light', width: 420, height: 600, setup: (js) => recordKey(js, []) },
+  'shortcut-light': { theme: 'light', width: 340, height: 600, setup: (js) => recordKey(js, []) },
   'shortcut-combo-light': { theme: 'light', width: 420, height: 600, prefs: { quickKey: 'combo:control+shift+KeyT' },
     setup: (js) => js(`cleardayDebug.openPrefs(); document.querySelector('.key-rec').scrollIntoView({ block: 'center' }); 1`) },
   'hover-row-light': { theme: 'light', width: 780, height: 560, setup: (js) => js(`cleardayDebug.state.selectedId = ${firstId}; cleardayDebug.render(); 1`) },

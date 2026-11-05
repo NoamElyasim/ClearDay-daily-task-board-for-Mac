@@ -162,7 +162,7 @@ function build(info) {
         row('Sort', select('sort', SORTS.map((s) => [s, SORT_LABELS[s]]), 'Sort')),
         row('Check spelling in notes', toggle('spellcheckNotes', 'Check spelling in notes')),
         row('Quick add', toggle('quickAdd', 'Quick add'), quickAbout),
-        row('Quick task shortcut', recorder.el, keyHint),
+        Object.assign(row('Quick task shortcut', recorder.el, keyHint), { className: 'pref-row key-row' }),
         quickNote,
       ),
       h('section', {},

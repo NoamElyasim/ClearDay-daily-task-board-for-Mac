@@ -178,6 +178,14 @@ kbd {
 
 .pref-hint.warn { color: var(--danger); }
 
+/* The shortcut row never wraps: at any width the caps stay beside the label,
+   and the hint under it wraps in its own column at one fixed height. */
+.pref-row.key-row { flex-wrap: nowrap; }
+.key-row .pref-label { flex: 1; min-width: 0; }
+.key-hint { display: grid; }
+.key-hint > * { grid-area: 1 / 1; }
+.key-hint-sizer { visibility: hidden; }
+
 @media (prefers-reduced-motion: reduce) {
   .key-rec.listening:not(.wrong)::after { animation: none; opacity: 0.5; }
   .keycap.slot .glyph { transform: none; }
