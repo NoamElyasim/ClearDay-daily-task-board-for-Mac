@@ -1,53 +1,64 @@
 // Hover while another app is active. macOS doesn't pass pointer moves to a
 // window in the background (Chromium drops them), so ClearDay's hover
 // effects would freeze until it was clicked. While the window isn't focused,
-// the pointer's position is polled here and handed to the page as mouse
-// moves; once it's focused, the real events take over again.
-import { screen } from 'electron';
+// a small helper (native/pointer.swift) says where the pointer is whenever
+// it's over this window with nothing else in front of it there, and those
+// positions reach the page as mouse moves. Over another app's window, even
+// one covering ClearDay, nothing hovers. Once ClearDay is focused, the real
+// events take over again.
+import { app } from 'electron';
+import { spawn } from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
+import readline from 'node:readline';
 
-const OVER_MS = 16;    // ~60 Hz while the pointer is over the window
-const AWAY_MS = 100;   // a slower look while it's elsewhere
+const DIR = import.meta.dirname;
 
-export function relayHover(win, cursor = () => screen.getCursorScreenPoint()) {
-  let timer = null;
+function helperPath() {
+  return app.isPackaged ? path.join(process.resourcesPath, 'pointer')
+    : path.join(DIR, '..', '..', 'build', 'native', 'pointer');
+}
+
+// bin: the helper to run (the e2e test passes a stand-in).
+export function relayHover(win, bin = helperPath()) {
+  if (!fs.existsSync(bin)) return;
+  let helper = null;
   let inside = false;
-  let last = '';
 
-  const send = (event) => win.webContents.sendInputEvent(event);
+  const send = (event) => { if (!win.isDestroyed()) win.webContents.sendInputEvent(event); };
   function leave() {
     if (inside) send({ type: 'mouseLeave', x: -1, y: -1 });
     inside = false;
-    last = '';
-  }
-  function stop() {
-    clearTimeout(timer);
-    timer = null;
   }
 
-  function tick() {
-    timer = null;
-    if (win.isDestroyed()) return;
-    if (win.isFocused() || !win.isVisible() || win.isMinimized()) { leave(); return; }
-    const p = cursor();
+  function onLine(line) {
+    if (line === 'away') { leave(); return; }
+    const [word, sx, sy] = line.split(' ');
+    if (word !== 'move' || win.isDestroyed() || win.isFocused()) return;
     const b = win.getContentBounds();
-    const x = p.x - b.x;
-    const y = p.y - b.y;
-    const over = x >= 0 && y >= 0 && x < b.width && y < b.height;
-    if (over) {
-      if (!inside) send({ type: 'mouseEnter', x, y });
-      inside = true;
-      if (`${x},${y}` !== last) send({ type: 'mouseMove', x, y });
-      last = `${x},${y}`;
-    } else {
-      leave();
-    }
-    timer = setTimeout(tick, over ? OVER_MS : AWAY_MS);
+    const x = Number(sx) - b.x;
+    const y = Number(sy) - b.y;
+    if (!inside) send({ type: 'mouseEnter', x, y });
+    inside = true;
+    send({ type: 'mouseMove', x, y });
   }
 
-  const start = () => { if (!timer) tick(); };
-  win.on('blur', start);
-  win.on('show', start);
-  win.on('restore', start);
-  win.on('focus', () => { stop(); inside = false; last = ''; });
-  win.on('closed', stop);
+  function tell(line) {
+    if (!helper) {
+      helper = spawn(bin, [], { stdio: ['pipe', 'pipe', 'ignore'] });
+      readline.createInterface({ input: helper.stdout }).on('line', onLine);
+      const child = helper;
+      child.on('exit', () => { if (helper === child) helper = null; });
+    }
+    helper.stdin.write(`${line}\n`);
+  }
+
+  // getMediaSourceId() is "window:<macOS window number>:0".
+  const watch = () => {
+    if (!win.isDestroyed() && !win.isFocused()) tell(`watch ${win.getMediaSourceId().split(':')[1]}`);
+  };
+  win.on('blur', watch);
+  win.on('show', watch);
+  win.on('focus', () => { if (helper) tell('stop'); inside = false; });
+  win.on('closed', () => { helper?.stdin.end(); helper?.kill(); helper = null; });
 }

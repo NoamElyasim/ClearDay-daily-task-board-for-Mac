@@ -494,10 +494,17 @@ async function run() {
   await sleep(500);
   check('the sidebar button hides the side panel, and it is remembered', settings.get('showSide') === false &&
     await js(`document.getElementById('pane').classList.contains('side-hidden') && document.getElementById('side').getBoundingClientRect().width < 2`));
-  check('with the panel hidden, the button sits clear of the first row', await js(`(() => {
+  check('with the panel hidden, the button sits in the Add | Search row, above the board where rows scroll', await js(`(() => {
     const b = document.getElementById('sidebar-btn').getBoundingClientRect();
-    const row = document.querySelector('#sections .row').getBoundingClientRect();
-    return b.bottom <= row.top - 4; })()`));
+    const s = document.getElementById('search-open').getBoundingClientRect();
+    const board = document.getElementById('board').getBoundingClientRect();
+    return Math.abs((b.top + b.bottom) / 2 - (s.top + s.bottom) / 2) <= 1.5 && b.bottom <= board.top; })()`));
+  await click('#add-open');
+  await sleep(400);
+  check('and an open Add field stops short of it', await js(`
+    document.getElementById('add').getBoundingClientRect().right <= document.getElementById('sidebar-btn').getBoundingClientRect().left - 4`));
+  await key('Escape');
+  await sleep(300);
   await click('#sidebar-btn');
   await sleep(500);
   check('and shows it again', settings.get('showSide') === true &&
@@ -508,23 +515,39 @@ async function run() {
   check('open notes sit on a lighter grey than the side card', await cssColor('--raised') !== await cssColor('--surface'));
 
   // ── Hover while another app is active ──
+  // A stand-in for native/pointer: on "watch" it reports the pointer over the
+  // gear, then that it left (covered, or moved off).
   {
-    const on = {};
-    let pointer = { x: -50, y: -50 };
     const gear = await rect('#settings-btn');
+    const stub = path.join(TMP, 'pointer-stub');
+    const log = path.join(TMP, 'pointer-stub.log');
+    fs.writeFileSync(stub, `#!/bin/sh
+while read -r line; do
+  case "$line" in
+    watch*) echo "$line" >> "${log}"; echo "move ${gear.x} ${gear.y}"; sleep 0.6; echo "away" ;;
+  esac
+done
+`, { mode: 0o755 });
+    const on = {};
     relayHover({
-      webContents: wc, isDestroyed: () => false, isFocused: () => false, isVisible: () => true, isMinimized: () => false,
+      webContents: wc, isDestroyed: () => false, isFocused: () => false, getMediaSourceId: () => 'window:4242:0',
       getContentBounds: () => ({ x: 0, y: 0, width: 780, height: 560 }), on: (ev, fn) => { on[ev] = fn; },
-    }, () => pointer);
+    }, stub);
     const hovered = () => js(`document.getElementById('settings-btn').matches(':hover')`);
+    const until = async (want, ms = 2000) => {
+      for (const end = Date.now() + ms; Date.now() < end; await sleep(50)) if (await hovered() === want) return true;
+      return false;
+    };
+    const t0 = Date.now();
     on.blur();
-    pointer = { x: gear.x, y: gear.y };
-    await sleep(250);
-    const over = await hovered();
-    pointer = { x: 900, y: 900 };
-    await sleep(250);
-    check('with another app active, the pointer still hovers the buttons it passes', over && !await hovered());
+    const over = await until(true);
+    const t1 = Date.now();
+    const left = await until(false);
+    const t2 = Date.now();
+    check('with another app active, hover follows the pointer where ClearDay is in front, and only there',
+      over && left && fs.readFileSync(log, 'utf8').trim() === 'watch 4242', `hover after ${t1 - t0} ms, gone ${t2 - t1} ms later`);
     on.focus();
+    on.closed();
   }
 
   // ── Preferences ──

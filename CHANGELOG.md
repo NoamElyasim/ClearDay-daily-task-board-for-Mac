@@ -12,7 +12,10 @@
   brings ClearDay forward also presses the button, ticks the task or opens
   Preferences, instead of only focusing the window.
 - **Hover works while another app is active:** buttons and rows light up
-  under the pointer even before you click into ClearDay.
+  under the pointer even before you click into ClearDay, and only where
+  ClearDay is in front: never through another app's window covering it.
+- With the side panel hidden, its button sits at the end of the Add | Search
+  row, so tasks no longer scroll underneath it.
 
 ## v0.7.1 — 2026-11-04
 

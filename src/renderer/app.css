@@ -55,13 +55,12 @@ svg { display: block; }
 .icon-btn:hover { background: var(--accent); color: var(--accent-text); }
 .icon-btn:active { transform: scale(0.92); }
 #sidebar-btn { position: absolute; top: 9px; right: 18px; z-index: 6; width: 28px; height: 28px; }
-/* With the panel hidden the button sits higher, level with the first
-   section heading, clear of the first row (and its hover circle with it). */
-#pane.side-hidden:not(.compact) #sidebar-btn { top: -3px; right: 12px; }
+/* With the panel hidden the button moves up into the Add | Search row, at
+   its right end: above the board, so no row ever scrolls under it. That row
+   keeps it room when Add or Search opens. */
+#pane.side-hidden:not(.compact) #sidebar-btn { top: -46px; right: 14px; }
+#pane.side-hidden:not(.compact) #bar { padding-right: 50px; }
 #sidebar-btn { transition: top var(--dur-move) var(--ease-out), right var(--dur-move) var(--ease-out), background-color var(--dur-fast) ease, color var(--dur-fast) ease, transform var(--dur-fast) ease; }
-/* A flat board (sorted by priority or date) has no heading to sit beside:
-   leave it a line of room. */
-#pane.side-hidden:not(.compact) #sections > .section:first-child:not([data-status]) { margin-top: 30px; }
 #side .side-tabs { margin-right: 34px; }
 #sidebar-btn .chev { transition: transform var(--dur-move) var(--ease-out); transform-origin: 6.4px 8px; }
 #pane.side-hidden:not(.compact) #sidebar-btn .chev, #pane.compact:not(.drawer-open) #sidebar-btn .chev { transform: scaleX(-1); }
@@ -418,7 +417,6 @@ svg { display: block; }
 #board-tools:not(.flat) ~ #sections > .section:first-child .section-head { padding-right: calc(var(--tools-w, 0px) + 14px); }
 .section-head .title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .section-head .count { flex: none; }
-#pane.side-hidden:not(.compact) #board-tools { right: 46px; }   /* clear of the sidebar button */
 #board.is-empty #board-tools { display: none; }
 /* A flat board (sorted by priority or date) has no heading to sit beside. */
 #board-tools.flat ~ #sections > .section:first-child { margin-top: 32px; }

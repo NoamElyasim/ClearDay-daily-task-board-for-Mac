@@ -56,6 +56,10 @@
       {
         "from": "build/native/cmdtap",
         "to": "cmdtap"
+      },
+      {
+        "from": "build/native/pointer",
+        "to": "pointer"
       }
     ]
   },
