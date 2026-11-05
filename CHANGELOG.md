@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.8.0 — 2026-11-05
 
 - **Pick quick add's shortcut.** ⌘ twice is the default; Preferences →
   Quick task shortcut shows it as keycaps. Click them, then press any key
