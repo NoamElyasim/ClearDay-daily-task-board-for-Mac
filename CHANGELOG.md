@@ -11,6 +11,8 @@
 - **One click is enough** when another app is in front: the click that
   brings ClearDay forward also presses the button, ticks the task or opens
   Preferences, instead of only focusing the window.
+- **Hover works while another app is active:** buttons and rows light up
+  under the pointer even before you click into ClearDay.
 
 ## v0.7.1 — 2026-11-04
 

@@ -14,6 +14,7 @@ import * as store from './store.mjs';
 import { buildTemplate } from './context-menu.mjs';
 import { initQuick, setQuickEnabled, setQuickShortcut, pauseQuick, stopQuick, showQuick, quickAdd, quickHidden, quickStatus } from './quick.mjs';
 import { startBridge } from './bridge.mjs';
+import { relayHover } from './hover.mjs';
 import { SORTS, SORT_LABELS, SCHEMA_VERSION } from '../shared/model.mjs';
 
 const DIR = import.meta.dirname;
@@ -89,6 +90,7 @@ function createWindow() {
     win.webContents.on('console-message', (e) => console.log(`[renderer:${e.level}] ${e.message}`));
   }
   win.once('ready-to-show', () => win.show());
+  relayHover(win);
 
   // Hide rather than close: ⌘W, or the window's own close, keeps the board a
   // click away in the Dock or menu bar.

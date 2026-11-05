@@ -9,6 +9,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { writeSeed } from '../shots/seed.mjs';
+import { relayHover } from '../../src/main/hover.mjs';
 
 const REPO = path.join(import.meta.dirname, '..', '..');
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'clearday-e2e-'));
@@ -505,6 +506,26 @@ async function run() {
     const tabs = document.querySelector('.side-tabs'), knob = tabs.querySelector('.tab-knob');
     return tabs.dataset.active === 'todo' && getComputedStyle(knob).transform === 'none'; })()`));
   check('open notes sit on a lighter grey than the side card', await cssColor('--raised') !== await cssColor('--surface'));
+
+  // ── Hover while another app is active ──
+  {
+    const on = {};
+    let pointer = { x: -50, y: -50 };
+    const gear = await rect('#settings-btn');
+    relayHover({
+      webContents: wc, isDestroyed: () => false, isFocused: () => false, isVisible: () => true, isMinimized: () => false,
+      getContentBounds: () => ({ x: 0, y: 0, width: 780, height: 560 }), on: (ev, fn) => { on[ev] = fn; },
+    }, () => pointer);
+    const hovered = () => js(`document.getElementById('settings-btn').matches(':hover')`);
+    on.blur();
+    pointer = { x: gear.x, y: gear.y };
+    await sleep(250);
+    const over = await hovered();
+    pointer = { x: 900, y: 900 };
+    await sleep(250);
+    check('with another app active, the pointer still hovers the buttons it passes', over && !await hovered());
+    on.focus();
+  }
 
   // ── Preferences ──
   await click('#settings-btn');
