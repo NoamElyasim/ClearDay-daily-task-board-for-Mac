@@ -2,7 +2,8 @@
 // Every control writes through clearday.settings.set(); the main process
 // validates and applies the change and broadcasts the new settings, which
 // come back through updatePrefs() — so the sheet always shows what is saved.
-import { SORTS, SORT_LABELS, QUICK_KEYS } from '../shared/model.mjs';
+import { SORTS, SORT_LABELS } from '../shared/model.mjs';
+import { shortcutCaps, shortcutText } from '../shared/shortcut.mjs';
 import { shortcutRecorder } from './shortcut.js';
 
 const api = window.clearday;
@@ -82,12 +83,12 @@ function action(label, fn, cls = '') {
 function shortcut([k, d]) {
   const kbd = h('kbd', { textContent: k });
   const dd = h('dd', { textContent: d });
-  // Quick add's line follows the key chosen above.
+  // Quick add's line follows the shortcut chosen above.
   if (k === '⌘ ⌘') {
     syncers.push((s) => {
-      const [glyph, name] = QUICK_KEYS[s.quickKey];
-      kbd.textContent = `${glyph} ${glyph}`;
-      dd.textContent = `Quick add from anywhere (press ${name} twice)`;
+      const twice = !s.quickKey.startsWith('combo:');
+      kbd.textContent = shortcutCaps(s.quickKey).join(twice ? ' ' : '');
+      dd.textContent = `Quick add from anywhere${twice ? ' (pressed twice)' : ''}`;
     });
   }
   return [h('dt', {}, kbd), dd];
@@ -106,6 +107,7 @@ function build(info) {
     permission: 'Allow ClearDay under System Settings → Privacy & Security → Input Monitoring.',
     starting: 'Starting…',
     missing: 'Not available in this build.',
+    taken: 'macOS or another app already uses this shortcut. Pick another one.',
   };
   const showQuickStatus = (st) => {
     quickHint.textContent = QUICK_TEXT[st] || '';
@@ -115,7 +117,7 @@ function build(info) {
   api.quick.status().then(showQuickStatus);
   api.quick.onStatus(showQuickStatus);
 
-  // Which key, pressed twice, opens it
+  // What opens it: a key pressed twice, or a combination
   const quickAbout = h('span', { className: 'pref-hint' });
   const keyHint = h('span', { className: 'pref-hint' });
   const recorder = shortcutRecorder({
@@ -124,7 +126,7 @@ function build(info) {
     recording: (on) => api.quick.recording(on),
   });
   syncers.push((s) => {
-    quickAbout.textContent = `Press ${QUICK_KEYS[s.quickKey][0]} twice anywhere to add a task`;
+    quickAbout.textContent = `Press ${shortcutText(s.quickKey)} anywhere to add a task`;
     recorder.sync(s.quickKey, s.quickAdd);
   });
 
@@ -160,7 +162,7 @@ function build(info) {
         row('Sort', select('sort', SORTS.map((s) => [s, SORT_LABELS[s]]), 'Sort')),
         row('Check spelling in notes', toggle('spellcheckNotes', 'Check spelling in notes')),
         row('Quick add', toggle('quickAdd', 'Quick add'), quickAbout),
-        row('Shortcut', recorder.el, keyHint),
+        row('Quick task shortcut', recorder.el, keyHint),
         quickNote,
       ),
       h('section', {},

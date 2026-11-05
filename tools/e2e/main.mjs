@@ -33,7 +33,7 @@ ipcMain.handle('app:info', () => ({ version: app.getVersion(), dataFile: '' }));
 // asks for their status.
 ipcMain.handle('quick:status', () => 'ready');
 const recordingCalls = [];   // what Preferences told main while picking a key
-ipcMain.on('quick:recording', (_e, on) => recordingCalls.push(on));
+ipcMain.on('quick:recording', (e, on) => { recordingCalls.push(on); e.sender.setIgnoreMenuShortcuts(!!on); });
 for (const ch of ['quick:show', 'quick:open-permission']) ipcMain.handle(ch, () => null);
 ipcMain.handle('mcp:status', () => ({ desktop: false, desktopInstalled: true, code: false, command: '' }));
 for (const ch of ['mcp:connect-desktop', 'mcp:copy-code-command']) ipcMain.handle(ch, () => true);
@@ -517,35 +517,63 @@ async function run() {
   check('a Preferences control saves its setting', settings.get('textSize') === 'large');
   await js(`[...document.querySelectorAll('#prefs .seg-btn')].find((b) => b.textContent === 'Medium').click()`);
 
-  // Quick add's key: click the caps, press ⌥ twice
+  // The quick task shortcut: any key twice, or any combination
   const caps = () => js(`[...document.querySelectorAll('.key-rec .glyph')].map((g) => g.textContent).join(' ')`);
+  const listening = () => js(`document.querySelector('.key-rec').classList.contains('listening')`);
+  async function chord(mods, keyCode) {
+    const MOD = { Control: 'control', Alt: 'alt', Shift: 'shift', Meta: 'meta' };
+    const on = [];
+    for (const m of mods) { on.push(MOD[m]); wc.sendInputEvent({ type: 'keyDown', keyCode: m, modifiers: [...on] }); }
+    wc.sendInputEvent({ type: 'keyDown', keyCode, modifiers: on });
+    wc.sendInputEvent({ type: 'keyUp', keyCode, modifiers: on });
+    for (const m of [...mods].reverse()) { on.pop(); wc.sendInputEvent({ type: 'keyUp', keyCode: m, modifiers: [...on] }); }
+    await sleep(400);
+  }
   await js(`document.querySelector('.key-rec').scrollIntoView({ block: 'center' })`);
   await sleep(200);
-  check('Preferences shows the quick-add shortcut as two keycaps', await caps() === '⌘ ⌘');
+  check('Preferences shows the quick task shortcut as two keycaps', await caps() === '⌘ ⌘' &&
+    await js(`document.getElementById('prefs').textContent.includes('Quick task shortcut')`));
   await click('.key-rec');
-  check('clicking the caps listens for a key, and main ignores the old one meanwhile',
-    await js(`document.querySelector('.key-rec').classList.contains('listening')`) && recordingCalls.at(-1) === true);
-  await key('a');
-  check('a letter is refused: the caps shake and nothing is saved', settings.get('quickKey') === 'command' &&
+  check('clicking the caps listens, with the keyboard handed to the recorder',
+    await listening() && recordingCalls.at(-1) === true);
+  await key('Capslock');
+  check('a key it cannot listen for shakes the caps, and nothing is saved', settings.get('quickKey') === 'command' &&
     await js(`document.querySelector('.key-rec').classList.contains('wrong')`));
   await key('Alt');
   check('the first tap lights the first cap', await js(`(() => {
     const [a, b] = document.querySelectorAll('.key-rec .keycap');
-    return a.classList.contains('lit') && a.textContent === '⌥' && !b.classList.contains('lit'); })()`));
+    return a.classList.contains('lit') && a.textContent === '⌥' && b.classList.contains('slot'); })()`));
   await key('Alt');
   await sleep(300);
-  check('a second tap saves the key, and main listens again', settings.get('quickKey') === 'option' &&
-    await caps() === '⌥ ⌥' && recordingCalls.at(-1) === false &&
-    await js(`!document.querySelector('.key-rec').classList.contains('listening')`));
-  check('the Quick add line and the shortcut list name the new key', await js(`(() => {
-    const t = document.getElementById('prefs').textContent;
-    return t.includes('Press ⌥ twice anywhere') && t.includes('⌥ ⌥') && t.includes('press Option twice'); })()`));
+  check('a second tap saves it, and the keyboard goes back', settings.get('quickKey') === 'option' &&
+    await caps() === '⌥ ⌥' && recordingCalls.at(-1) === false && !await listening());
+  await click('.key-rec');
+  await key('a');
+  await key('a');
+  await sleep(300);
+  check('any key pressed twice can be the shortcut', settings.get('quickKey') === 'twice:KeyA' && await caps() === 'A A');
+  const twoWide = await js(`document.querySelector('.key-rec').offsetWidth`);
+  await click('.key-rec');
+  await chord(['Control'], 'T');
+  check('so can a combination, ⌃T', settings.get('quickKey') === 'combo:control+KeyT' && await caps() === '⌃ T' &&
+    await js(`document.getElementById('prefs').textContent.includes('Press ⌃T anywhere')`));
+  await click('.key-rec');
+  await chord(['Meta'], 'Q');
+  check('⌘Q is recorded, not obeyed', settings.get('quickKey') === 'combo:command+KeyQ' && await caps() === '⌘ Q' &&
+    !win.isDestroyed());
+  await click('.key-rec');
+  await chord(['Control', 'Shift'], 'K');
+  await sleep(300);
+  check('a three-key combination gets three caps, and the pill grows to fit them',
+    settings.get('quickKey') === 'combo:control+shift+KeyK' && await caps() === '⌃ ⇧ K' &&
+    await js(`document.querySelector('.key-rec').offsetWidth`) > twoWide);
+  check('the shortcut list names it', await js(`[...document.querySelectorAll('.shortcuts kbd')].some((k) => k.textContent === '⌃⇧K')`));
   await click('.key-rec');
   await key('Shift');
   await key('Escape');
-  check('Esc stops listening, keeps the old key and leaves Preferences open', settings.get('quickKey') === 'option' &&
-    await caps() === '⌥ ⌥' && await js(`document.getElementById('prefs').classList.contains('open')`) &&
-    await js(`!document.querySelector('.key-rec').classList.contains('listening')`));
+  check('Esc stops listening, keeps the old shortcut and leaves Preferences open',
+    settings.get('quickKey') === 'combo:control+shift+KeyK' && await caps() === '⌃ ⇧ K' && !await listening() &&
+    await js(`document.getElementById('prefs').classList.contains('open')`) && recordingCalls.at(-1) === false);
   settings.set({ quickKey: 'command' });
   wc.send('settings', settings.all());
   await sleep(200);

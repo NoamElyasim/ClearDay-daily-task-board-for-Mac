@@ -2,10 +2,12 @@
 
 ## Unreleased
 
-- **Pick quick add's key.** ⌘ twice is the default; Preferences → Shortcut
-  shows it as two keycaps. Click them and press ⌥, ⌃, ⇧ or ⌘ twice: the
-  first tap lights one cap, the second lights the other and saves. Any other
-  key shakes them, and Esc keeps the old one.
+- **Pick quick add's shortcut.** ⌘ twice is the default; Preferences →
+  Quick task shortcut shows it as keycaps. Click them, then press any key
+  twice (⌥, F5, A…) or any combination (⌃T, ⌘⇧K, even ⌘Q). Keys light up
+  as you press them and the pill grows to fit; Esc keeps the old one.
+- A combination works without the Input Monitoring permission, and is taken
+  over from other apps while it's set: ⌘Q opens the bar instead of quitting.
 
 ## v0.7.1 — 2026-11-04
 

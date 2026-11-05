@@ -110,12 +110,13 @@ const firstId = `cleardayDebug.state.tasks.values().next().value.id`;
 const openNotes = (js) => js(`cleardayDebug.toggleNotes(${firstId}); document.activeElement.blur(); 1`);
 const clickFirst = (sel) => (js) => js(`document.querySelector(${JSON.stringify(sel)}).click(); 1`);
 
-// Preferences scrolled to the quick-add shortcut, listening, after these taps.
-async function recordKey(js, taps) {
+// Preferences scrolled to the quick task shortcut, listening, after these
+// key events: [type, key, code].
+async function recordKey(js, events) {
   await js(`cleardayDebug.openPrefs(); document.querySelector('.key-rec').scrollIntoView({ block: 'center' }); 1`);
   await sleep(400);
   await js(`(() => { document.querySelector('.key-rec').click();
-    for (const key of ${JSON.stringify(taps)}) for (const type of ['keydown', 'keyup']) window.dispatchEvent(new KeyboardEvent(type, { key }));
+    for (const [type, key, code] of ${JSON.stringify(events)}) window.dispatchEvent(new KeyboardEvent(type, { key, code }));
     return 1; })()`);
 }
 
@@ -159,10 +160,13 @@ const SHOTS = {
   } },
   'prefs-dark': { theme: 'dark', width: 780, height: 560, setup: (js) => js('cleardayDebug.openPrefs(); 1') },
   'prefs-light-narrow': { theme: 'light', width: 340, height: 600, setup: (js) => js('cleardayDebug.openPrefs(); 1') },
-  // The quick-add key recorder listening: dark after one ⌥ tap, light empty.
-  'shortcut-dark': { theme: 'dark', width: 780, height: 560, setup: (js) => recordKey(js, ['Alt']) },
+  // The quick task shortcut: listening with ⌃⇧ held (dark), listening empty,
+  // and set to a combination (light).
+  'shortcut-dark': { theme: 'dark', width: 780, height: 560,
+    setup: (js) => recordKey(js, [['keydown', 'Control', 'ControlLeft'], ['keydown', 'Shift', 'ShiftLeft']]) },
   'shortcut-light': { theme: 'light', width: 420, height: 600, setup: (js) => recordKey(js, []) },
-  'shortcut-idle-light': { theme: 'light', width: 420, height: 600, setup: async (js) => { await recordKey(js, []); await js(`document.querySelector('.key-rec').click(); 1`); } },
+  'shortcut-combo-light': { theme: 'light', width: 420, height: 600, prefs: { quickKey: 'combo:control+shift+KeyT' },
+    setup: (js) => js(`cleardayDebug.openPrefs(); document.querySelector('.key-rec').scrollIntoView({ block: 'center' }); 1`) },
   'hover-row-light': { theme: 'light', width: 780, height: 560, setup: (js) => js(`cleardayDebug.state.selectedId = ${firstId}; cleardayDebug.render(); 1`) },
   'notes-light': { theme: 'light', width: 780, height: 560, setup: openNotes },
   'notes-rtl-dark': { theme: 'dark', width: 780, height: 560, setup: async (js) => {

@@ -128,9 +128,9 @@ kbd {
 .claude-intro { display: block; margin: -2px 0 6px; }
 .pref-action:disabled { opacity: 0.45; }
 
-/* Quick add's shortcut: two keycaps (⌘ ⌘). Clicked, they listen for a key
-   pressed twice: empty dashed slots breathing inside a pulsing ring, and
-   each tap drops its glyph into the next cap. Motion is in shortcut.js. */
+/* The quick task shortcut as keycaps (⌘ ⌘, ⌃ T). Clicked, they listen:
+   empty dashed slots breathing inside a pulsing ring, each key dropping into
+   its cap, the pill growing to fit. Motion is in shortcut.js. */
 .key-rec {
   position: relative; flex: none;
   display: inline-flex; align-items: center; gap: 3px;
@@ -141,6 +141,7 @@ kbd {
 .key-rec:not(.listening):not(:disabled):hover { background: var(--accent); box-shadow: none; }
 .key-rec.listening { box-shadow: inset 0 0 0 1.5px var(--accent); }
 .key-rec.wrong { box-shadow: inset 0 0 0 1.5px var(--danger); }
+.key-rec.morphing { overflow: hidden; }
 .key-rec:disabled { opacity: 0.45; }
 .key-rec::after {
   content: ''; position: absolute; inset: 0; border-radius: inherit;
@@ -154,22 +155,22 @@ kbd {
 }
 
 .keycap {
-  display: grid; place-items: center;
-  width: 26px; height: 22px; border-radius: 7px;
+  flex: none; display: grid; place-items: center;
+  min-width: 26px; height: 22px; padding: 0 6px; border-radius: 7px;
   background: var(--track); color: var(--text);
-  font: 500 13px var(--font);
+  font: 500 12px var(--font); white-space: nowrap;
   outline: 1px dashed transparent; outline-offset: -1px;
   transition: background-color var(--dur-fast) ease, color var(--dur-fast) ease, outline-color var(--dur-fast) ease;
 }
 .keycap .glyph { display: block; }
 .keycap.lit { background: var(--accent); color: var(--accent-text); }
-.listening .keycap:not(.lit) {
+.keycap.slot {
   background: transparent; outline-color: var(--text-dim);
   animation: keycap-breathe 1s ease-in-out infinite alternate;
 }
-.listening .keycap:nth-child(2):not(.lit) { animation-delay: 180ms; }
-/* The old glyphs fade out as listening starts; new ones drop in (shortcut.js). */
-.listening .keycap:not(.lit) .glyph {
+.keycap.slot:nth-child(even) { animation-delay: 180ms; }
+/* A slot's old glyph fades out; new ones drop in (shortcut.js). */
+.keycap.slot .glyph {
   opacity: 0; transform: translateY(4px) scale(0.85);
   transition: opacity var(--dur-fast) ease, transform var(--dur-fast) ease;
 }
@@ -179,5 +180,5 @@ kbd {
 
 @media (prefers-reduced-motion: reduce) {
   .key-rec.listening:not(.wrong)::after { animation: none; opacity: 0.5; }
-  .listening .keycap:not(.lit) .glyph { transform: none; }
+  .keycap.slot .glyph { transform: none; }
 }

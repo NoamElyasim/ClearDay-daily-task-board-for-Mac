@@ -1,19 +1,22 @@
-// Quick add: press ⌘ twice anywhere (or ⌥, ⌃ or ⇧: Preferences picks the
-// key) and a small bar rises above the Dock.
+// Quick add: press ⌘ twice anywhere (or whatever Preferences → Quick task
+// shortcut says: any key twice, or a combination like ⌃T) and a small bar
+// rises above the Dock.
 // Type, pick To Do or Ongoing and a priority, press Enter: the task goes
 // straight into the store and the bar fades away. ClearDay's window is left
 // alone, and the app doesn't come to the front: the bar is a non-activating
 // panel.
 //
-// macOS only tells an app about a modifier on its own through an event tap,
-// which Electron doesn't have, so a small helper (native/cmdtap.swift)
-// watches the keys and prints "double" here. It needs the Input Monitoring
-// permission, asked for once.
-import { app, BrowserWindow, screen, nativeTheme } from 'electron';
+// A combination is an ordinary global shortcut. A key pressed twice isn't
+// something macOS tells an app about except through an event tap, which
+// Electron doesn't have, so a small helper (native/cmdtap.swift) watches the
+// keys and prints "double" here. It needs the Input Monitoring permission,
+// asked for once.
+import { app, BrowserWindow, screen, nativeTheme, globalShortcut } from 'electron';
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import readline from 'node:readline';
+import { accelerator, helperKey } from '../shared/shortcut.mjs';
 
 const DIR = import.meta.dirname;
 // The bar plus room for its shadow (the window itself is transparent).
@@ -22,9 +25,11 @@ const ABOVE_DOCK = 6;
 
 let panel = null;
 let helper = null;
-let key = 'command';            // see QUICK_KEYS in model.mjs
-let paused = false;             // Preferences is recording a new key
-let status = 'off';             // 'off' | 'starting' | 'permission' | 'ready' | 'missing'
+let shortcut = 'command';       // settings.quickKey, see shortcut.mjs
+let enabled = false;
+let paused = false;             // Preferences is recording a new shortcut
+let registered = null;          // the accelerator held with globalShortcut
+let status = 'off';             // 'off' | 'starting' | 'permission' | 'ready' | 'missing' | 'taken'
 let onStatus = () => {};
 let addTask = () => {};
 
@@ -41,34 +46,50 @@ function helperPath() {
     : path.join(DIR, '..', '..', 'build', 'native', 'cmdtap');
 }
 
-// ─── The double-tap listener ─────────────────────────────────────────────────
-export function setQuickEnabled(on) {
+// ─── The shortcut ────────────────────────────────────────────────────────────
+export function setQuickEnabled(on) { enabled = on; apply(); }
+export function setQuickShortcut(value) { shortcut = value; apply(); }
+
+// While Preferences listens for a new shortcut, the current one mustn't open
+// the bar over it, and a combination must reach the recorder rather than be
+// taken by the system.
+export function pauseQuick(on) { paused = !!on; apply(); }
+
+function apply() {
   if (process.platform !== 'darwin') return;
-  if (!on) { stopHelper(); setStatus('off'); return; }
-  if (helper) return;
+  release();
+  if (!enabled) { stopHelper(); setStatus('off'); return; }
+  const combo = accelerator(shortcut);
+  if (!combo) { startHelper(helperKey(shortcut)); return; }
+  stopHelper();
+  if (paused) return;
+  try { if (globalShortcut.register(combo, toggleQuick)) registered = combo; } catch (_) {}
+  setStatus(registered ? 'ready' : 'taken');
+}
+
+function release() {
+  if (registered) globalShortcut.unregister(registered);
+  registered = null;
+}
+
+function startHelper(key) {
+  if (helper) { helper.stdin.write(`key ${key}\n`); return; }
   const bin = helperPath();
   if (!fs.existsSync(bin)) { setStatus('missing'); return; }
   setStatus('starting');
-  helper = spawn(bin, ['--key', key], { stdio: ['pipe', 'pipe', 'ignore'] });
-  readline.createInterface({ input: helper.stdout }).on('line', (line) => {
+  const child = spawn(bin, ['--key', key], { stdio: ['pipe', 'pipe', 'ignore'] });
+  helper = child;
+  readline.createInterface({ input: child.stdout }).on('line', (line) => {
     if (line === 'double') { if (!paused) toggleQuick(); }
     else if (line === 'permission') setStatus('permission');
     else if (line === 'ready') setStatus('ready');
   });
-  helper.on('exit', () => {
+  child.on('exit', () => {
+    if (helper !== child) return;   // stopped on purpose
     helper = null;
     if (status !== 'off') setStatus('off');
   });
 }
-
-export function setQuickKey(k) {
-  key = k;
-  helper?.stdin.write(`key ${k}\n`);
-}
-
-// While Preferences listens for a new key, pressing the current one twice
-// mustn't open the bar over it.
-export function pauseQuick(on) { paused = !!on; }
 
 function stopHelper() {
   if (!helper) return;
@@ -77,7 +98,7 @@ function stopHelper() {
   helper = null;
 }
 
-export function stopQuick() { stopHelper(); }
+export function stopQuick() { release(); stopHelper(); }
 
 // ─── The bar ─────────────────────────────────────────────────────────────────
 function createPanel() {

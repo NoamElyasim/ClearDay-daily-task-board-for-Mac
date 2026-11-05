@@ -35,14 +35,6 @@ export const SORT_LABELS = {
   manual: 'Manual (drag & drop)',
 };
 
-// The modifier pressed twice for quick add, with its glyph and name.
-export const QUICK_KEYS = {
-  command: ['⌘', 'Command'],
-  option: ['⌥', 'Option'],
-  control: ['⌃', 'Control'],
-  shift: ['⇧', 'Shift'],
-};
-
 export const DEFAULT_NOTES_HEIGHT = 160;
 // Deleted tasks are kept as tombstones so a future sync can tell "deleted on
 // the Mac" from "never seen on the phone". Old ones are purged on load.
