@@ -68,6 +68,9 @@ function createWindow() {
     show: false,
     alwaysOnTop: settings.get('alwaysOnTop'),
     fullscreenable: false,
+    // A widget you glance at and tick: the click that brings it forward from
+    // another app also lands on what was clicked, instead of only focusing it.
+    acceptFirstMouse: true,
     title: 'ClearDay',
     webPreferences: {
       preload: path.join(DIR, '..', 'preload.cjs'),

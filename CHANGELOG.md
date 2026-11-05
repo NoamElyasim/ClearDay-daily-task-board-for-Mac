@@ -8,6 +8,9 @@
   as you press them and the pill grows to fit; Esc keeps the old one.
 - A combination works without the Input Monitoring permission, and is taken
   over from other apps while it's set: ⌘Q opens the bar instead of quitting.
+- **One click is enough** when another app is in front: the click that
+  brings ClearDay forward also presses the button, ticks the task or opens
+  Preferences, instead of only focusing the window.
 
 ## v0.7.1 — 2026-11-04
 
