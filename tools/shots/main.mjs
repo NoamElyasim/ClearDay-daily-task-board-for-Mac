@@ -7,7 +7,7 @@
 // window, so each shot looks like the window sitting on a desktop.
 //
 //   npm run shots           → tools/shots/out/*.png, plus a midnight check
-//   npm run shots -- --docs → also copies the README images into docs/
+//   npm run readme          → the README art in docs/readme/, built from these
 import { app, BrowserWindow, ipcMain, nativeImage, nativeTheme } from 'electron';
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -18,7 +18,6 @@ import { writeSeed } from './seed.mjs';
 const HERE = import.meta.dirname;
 const REPO = path.join(HERE, '..', '..');
 const OUT = path.join(HERE, 'out');
-const DOCS = path.join(REPO, 'docs');
 const INSET = 40;   // desktop visible around the pane
 
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'clearday-shots-'));
@@ -49,6 +48,9 @@ for (const ch of ['quick:show', 'quick:open-permission']) ipcMain.handle(ch, () 
 ipcMain.handle('mcp:status', () => ({ desktop: false, desktopInstalled: true, code: false, command: '' }));
 for (const ch of ['mcp:connect-desktop', 'mcp:copy-code-command']) ipcMain.handle(ch, () => true);
 for (const ch of ['app:reveal-data', 'app:export', 'app:reset-bounds', 'app:quit']) ipcMain.handle(ch, () => null);
+// The quick-add bar's own channels (quick-preload.cjs).
+ipcMain.handle('quick:add', () => null);
+ipcMain.on('quick:hidden', () => {});
 const DEFAULT_SETTINGS = { ...settings.all() };
 
 function backdrop(w, h) {
@@ -64,7 +66,7 @@ function backdrop(w, h) {
   return { dataUrl: img.toDataURL() };
 }
 
-async function shot(name, { theme, width, height, setup, prefs = {} }) {
+async function shot(name, { theme, width, height, setup, prefs = {}, html = 'index.html', preload = 'preload.cjs' }) {
   writeSeed(TMP);
   await reloadStore();
   settings.set({ ...DEFAULT_SETTINGS, ...prefs });
@@ -72,11 +74,11 @@ async function shot(name, { theme, width, height, setup, prefs = {} }) {
   page = { width: width + INSET * 2, height: height + INSET * 2 };
   const win = new BrowserWindow({
     ...page, show: false, useContentSize: true, transparent: true, frame: false,
-    webPreferences: { preload: path.join(REPO, 'src', 'preload.cjs'), contextIsolation: true },
+    webPreferences: { preload: path.join(REPO, 'src', preload), contextIsolation: true },
   });
   current = win;
   win.webContents.on('console-message', (e) => console.log(`[${name}] ${e.message}`));
-  await win.loadFile(path.join(REPO, 'src', 'renderer', 'index.html'));
+  await win.loadFile(path.join(REPO, 'src', 'renderer', html));
   const bg = backdrop(page.width, page.height);
   await win.webContents.insertCSS(`
     html, body { background: url("${bg.dataUrl}") 0 0 / 100% 100% no-repeat !important; }
@@ -142,6 +144,10 @@ const SHOTS = {
     await js(`(() => { const i = document.getElementById('search-input'); i.value = 'booth'; i.dispatchEvent(new Event('input')); return 1; })()`);
   } },
   'side-hidden-dark': { theme: 'dark', width: 780, height: 560, prefs: { showSide: false } },
+  // The quick-add bar as it rises over the Dock, a task typed in.
+  'quick-dark': { theme: 'dark', width: 640, height: 112, html: 'quick.html', preload: 'quick-preload.cjs', setup: (js) => js(`(() => {
+    const i = document.getElementById('q-input'); i.value = 'Book the launch venue'; i.dispatchEvent(new Event('input'));
+    document.getElementById('q').classList.add('in'); return 1; })()`) },
   'narrow-light': { theme: 'light', width: 320, height: 520 },
   'notes-rich-dark': { theme: 'dark', width: 780, height: 560, setup: async (js) => {
     await js(`(async () => { const id = ${firstId}; const html = '<div><b>Slides 4–7</b> still use the <u>old logo</u>.</div><ul><li>Ask Ben for the booth photo</li><li><s>Check the venue</s></li></ul><div><span class="fs-l">Next week</span></div>';
@@ -204,14 +210,6 @@ async function run() {
     win.destroy();
   }
 
-  if (process.argv.includes('--docs')) {
-    fs.mkdirSync(DOCS, { recursive: true });
-    for (const n of ['expanded-dark', 'expanded-light', 'compact-light', 'ongoing-dark', 'prefs-dark', 'notes-rich-dark', 'search-light',
-      'shortcut-dark', 'side-hidden-dark']) {
-      fs.copyFileSync(path.join(OUT, `${n}.png`), path.join(DOCS, `${n}.png`));
-    }
-    console.log('copied README images to docs/');
-  }
   fs.rmSync(TMP, { recursive: true, force: true });
   app.quit();
 }
