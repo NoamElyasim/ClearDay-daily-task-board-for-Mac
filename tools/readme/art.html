@@ -52,7 +52,7 @@ const ITEMS = {
     crop('side-hidden-dark', 46, 140, 520) +
     `<div style="position:absolute;right:28px;top:22px;background:var(--cream);color:#272727;border-radius:22px 22px 6px 22px;padding:11px 20px;font:500 24px/1.2 Poppins;box-shadow:0 12px 28px rgba(0,0,0,.5)">plan my day</div>`),
   'card-quick': () => card('Add from any app', '⌘ twice, type, Enter',
-    `<div style="position:absolute;inset:0;background:url(../shots/backdrop.webp) center / cover no-repeat;filter:brightness(.6)"></div>
+    `<div style="position:absolute;inset:0;background:url(../shots/backdrop.webp) center / cover no-repeat;filter:brightness(.6) blur(10px);transform:scale(1.08)"></div>
      <div style="position:absolute;left:241px;top:46px;transform:translateX(-50%);display:flex;gap:14px">
        ${['⌘', '⌘'].map((k) => `<div style="width:76px;height:76px;border-radius:18px;background:var(--cream);color:#272727;display:grid;place-items:center;font:600 40px/1 Poppins;box-shadow:0 5px 0 rgba(0,0,0,.35)">${k}</div>`).join('')}
      </div>
