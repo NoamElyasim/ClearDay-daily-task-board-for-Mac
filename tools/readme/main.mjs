@@ -12,6 +12,9 @@ import path from 'node:path';
 
 const HERE = import.meta.dirname;
 const OUT = path.join(HERE, '..', '..', 'docs', 'readme');
+// The real-UI shots art.html crops; without them the cards would come out blank.
+const SHOTS = path.join(HERE, '..', 'shots', 'out');
+const NEEDS = ['side-hidden-dark', 'quick-dark', 'notes-rich-dark', 'ongoing-dark', 'search-light'];
 const CARD = { width: 640, height: 480 };
 const ITEMS = {
   'card-claude': CARD, 'card-quick': CARD, 'card-colour': CARD,
@@ -26,6 +29,12 @@ app.dock?.hide();
 app.on('window-all-closed', () => {});
 app.whenReady().then(async () => {
   try {
+    const missing = NEEDS.filter((n) => !fs.existsSync(path.join(SHOTS, `${n}.png`)));
+    if (missing.length) {
+      console.error(`missing tools/shots/out/${missing.join('.png, ')}.png: run npm run shots first`);
+      app.exit(1);
+      return;
+    }
     fs.mkdirSync(OUT, { recursive: true });
     const only = process.argv.slice(2).filter((a) => ITEMS[a]);
     for (const [name, size] of Object.entries(ITEMS)) {
