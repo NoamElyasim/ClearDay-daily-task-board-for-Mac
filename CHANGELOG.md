@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.8.1 — 2026-11-08
+
+- **A new app icon:** three task rows stacked like the board. In Progress
+  at the back with a High priority bookmark hanging from its top edge, On
+  Hold in the middle, and Done in front with its check.
+- **A new film and README.** The film now plays in the app's own dark look,
+  and the README shows the features as cards, with a section on talking to
+  your board through Claude.
+
 ## v0.8.0 — 2026-11-05
 
 - **Pick quick add's shortcut.** ⌘ twice is the default; Preferences →
