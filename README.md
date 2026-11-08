@@ -1,33 +1,69 @@
-# ClearDay
+<p align="center">
+  <img src="build/icon.png" width="128" alt="The ClearDay icon: three task rows, the front one done">
+</p>
 
-A compact, Monday-style daily task board that floats on your Mac desktop.
-One window, one day: set what's in progress, what's waiting for approval,
-what's on hold and what's done, with the to-do list and your long-term
-projects beside it.
+<h1 align="center">ClearDay</h1>
 
-[![ClearDay in 33 seconds: add a task, start it, prioritize it, write a note, switch to light, collapse the sections, select and delete, quick add with ⌘⌘, then pick your own shortcut](docs/film.gif)](https://github.com/NoamElyasim/ClearDay-daily-task-board-for-Mac/releases/download/v0.8.0/ClearDay-film.mp4)
+<p align="center">Your whole day on one small board that floats on your Mac.</p>
 
-<sub>Click the animation to watch the film with sound.</sub>
+<p align="center">
+  <a href="https://github.com/NoamElyasim/ClearDay-daily-task-board-for-Mac/releases/latest"><img src="docs/readme/download.png" width="240" alt="Download for Mac"></a>
+  <br>
+  <sub>macOS 13 or later · Apple Silicon and Intel · free and open source</sub>
+</p>
 
-![ClearDay, dark](docs/expanded-dark.png)
+<p align="center">
+  <a href="https://github.com/NoamElyasim/ClearDay-daily-task-board-for-Mac/releases/download/v0.8.1/ClearDay-film.mp4"><img src="docs/film.gif" alt="ClearDay in 33 seconds: add a task, start it, prioritize it, write a note, switch to light, collapse the sections, select and delete, quick add with ⌘⌘, then pick your own shortcut"></a>
+  <br>
+  <sub>Click the animation to watch the film with sound.</sub>
+</p>
 
-| Light | Compact |
-|---|---|
-| ![ClearDay, light](docs/expanded-light.png) | ![ClearDay, compact](docs/compact-light.png) |
+<p align="center">
+  <img src="docs/readme/card-claude.png" width="49%" alt="Just tell Claude: it runs your board">
+  <img src="docs/readme/card-quick.png" width="49%" alt="Add from any app: press ⌘ twice, type, Enter">
+</p>
+<p align="center">
+  <img src="docs/readme/card-colour.png" width="49%" alt="Your day in colour: the status fills the row">
+  <img src="docs/readme/card-notes.png" width="49%" alt="Rich notes under every task">
+</p>
+<p align="center">
+  <img src="docs/readme/card-ongoing.png" width="49%" alt="Ongoing projects, one tab away">
+  <img src="docs/readme/card-search.png" width="49%" alt="Live search through text and notes">
+</p>
 
-| Notes | Search |
-|---|---|
-| ![Notes with formatting and bullets](docs/notes-rich-dark.png) | ![Live search](docs/search-light.png) |
+## Talk to ClearDay through Claude
 
-| Ongoing projects | Preferences |
-|---|---|
-| ![The Ongoing tab](docs/ongoing-dark.png) | ![Preferences](docs/prefs-dark.png) |
+Talk to Claude in your own words and it runs your board. No commands to learn, typos welcome.
 
-| Quick task shortcut | Side panel hidden |
-|---|---|
-| ![Picking the quick task shortcut: ⌃⇧ held, waiting for a key](docs/shortcut-dark.png) | ![The board full width, the side panel button beside Add and Search](docs/side-hidden-dark.png) |
+<p align="center">
+  <img src="docs/claude-demo.gif" width="100%" alt="A request typed with typos, “add task cal dani abot the budjet tmrw, high prioraty”, becomes the task “Call Dani about the budget tomorrow” with a High bookmark in ClearDay's To Do">
+</p>
 
-## Features
+Try saying:
+
+- “Here are my meeting notes. Turn every action item into a task.”
+- “What's still waiting for approval? Write me a follow-up for each one.”
+- “Plan my day: put the 3 most urgent in progress and mark them High.”
+- “Everything about the Houston event goes to Ongoing.”
+- “Write my manager a status update from my board.”
+
+Connect in one click: **Preferences → Claude**. It connects Claude Desktop, and
+copies the command that adds ClearDay to Claude Code. Claude can then list,
+add, update, move, search and delete your tasks. With ClearDay open, changes
+appear on the board at once; with it closed, they are saved to the board's
+file for next time.
+
+Prefer Terminal? The server runs on ClearDay's own binary, so nothing else
+needs installing:
+
+```bash
+claude mcp add clearday --scope user --env ELECTRON_RUN_AS_NODE=1 -- \
+  /Applications/ClearDay.app/Contents/MacOS/ClearDay \
+  /Applications/ClearDay.app/Contents/Resources/app.asar.unpacked/src/mcp/server.mjs
+```
+
+<details>
+<summary><b>All features &amp; keyboard shortcuts</b></summary>
 
 - **A flat, modern look.**
   - Soft pill rows set in Poppins, on a solid cream (Light) or charcoal
@@ -111,7 +147,7 @@ projects beside it.
   - Data: show the data folder, export your tasks, reset the window position.
   - A list of keyboard shortcuts.
 
-### Keyboard
+#### Keyboard
 
 | Key | Action |
 |---|---|
@@ -127,6 +163,8 @@ projects beside it.
 | ⌘Z | Undo the last delete |
 | ⌘, | Preferences |
 | Esc | Cancel an edit, or close a picker, the drawer or Preferences |
+
+</details>
 
 ## Install
 
@@ -161,22 +199,6 @@ npm run install:mac      # builds, signs locally, copies to /Applications, opens
 
 `npm run dist:mac` builds both DMGs into `dist/`.
 
-## Claude (MCP)
-
-Preferences → Claude connects ClearDay to Claude Desktop in one click, and
-copies the command that adds it to Claude Code. Claude then has these tools:
-`list_tasks`, `add_task`, `update_task`, `delete_task` and `search_tasks`.
-With ClearDay open, changes appear on the board at once; with it closed,
-they are saved to the board's file for next time.
-
-The server runs on ClearDay's own binary, so nothing else needs installing:
-
-```bash
-claude mcp add clearday --scope user --env ELECTRON_RUN_AS_NODE=1 -- \
-  /Applications/ClearDay.app/Contents/MacOS/ClearDay \
-  /Applications/ClearDay.app/Contents/Resources/app.asar.unpacked/src/mcp/server.mjs
-```
-
 ## Develop
 
 ```bash
@@ -184,7 +206,7 @@ npm start                # run from source
 npm test                 # unit tests for the task model
 npm run e2e              # drives the real UI with clicks, keys and drags
 npm run shots            # renders every look to tools/shots/out/
-npm run shots -- --docs  # …and refreshes the README images
+npm run readme           # redraws the README art in docs/readme/ from those shots
 ```
 
 `CLEARDAY_USER_DATA=/some/folder npm start` runs against a scratch board.
