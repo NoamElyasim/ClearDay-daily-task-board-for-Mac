@@ -23,9 +23,10 @@ const DEFAULTS = {
   showWeekday: true,
   // Preferences → Behavior
   spellcheckNotes: true,
-  sidePanel: 'todo',    // side tab showing: 'todo' | 'ongoing'
-  collapsed: [],        // folded board sections, as 'list:status' keys
-  showSide: true,       // the side panel (To Do | Ongoing) in the wide layout
+  sidePanel: 'ongoing', // side tab showing: 'ongoing' | 'done'
+  collapsed: [],        // folded sections (board, Ongoing tab), as 'list:status' keys
+  showSide: true,       // the side panel (Ongoing | Done) in the wide layout
+  sideWidth: null,      // the side panel's dragged width in px; null is the default
   quickAdd: true,       // press ⌘ twice anywhere for the quick-add bar
   quickKey: 'command',  // …or any key twice, or a combination: see shortcut.mjs
   notesTools: 'open',   // the notes' formatting menu: 'open' | 'min'
@@ -41,7 +42,8 @@ const VALID = {
   textSize: (v) => ['small', 'medium', 'large'].includes(v),
   showWeekday: (v) => typeof v === 'boolean',
   spellcheckNotes: (v) => typeof v === 'boolean',
-  sidePanel: (v) => ['todo', 'ongoing'].includes(v),
+  sidePanel: (v) => ['ongoing', 'done'].includes(v),
+  sideWidth: (v) => v === null || (Number.isFinite(v) && v >= 160 && v <= 1600),
   showSide: (v) => typeof v === 'boolean',
   quickAdd: (v) => typeof v === 'boolean',
   quickKey: (v) => parseShortcut(v) !== null,
@@ -57,6 +59,8 @@ export function all() {
   try { saved = JSON.parse(fs.readFileSync(FILE, 'utf8')); } catch (_) {}
   // Keys from older versions that are no longer settings (the background
   // opacity and blur of v0.2) are simply not read.
+  // Before 0.9 the side tabs were To Do | Ongoing; the To Do tab is gone.
+  if (saved.sidePanel === 'todo') saved.sidePanel = 'ongoing';
   cache = { ...DEFAULTS };
   for (const k of Object.keys(DEFAULTS)) if (k in saved && VALID[k](saved[k])) cache[k] = saved[k];
   return cache;

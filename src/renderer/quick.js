@@ -26,7 +26,7 @@ prio.addEventListener('click', () => {
 
 function setOngoing(on) {
   list.setAttribute('aria-checked', String(on));
-  list.setAttribute('aria-label', on ? 'Add to To Do' : 'Add to Ongoing');
+  list.setAttribute('aria-label', on ? 'Add to Today' : 'Add to Ongoing');
   input.placeholder = on ? 'Add an ongoing task…' : 'Add a task…';
 }
 list.addEventListener('click', () => { setOngoing(list.getAttribute('aria-checked') !== 'true'); input.focus(); });

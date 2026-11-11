@@ -1,8 +1,8 @@
 // Drag and drop by the row's grip. Pointer events rather than HTML5 drag, so
 // the lifted row follows the pointer smoothly and siblings can slide aside.
-// Dropping between the To Do panel and the board changes status; dropping on
-// a board section takes that section's status; dropping on the other side
-// tab's list moves the task to that list. Hovering a side tab mid-drag
+// Dropping on a board section takes that section's status (and today's
+// list); dropping on an Ongoing group makes it an ongoing project with that
+// status; dropping on the Done list finishes it. Hovering a side tab mid-drag
 // switches to it.
 const EASE = 'cubic-bezier(0.32, 0.72, 0, 1)';
 const START_PX = 4;

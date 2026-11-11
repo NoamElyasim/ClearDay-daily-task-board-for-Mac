@@ -13,8 +13,9 @@ export const STATUS_LABELS = {
   on_hold: 'On Hold',
   done: 'Done',
 };
-// Main board sections, top to bottom. To Do has its own side panel.
-export const BOARD_STATUSES = ['in_progress', 'awaiting_approval', 'on_hold', 'done'];
+// Main board sections, top to bottom. Done has its own side tab; the Ongoing
+// tab groups its projects under the same headings.
+export const BOARD_STATUSES = ['todo', 'in_progress', 'awaiting_approval', 'on_hold'];
 
 // Which list a task belongs to: today's board (with its To Do panel), or the
 // Ongoing list of long-term projects beside it.
@@ -141,6 +142,7 @@ export function createTask({ text = '', bold = [], status = 'todo', priority = n
     order,
     createdAt: ts,
     updatedAt: ts,
+    doneAt: status === 'done' ? ts : null,
     deletedAt: null,
   };
 }
@@ -168,6 +170,10 @@ export function applyPatch(task, patch, now = Date.now()) {
   if (!Number.isFinite(next.order)) next.order = task.order;
   if (next.deletedAt !== null && typeof next.deletedAt !== 'string') next.deletedAt = task.deletedAt;
   next.updatedAt = nowIso(now);
+  // When it was finished, for the Done tab's order: set on becoming done,
+  // cleared on leaving it, kept through any other edit.
+  if (next.status !== 'done') next.doneAt = null;
+  else if (task.status !== 'done' || !task.doneAt) next.doneAt = next.updatedAt;
   return next;
 }
 
@@ -196,6 +202,10 @@ export function validateTask(raw) {
     order: Number.isFinite(raw.order) ? raw.order : created || 0,
     createdAt,
     updatedAt: Number.isFinite(updated) ? new Date(updated).toISOString() : createdAt,
+    // Done tasks from before 0.9 have no doneAt; their last edit stands in.
+    doneAt: raw.status !== 'done' ? null
+      : Number.isFinite(Date.parse(raw.doneAt)) ? new Date(Date.parse(raw.doneAt)).toISOString()
+      : Number.isFinite(updated) ? new Date(updated).toISOString() : createdAt,
     deletedAt: typeof raw.deletedAt === 'string' ? raw.deletedAt : null,
   };
 }
@@ -227,20 +237,29 @@ export function comparator(sort) {
   return byOrder; // 'default' and 'manual' both follow the drag order
 }
 
-// What the window shows for one list ('today' or 'ongoing'): its To Do in the
-// side panel, everything else on the board. Default sort groups the board by
-// status; the others show it as one list in that order.
-//   → { todo: Task[], sections: [{ status, tasks }] }
-//     (a section with status null is the one flat board list)
-export function arrange(tasks, sort = 'default', list = 'today') {
+const live = (tasks, list) => tasks.filter((t) => !t.deletedAt && (!list || (t.list || 'today') === list));
+const byStatus = (tasks, cmp) => BOARD_STATUSES.map((status) => ({ status, tasks: tasks.filter((t) => t.status === status).sort(cmp) }));
+
+// The board: today's tasks that are not done. Default sort groups them by
+// status, To Do first; the other sorts show one list in that order.
+//   → [{ status, tasks }]  (a section with status null is the one flat list)
+export function arrangeBoard(tasks, sort = 'default') {
   const cmp = comparator(sort);
-  const mine = tasks.filter((t) => !t.deletedAt && (t.list || 'today') === list);
-  const todo = mine.filter((t) => t.status === 'todo').sort(cmp);
-  const board = mine.filter((t) => t.status !== 'todo');
-  const sections = sort === 'default'
-    ? BOARD_STATUSES.map((status) => ({ status, tasks: board.filter((t) => t.status === status).sort(cmp) }))
-    : [{ status: null, tasks: board.sort(cmp) }];
-  return { todo, sections };
+  const mine = live(tasks, 'today').filter((t) => t.status !== 'done');
+  return sort === 'default' ? byStatus(mine, cmp) : [{ status: null, tasks: mine.sort(cmp) }];
+}
+
+// The Ongoing tab: the long-term projects not yet done, always grouped by
+// status (To Do first), each group in the sort's order.
+export function arrangeOngoing(tasks, sort = 'default') {
+  return byStatus(live(tasks, 'ongoing').filter((t) => t.status !== 'done'), comparator(sort));
+}
+
+// The Done tab: finished tasks from both lists, the latest finished first.
+export function arrangeDone(tasks) {
+  const at = (t) => t.doneAt || t.updatedAt;
+  return live(tasks).filter((t) => t.status === 'done')
+    .sort((a, b) => at(b).localeCompare(at(a)) || a.id.localeCompare(b.id));
 }
 
 // Drag-and-drop works in Default (within and across sections) and Manual.

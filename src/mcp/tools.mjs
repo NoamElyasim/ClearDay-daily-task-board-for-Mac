@@ -9,7 +9,7 @@ const LIST_NAMES = { today: 'Today', ongoing: 'Ongoing' };
 export const TOOLS = [
   {
     name: 'list_tasks',
-    description: 'List the tasks on the ClearDay board. "today" is the daily board (its To Do panel plus In Progress, Awaiting Approval, On Hold and Done); "ongoing" is the long-term project list. Each task has an id to use with update_task and delete_task.',
+    description: 'List the tasks on the ClearDay board. "today" is the daily board (To Do, In Progress, Awaiting Approval, On Hold; done tasks show in the Done tab); "ongoing" is the long-term project list. Each task has an id to use with update_task and delete_task.',
     inputSchema: {
       type: 'object',
       properties: {

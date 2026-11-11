@@ -136,6 +136,30 @@ svg { display: block; }
 #search-input { padding: 0 16px 0 38px; }
 .opener input::placeholder { color: var(--text-dim); }
 .opener.open input { opacity: 1; pointer-events: auto; }
+/* Today | Ongoing, inside the open bar beside +: a switch whose knob slides
+   behind the chosen list, like the quick-add bar's. */
+#add-input { padding-right: 168px; }
+#add-list {
+  position: absolute; right: 40px; top: 5px;
+  display: flex; width: 120px; height: 26px; padding: 2px;
+  border-radius: var(--radius-control); background: var(--bg);
+  opacity: 0; pointer-events: none;
+  transition: opacity 180ms ease 120ms;
+}
+#add.open #add-list { opacity: 1; pointer-events: auto; }
+#add-list .knob {
+  position: absolute; left: 2px; top: 2px; width: 58px; height: 22px; border-radius: var(--radius-control);
+  background: var(--accent);
+  transition: transform var(--dur-move) var(--ease-out);
+}
+#add-list[aria-checked="true"] .knob { transform: translateX(58px); }
+#add-list .opt {
+  position: relative; flex: 1; text-align: center; font-size: 11px; font-weight: 500; color: var(--text-dim);
+  transition: color var(--dur-move) ease;
+}
+#add-list[aria-checked="false"] .opt[data-v="today"], #add-list[aria-checked="true"] .opt[data-v="ongoing"] { color: var(--accent-text); }
+#add-list:hover .opt { color: var(--text); }
+#add-list[aria-checked="false"]:hover .opt[data-v="today"], #add-list[aria-checked="true"]:hover .opt[data-v="ongoing"] { color: var(--accent-text); }
 #add-btn {
   position: absolute; right: 3px; top: 3px; width: 30px; height: 30px; border-radius: 50%;
   background: var(--accent); color: var(--accent-text);
@@ -208,8 +232,8 @@ svg { display: block; }
 }
 #side .side-tabs { margin-bottom: 14px; }
 
-/* To Do | Ongoing, a switch like the quick-add bar's: a knob slides behind
-   the chosen list. */
+/* Ongoing | Done, a switch like the quick-add bar's: a knob slides behind
+   the chosen tab. */
 .side-tabs {
   position: relative; flex: none;
   display: flex;
@@ -222,7 +246,7 @@ svg { display: block; }
   border-radius: var(--radius-control); background: var(--accent);
   transition: transform var(--dur-move) var(--ease-out);
 }
-.side-tabs[data-active="ongoing"] .tab-knob { transform: translateX(100%); }
+.side-tabs[data-active="done"] .tab-knob { transform: translateX(100%); }
 .side-tab {
   position: relative; flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
   height: 28px; border-radius: var(--radius-control);
@@ -241,6 +265,25 @@ svg { display: block; }
   animation: page-in 180ms var(--ease-out);
 }
 @keyframes page-in { from { opacity: 0; transform: translateY(4px); } }
+
+/* The Ongoing tab groups its projects under smaller headings than the
+   board's. */
+.side-sections .section + .section { margin-top: 12px; }
+.side-sections .section-head { font-size: 11px; padding-bottom: 6px; }
+.side-sections .fold { width: 18px; height: 18px; }
+/* The Done tab: Clear done above the list. */
+.side-tools { display: flex; justify-content: flex-end; margin: 0 0 8px; }
+.side-tools .tool-btn:not(:hover) { background: var(--bg); }
+.side-page.is-empty .side-tools { display: none; }
+
+/* A finished ongoing project, in the Done tab, says where it came from. */
+.list-tag {
+  display: none; flex: none;
+  padding: 1px 7px; border-radius: var(--radius-control);
+  font-size: 10px; font-weight: 500; line-height: 1.5;
+  color: var(--on-fill); box-shadow: inset 0 0 0 1px var(--on-fill-dim);
+}
+.task[data-status="done"][data-list="ongoing"] .list-tag { display: block; }
 
 .section-head {
   display: flex; align-items: center; gap: 8px;
@@ -552,7 +595,7 @@ svg { display: block; }
 #pane.compact #sidebar-btn { display: none; }
 #pane.compact.drawer-open #side { transform: none; }
 /* Two tabs rising from the bottom edge, each opening the drawer on its own
-   list; the taller one is the list the board shows. */
+   page; the taller one is the page the drawer last showed. */
 #pane.compact #edge-tabs {
   display: flex; align-items: flex-end; gap: 6px;
   position: absolute; right: 16px; bottom: 0;

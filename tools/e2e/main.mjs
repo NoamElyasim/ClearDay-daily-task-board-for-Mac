@@ -68,7 +68,11 @@ async function run() {
   const js = (code) => wc.executeJavaScript(code);
   const rect = (sel) => js(`(() => { const r = document.querySelector(${JSON.stringify(sel)})?.getBoundingClientRect();
     return r && { x: Math.round(r.x + r.width / 2), y: Math.round(r.y + r.height / 2), top: r.top, bottom: r.bottom, left: r.left }; })()`);
+  // Brings an element into its panel's view: with To Do on the board, rows
+  // further down sit below the fold of the 560-high test window.
+  const reveal = (sel) => js(`document.querySelector(${JSON.stringify(sel)})?.scrollIntoView({ block: 'nearest' }); 1`);
   async function click(sel, count = 1) {
+    await reveal(sel);
     const r = await rect(sel);
     if (!r) throw new Error(`no element for ${sel}`);
     wc.sendInputEvent({ type: 'mouseMove', x: r.x, y: r.y });
@@ -173,22 +177,23 @@ async function run() {
   const typed = await js(`document.getElementById('add-input').value`);
   await key('Enter');
   let t = byText('Plan the sprint review');
-  check('Enter adds a task to To Do', t?.status === 'todo' &&
-    await js(`!!document.querySelector('[data-page="todo"] .list ${taskSel(t?.id)}')`), `typed "${typed}"`);
+  check('Enter adds a task to To Do, the board\'s first section', t?.status === 'todo' && t?.list === 'today' &&
+    await js(`document.querySelector('#sections .section')?.dataset.status === 'todo' &&
+      !!document.querySelector('#sections .section[data-status="todo"] ${taskSel(t?.id)}')`), `typed "${typed}"`);
   if (!t) throw new Error('cannot continue without the new task');
   const id = t.id;
 
   // ── Status ──
   await click(`${taskSel(id)} .status-btn`);
-  check('the status picker lists 5 statuses and Move to Ongoing', await js(`(() => {
-    const items = [...document.querySelectorAll('.popover .pop-item')].map((b) => b.textContent);
-    return items.length === 6 && items.some((t) => t.includes('Awaiting Approval')) && items[5].includes('Move to Ongoing'); })()`));
+  const picker = await js(`[...document.querySelectorAll('.popover .pop-item')].map((b) => b.textContent)`);
+  check('the status picker lists 5 statuses and Move to Ongoing', picker.length === 6 &&
+    picker.some((t) => t.includes('Awaiting Approval')) && picker[5].includes('Move to Ongoing'), picker.join(' | '));
   await js(`[...document.querySelectorAll('.popover .pop-item')].find((b) => b.textContent.includes('In Progress')).classList.add('e2e')`);
   await click('.popover .pop-item.e2e');
   await sleep(400);
-  check('picking In Progress fills the row and moves it to the board',
+  check('picking In Progress fills the row and moves it to its section',
     task(id).status === 'in_progress' &&
-    await js(`!!document.querySelector('.section[data-status="in_progress"] ${taskSel(id)}')`) &&
+    await js(`!!document.querySelector('#sections .section[data-status="in_progress"] ${taskSel(id)}')`) &&
     await js(`getComputedStyle(document.querySelector('${taskSel(id)} .row')).backgroundColor`) !== 'rgba(0, 0, 0, 0)');
   check('row text takes its status\'s ink colour',
     await js(`getComputedStyle(document.querySelector('${taskSel(id)} .text')).color`) === await cssColor('--ink-in-progress'));
@@ -293,6 +298,7 @@ async function run() {
   await sleep(300);
   check('Writing Direction sets the note right-to-left', task(id).notesDir === 'rtl' &&
     await js(`document.querySelector('${taskSel(id)} .notes-editor').dir`) === 'rtl');
+  await reveal(`${taskSel(id)} .notes-resize`);
   const grip = await rect(`${taskSel(id)} .notes-resize`);
   wc.sendInputEvent({ type: 'mouseMove', x: grip.x, y: grip.y });
   wc.sendInputEvent({ type: 'mouseDown', x: grip.x, y: grip.y, button: 'left', clickCount: 1 });
@@ -325,7 +331,7 @@ async function run() {
   check('Undo restores it', !!task(id) && await js(`!!document.querySelector('${taskSel(id)}')`));
 
   // ── Drag and drop ──
-  const ip = () => js(`[...document.querySelectorAll('.section[data-status="in_progress"] .task')].map((e) => e.dataset.id)`);
+  const ip = () => js(`[...document.querySelectorAll('#sections .section[data-status="in_progress"] .task')].map((e) => e.dataset.id)`);
   const before = await ip();
   const first = before[0];
   const g = await rect(`${taskSel(first)} .grip`);
@@ -342,7 +348,12 @@ async function run() {
   const after = await ip();
   check('dragging a row reorders its section', after[after.length - 1] === first && after.length === before.length,
     `${before.length} rows`);
-  const todoFirst = await js(`document.querySelector('[data-page="todo"] .task')?.dataset.id`);
+  // Tall enough to show To Do and On Hold at once, so the drag needs no
+  // scrolling on the way.
+  win.setSize(780, 900);
+  await sleep(400);
+  await js(`document.getElementById('board').scrollTop = 0; 1`);
+  const todoFirst = await js(`document.querySelector('#sections .section[data-status="todo"] .task')?.dataset.id`);
   const tg = await rect(`${taskSel(todoFirst)} .grip`);
   wc.sendInputEvent({ type: 'mouseMove', x: tg.x, y: tg.y });
   wc.sendInputEvent({ type: 'mouseDown', x: tg.x, y: tg.y, button: 'left', clickCount: 1 });
@@ -350,10 +361,10 @@ async function run() {
   // is measured on the way rather than up front.
   wc.sendInputEvent({ type: 'mouseMove', x: tg.x - 10, y: tg.y + 10, button: 'left', modifiers: ['leftButtonDown'] });
   await sleep(50);
-  let target = await rect('.section[data-status="on_hold"] .task .text');
+  let target = await rect('#sections .section[data-status="on_hold"] .task .text');
   let px = tg.x - 10, py = tg.y + 10;
   for (let i = 1; i <= steps; i++) {
-    if (i === steps / 2) target = await rect('.section[data-status="on_hold"] .task .text');
+    if (i === steps / 2) target = await rect('#sections .section[data-status="on_hold"] .task .text');
     px = Math.round(px + (target.x - px) / (steps - i + 1));
     py = Math.round(py + (target.y - py) / (steps - i + 1));
     wc.sendInputEvent({ type: 'mouseMove', x: px, y: py, button: 'left', modifiers: ['leftButtonDown'] });
@@ -362,6 +373,8 @@ async function run() {
   wc.sendInputEvent({ type: 'mouseUp', x: px, y: py, button: 'left', clickCount: 1 });
   await sleep(500);
   check('dragging from To Do onto a board section changes its status', task(todoFirst).status === 'on_hold', task(todoFirst).status);
+  win.setSize(780, 560);
+  await sleep(400);
 
   // ── Awaiting Approval ──
   await click(`${taskSel(todoFirst)} .status-btn`);
@@ -370,42 +383,119 @@ async function run() {
   await sleep(400);
   check('Awaiting Approval moves a row to its own section, in its theme colour',
     task(todoFirst).status === 'awaiting_approval' &&
-    await js(`!!document.querySelector('.section[data-status="awaiting_approval"] ${taskSel(todoFirst)}')`) &&
+    await js(`!!document.querySelector('#sections .section[data-status="awaiting_approval"] ${taskSel(todoFirst)}')`) &&
     await js(`(() => {
       const probe = document.createElement('div'); probe.style.color = 'var(--status-awaiting)'; document.body.append(probe);
       const want = getComputedStyle(probe).color; probe.remove();
       return getComputedStyle(document.querySelector('${taskSel(todoFirst)} .row')).backgroundColor === want; })()`));
 
-  // ── Ongoing ──
+  // ── Ongoing | Done ──
+  await click('.side-tab[data-tab="done"]');
+  check('the Done tab shows the finished tasks of both lists, and is remembered', settings.get('sidePanel') === 'done' &&
+    await js(`document.querySelector('[data-page="done"]').classList.contains('active') &&
+      !document.querySelector('#sections .task[data-status="done"]') &&
+      [...document.querySelectorAll('[data-page="done"] .task')].length === ${store.list().filter((x) => x.status === 'done').length}`));
+  check('a finished ongoing project carries an Ongoing tag; today\'s don\'t', await js(`(() => {
+    const shown = (t) => getComputedStyle(t.querySelector('.list-tag')).display !== 'none';
+    const rows = [...document.querySelectorAll('[data-page="done"] .task')];
+    return rows.some((r) => r.dataset.list === 'ongoing' && shown(r)) && rows.filter((r) => r.dataset.list === 'today').every((r) => !shown(r)); })()`));
   await click('.side-tab[data-tab="ongoing"]');
-  check('the Ongoing tab shows its list and is remembered',
-    settings.get('sidePanel') === 'ongoing' && await js(`document.querySelector('[data-page="ongoing"]').classList.contains('active')`));
-  await click('#add-input');
+  check('the Ongoing tab groups its projects by status, To Do first', settings.get('sidePanel') === 'ongoing' &&
+    await js(`document.querySelector('[data-page="ongoing"]').classList.contains('active') &&
+      [...document.querySelectorAll('[data-page="ongoing"] .section')].map((s) => s.dataset.status).join() === 'todo,in_progress,awaiting_approval,on_hold'`));
+  await click('#add-open');
+  await sleep(450);
+  check('the open add bar has a Today | Ongoing switch, on Today', await js(`(() => {
+    const sw = document.getElementById('add-list');
+    return sw.getAttribute('aria-checked') === 'false' && getComputedStyle(sw).opacity === '1' &&
+      sw.getBoundingClientRect().right <= document.getElementById('add-btn').getBoundingClientRect().left; })()`));
+  await click('#add-list');
+  check('the switch keeps the caret in the field and says where the task goes', await js(`document.activeElement?.id === 'add-input' &&
+    document.getElementById('add-list').getAttribute('aria-checked') === 'true' && document.getElementById('add-input').placeholder.includes('ongoing')`));
   await type('Plan the office move');
   await key('Enter');
   const og = byText('Plan the office move');
-  check('adding with Ongoing showing puts the task in Ongoing', og?.list === 'ongoing' &&
-    await js(`!!document.querySelector('[data-page="ongoing"] ${taskSel(og?.id)}')`));
+  check('switched to Ongoing, Add puts the task in Ongoing\'s To Do', og?.list === 'ongoing' &&
+    await js(`!!document.querySelector('[data-page="ongoing"] .section[data-status="todo"] ${taskSel(og?.id)}')`));
+  await key('Escape');
+  await click('#add-open');
+  await sleep(450);
+  check('reopened, the bar starts on Today again', await js(`document.getElementById('add-list').getAttribute('aria-checked') === 'false'`));
+  await key('Escape');
   await click(`${taskSel(og.id)} .status-btn`);
   await js(`[...document.querySelectorAll('.popover .pop-item')].find((b) => b.textContent.includes('In Progress')).classList.add('e2e')`);
   await click('.popover .pop-item.e2e');
   await sleep(400);
-  check('an Ongoing task set In Progress moves onto the board, which shows only Ongoing', task(og.id).status === 'in_progress' &&
-    task(og.id).list === 'ongoing' && await js(`!!document.querySelector('.section[data-status="in_progress"] ${taskSel(og.id)}')`) &&
-    await js(`!document.querySelector('[data-page="ongoing"] ${taskSel(og.id)}') && !document.querySelector('#sections ${taskSel(id)}')`));
-  await click('.side-tab[data-tab="todo"]');
+  check('an Ongoing project set In Progress moves to its group, and the board stays on today', task(og.id).status === 'in_progress' &&
+    task(og.id).list === 'ongoing' && await js(`!!document.querySelector('[data-page="ongoing"] .section[data-status="in_progress"] ${taskSel(og.id)}') &&
+      !document.querySelector('#sections ${taskSel(og.id)}') && !!document.querySelector('#sections ${taskSel(id)}')`));
+  await click(`${taskSel(og.id)} .status-btn`);
+  await js(`[...document.querySelectorAll('.popover .pop-item')].find((b) => b.textContent === 'Done').classList.add('e2e')`);
+  await click('.popover .pop-item.e2e');
   await sleep(400);
-  check('the To Do tab brings back today\'s board', await js(`!document.querySelector('#sections ${taskSel(og.id)}') && !!document.querySelector('#sections ${taskSel(id)}')`));
+  await click('.side-tab[data-tab="done"]');
+  await sleep(300);
+  check('set Done, it tops the Done tab with its Ongoing tag', task(og.id).status === 'done' && !!task(og.id).doneAt &&
+    await js(`document.querySelector('[data-page="done"] .task')?.dataset.id === '${og.id}'`));
+  await click(`${taskSel(og.id)} .status-btn`);
+  await js(`[...document.querySelectorAll('.popover .pop-item')].find((b) => b.textContent.includes('In Progress')).classList.add('e2e')`);
+  await click('.popover .pop-item.e2e');
+  await sleep(400);
   await click('.side-tab[data-tab="ongoing"]');
-  await sleep(400);
+  await sleep(300);
   await click(`${taskSel(og.id)} .status-btn`);
   await js(`[...document.querySelectorAll('.popover .pop-item')].find((b) => b.textContent.includes('Move to Today')).classList.add('e2e')`);
   await click('.popover .pop-item.e2e');
   await sleep(400);
-  await click('.side-tab[data-tab="todo"]');
-  await sleep(400);
-  check('Move to Today puts it on today\'s board, status kept', task(og.id).list === 'today' &&
-    await js(`!!document.querySelector('.section[data-status="in_progress"] ${taskSel(og.id)}')`));
+  check('Move to Today puts it on today\'s board, status kept', task(og.id).list === 'today' && task(og.id).status === 'in_progress' &&
+    await js(`!!document.querySelector('#sections .section[data-status="in_progress"] ${taskSel(og.id)}')`));
+
+  // Dragging a board row onto the Done tab: the tab opens mid-drag and the
+  // row drops into its list, finished.
+  {
+    const dragId = og.id;
+    const from = await rect(`${taskSel(dragId)} .grip`);
+    wc.sendInputEvent({ type: 'mouseMove', x: from.x, y: from.y });
+    wc.sendInputEvent({ type: 'mouseDown', x: from.x, y: from.y, button: 'left', clickCount: 1 });
+    const path = async (to) => {
+      let px = from.x, py = from.y;
+      for (let i = 1; i <= 12; i++) {
+        px = Math.round(from.x + (to.x - from.x) * i / 12);
+        py = Math.round(from.y + (to.y - from.y) * i / 12);
+        wc.sendInputEvent({ type: 'mouseMove', x: px, y: py, button: 'left', modifiers: ['leftButtonDown'] });
+        await sleep(25);
+      }
+      return { x: px, y: py };
+    };
+    const tab = await rect('.side-tab[data-tab="done"]');
+    await path(tab);
+    await sleep(250);
+    const list = await rect('[data-page="done"] .list');
+    const end = { x: list.x, y: Math.round(list.bottom - 6) };
+    for (let i = 1; i <= 6; i++) {
+      wc.sendInputEvent({ type: 'mouseMove', x: Math.round(tab.x + (end.x - tab.x) * i / 6), y: Math.round(tab.y + (end.y - tab.y) * i / 6), button: 'left', modifiers: ['leftButtonDown'] });
+      await sleep(25);
+    }
+    wc.sendInputEvent({ type: 'mouseUp', x: end.x, y: end.y, button: 'left', clickCount: 1 });
+    await sleep(500);
+    check('dragging a board row onto the Done tab finishes it, its list kept', task(dragId).status === 'done' && task(dragId).list === 'today' &&
+      await js(`!!document.querySelector('[data-page="done"] ${taskSel(dragId)}')`), `${task(dragId).status} / ${task(dragId).list}`);
+  }
+
+  // Clear done: every finished task goes, with one Undo.
+  {
+    const doneIds = store.list().filter((x) => x.status === 'done').map((x) => x.id);
+    await click('#clear-done-btn');
+    await sleep(500);
+    check('Clear done deletes every done task, from both lists', doneIds.length >= 3 && doneIds.every((x) => !task(x)) &&
+      await js(`document.querySelector('[data-page="done"]').classList.contains('is-empty')`), `${doneIds.length} done`);
+    await click('.toast button');
+    await sleep(500);
+    check('its Undo brings them all back', doneIds.every((x) => !!task(x)) &&
+      await js(`document.querySelectorAll('[data-page="done"] .task').length`) === doneIds.length);
+    await click('.side-tab[data-tab="ongoing"]');
+    await sleep(300);
+  }
 
   // ── Folding a section ──
   await click('.section[data-status="in_progress"] .section-head .title');
@@ -509,9 +599,9 @@ async function run() {
   await sleep(500);
   check('and shows it again', settings.get('showSide') === true &&
     await js(`document.getElementById('side').getBoundingClientRect().width > 200`));
-  check('the To Do | Ongoing tabs are a switch whose knob slides to the chosen list', await js(`(() => {
+  check('the Ongoing | Done tabs are a switch whose knob slides to the chosen tab', await js(`(() => {
     const tabs = document.querySelector('.side-tabs'), knob = tabs.querySelector('.tab-knob');
-    return tabs.dataset.active === 'todo' && getComputedStyle(knob).transform === 'none'; })()`));
+    return tabs.dataset.active === 'ongoing' && getComputedStyle(knob).transform === 'none'; })()`));
   check('open notes sit on a lighter grey than the side card', await cssColor('--raised') !== await cssColor('--surface'));
 
   // ── Hover while another app is active ──
@@ -652,7 +742,8 @@ done
   const flat = await js(`[...document.querySelectorAll('#sections .task')].map((e) => e.dataset.id)`);
   const ranks = flat.map((i) => ({ high: 0, medium: 1 })[task(i).priority] ?? 2);
   check('priority sort lists the board high → medium → none',
-    ranks.every((r, i) => i === 0 || ranks[i - 1] <= r) && await js(`document.querySelectorAll('.section-head').length`) === 0);
+    ranks.every((r, i) => i === 0 || ranks[i - 1] <= r) && await js(`document.querySelectorAll('#sections .section-head').length`) === 0 &&
+    flat.some((i) => task(i).status === 'todo'));
   settings.set({ sort: 'default' });
   wc.send('settings', settings.all());
   await sleep(300);

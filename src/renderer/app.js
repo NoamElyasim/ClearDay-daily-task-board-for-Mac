@@ -2,7 +2,7 @@
 // pickers, notes, delete with undo, drag and drop, preferences, and the
 // keyboard.
 import {
-  STATUSES, STATUS_LABELS, PRIORITIES, toggleBold, trimRich, orderBetween, arrange,
+  STATUSES, STATUS_LABELS, PRIORITIES, toggleBold, trimRich, orderBetween, arrangeDone,
 } from '../shared/model.mjs';
 import { state, load, changed, onChange, createTask, updateTask, removeTask, restoreTask } from './state.js';
 import { initBoard, render, taskEl, textEl, visibleOrder, showSide, foldableKeys } from './board.js';
@@ -61,18 +61,14 @@ function setDrawer(open) {
   pane.classList.toggle('drawer-open', open && state.compact);
 }
 
-// ─── Side tabs: To Do | Ongoing ──────────────────────────────────────────────
-// The tab showing decides which list the board shows and where the add field
-// puts a new task. Mid-drag only the side page switches; the board follows
-// once the row is dropped, so the list under the lifted row stays put.
+// ─── Side tabs: Ongoing | Done ───────────────────────────────────────────────
+// The board always shows today; the side panel shows the ongoing projects or
+// everything finished.
 function setSide(tab, { save = true } = {}) {
-  if (tab !== 'todo' && tab !== 'ongoing') return;
-  const changedTab = tab !== state.side;
+  if (tab !== 'ongoing' && tab !== 'done') return;
   state.side = tab;
   showSide(tab);
   for (const el of pane.querySelectorAll('.edge-tab')) el.classList.toggle('active', el.dataset.tab === tab);
-  addInput.placeholder = tab === 'ongoing' ? 'Add an ongoing task…' : 'Add a task…';
-  if (changedTab && !pane.classList.contains('dragging') && state.tasks.size) render({ animate: true });
   if (save) api.settings.set({ sidePanel: tab });
 }
 
@@ -85,17 +81,31 @@ const searchBox = document.getElementById('search');
 const searchInput = document.getElementById('search-input');
 const resultsEl = document.getElementById('search-results');
 
+// The open bar's Today | Ongoing switch picks the list. It starts on Today
+// each time the bar opens, and keeps its choice while the bar stays open.
+const addList = document.getElementById('add-list');
+function setAddOngoing(on) {
+  addList.setAttribute('aria-checked', String(on));
+  addList.setAttribute('aria-label', on ? 'Add to Today' : 'Add to Ongoing');
+  addInput.placeholder = on ? 'Add an ongoing task…' : 'Add a task…';
+}
+addList.addEventListener('mousedown', (e) => e.preventDefault());   // the caret stays in the field
+addList.addEventListener('click', () => { setAddOngoing(addList.getAttribute('aria-checked') !== 'true'); addInput.focus(); });
+
 function openAdd() {
   closeSearch();
+  setAddOngoing(false);
   bar.classList.add('adding');
   addForm.classList.add('open');
   addInput.tabIndex = 0;
+  addList.tabIndex = 0;
   addInput.focus();
 }
 function closeAdd() {
   if (!addForm.classList.contains('open')) return;
   addInput.value = '';
   addInput.tabIndex = -1;
+  addList.tabIndex = -1;
   addForm.classList.remove('open');
   bar.classList.remove('adding');
   if (document.activeElement === addInput) addInput.blur();
@@ -114,13 +124,19 @@ addForm.addEventListener('submit', async (e) => {
   if (!text) { closeAdd(); return; }
   addInput.value = '';
   addInput.focus();   // stays open for the next one
-  await createTask({ text, status: 'todo', list: state.side === 'ongoing' ? 'ongoing' : 'today' });
+  const list = addList.getAttribute('aria-checked') === 'true' ? 'ongoing' : 'today';
+  await createTask({ text, status: 'todo', list });
+  // An ongoing task lands in the side panel, on its Ongoing tab. Folded
+  // away, the drawer's tab nods, or a toast says where it went.
+  if (list === 'ongoing') setSide('ongoing');
   render({ animate: true });
-  if (state.compact && !pane.classList.contains('drawer-open')) {
-    const tab = pane.querySelector(`.edge-tab[data-tab="${state.side}"]`);
+  if (list === 'ongoing' && state.compact && !pane.classList.contains('drawer-open')) {
+    const tab = pane.querySelector('.edge-tab[data-tab="ongoing"]');
     tab.classList.remove('bump');
     void tab.offsetWidth;
     tab.classList.add('bump');
+  } else if (list === 'ongoing' && !state.compact && state.sideHidden) {
+    showToast('Added to Ongoing', { duration: 2000 });
   }
 });
 
@@ -429,6 +445,13 @@ async function deletePicked() {
 document.getElementById('select-btn').addEventListener('click', () => setSelecting(!state.selecting));
 document.getElementById('delete-picked-btn').addEventListener('click', deletePicked);
 
+// Clear done: every finished task, from both lists, deleted together with
+// one Undo.
+const clearDoneBtn = document.getElementById('clear-done-btn');
+clearDoneBtn.querySelector('.tool-icon').innerHTML = ICONS.trash;
+clearDoneBtn.title = 'Delete every done task';
+clearDoneBtn.addEventListener('click', () => deleteTasks(arrangeDone([...state.tasks.values()]).map((t) => t.id)));
+
 // Collapse every section, or Expand them all once every one is folded.
 document.getElementById('fold-all-btn').addEventListener('click', () => {
   const keys = foldableKeys();
@@ -507,7 +530,7 @@ function select(id) {
 document.getElementById('sort-btn').addEventListener('click', () => api.menus.sort());
 
 // ─── Side panel: shown or hidden ─────────────────────────────────────────────
-// The header button folds the To Do | Ongoing panel away so the board gets
+// The header button folds the Ongoing | Done panel away so the board gets
 // the width. In the narrow layout the panel is a drawer, so it opens that.
 const sidebarBtn = document.getElementById('sidebar-btn');
 sidebarBtn.innerHTML = ICONS.sidebar;
@@ -684,19 +707,22 @@ function paintActive() {
   resultsEl.querySelector('.result.active')?.scrollIntoView({ block: 'nearest' });
 }
 
-// Shows a task wherever it lives: its list's tab, its section unfolded, the
-// side panel or drawer open for a To Do, then selects it and flashes it.
+// Shows a task wherever it lives: today's board, or the side panel's Ongoing
+// or Done tab (opening the panel or drawer), its section unfolded, then
+// selects it and flashes it.
 function revealTask(id) {
   const t = state.tasks.get(id);
   closeSearch();
   if (!t) return;
-  setSide(t.list === 'ongoing' ? 'ongoing' : 'todo');
-  const key = `${t.list || 'today'}:${t.status}`;
-  if (state.collapsed.has(key)) {
+  const list = t.list || 'today';
+  const inSide = t.status === 'done' || list === 'ongoing';
+  if (inSide) setSide(t.status === 'done' ? 'done' : 'ongoing');
+  const key = `${list}:${t.status}`;
+  if (t.status !== 'done' && state.collapsed.has(key)) {
     state.collapsed.delete(key);
     api.settings.set({ collapsed: [...state.collapsed] });
   }
-  if (t.status === 'todo') {
+  if (inSide) {
     if (state.compact) setDrawer(true);
     else if (state.sideHidden) api.settings.set({ showSide: true });
   }
@@ -715,18 +741,17 @@ initDnd(pane, {
   async onDrop(id, { list, listStatus, prevId, nextId }) {
     const task = state.tasks.get(id);
     if (!task) return;
-    // Either list works the same way: its To Do and each board section set
-    // their status; '' is the single board list of the non-default sorts,
-    // where a task arriving from To Do starts In Progress and any other
-    // keeps its status.
-    const status = listStatus || (task.status === 'todo' ? 'in_progress' : task.status);
+    // A board section or an Ongoing group sets its list and its status. The
+    // Done list finishes the task and keeps its list. '' is the single board
+    // list of the non-default sorts: a done task arriving there starts again
+    // in To Do, any other keeps its status.
+    const status = listStatus || (task.status === 'done' ? 'todo' : task.status);
+    const toList = listStatus === 'done' ? task.list : list === 'ongoing' ? 'ongoing' : 'today';
     const order = orderBetween(state.tasks.get(prevId)?.order ?? null, state.tasks.get(nextId)?.order ?? null);
-    await updateTask(id, { list: list === 'ongoing' ? 'ongoing' : 'today', status, order });
+    await updateTask(id, { list: toList, status, order });
     render({ animate: true });
   },
   onHoverTab: (tab) => setSide(tab),
-  // A drag that switched tabs and was then cancelled still owes the board
-  // its new list.
   onCancel: () => render({ animate: true }),
 });
 
@@ -856,6 +881,6 @@ boot();
 
 // For the screenshot harness and debugging from the console.
 window.cleardayDebug = {
-  state, updateDate, render, changed, arrange, toggleNotes, startEdit, toggleBoldFor, setDrawer, setSide,
+  state, updateDate, render, changed, toggleNotes, startEdit, toggleBoldFor, setDrawer, setSide,
   openPrefs, closePrefs, popoverOpen, closePopover,
 };

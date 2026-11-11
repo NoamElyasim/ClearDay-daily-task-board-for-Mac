@@ -12,7 +12,7 @@ import { TOOLS, callTool } from './tools.mjs';
 import { openBackend } from './backend.mjs';
 
 const VERSION = '1';
-const INSTRUCTIONS = 'ClearDay is the user\'s daily task board on their Mac. "today" is the day\'s board (To Do, In Progress, Awaiting Approval, On Hold, Done); "ongoing" holds long-term projects with the same statuses. Call list_tasks before changing tasks so you have their ids.';
+const INSTRUCTIONS = 'ClearDay is the user\'s daily task board on their Mac. "today" is the day\'s board (To Do, In Progress, Awaiting Approval, On Hold); "ongoing" holds long-term projects with the same statuses; done tasks from both lists gather in the Done tab. Call list_tasks before changing tasks so you have their ids.';
 
 const send = (msg) => process.stdout.write(JSON.stringify({ jsonrpc: '2.0', ...msg }) + '\n');
 

@@ -25,6 +25,7 @@ const ROWS = [
     notes: 'Phase 1: product pages.\nPhase 2: blog and press.' },
   { text: 'Brand guidelines v2', status: 'awaiting_approval', list: 'ongoing' },
   { text: 'Plan the 2027 trade show calendar', status: 'todo', list: 'ongoing' },
+  { text: 'New office signage', status: 'done', list: 'ongoing' },
 ];
 
 export function seedTasks(base = Date.parse('2026-10-26T07:00:00Z')) {

@@ -31,6 +31,10 @@
         <span class="face-icon" id="add-open-icon"></span><span class="face-label">Add a task</span>
       </button>
       <input id="add-input" type="text" placeholder="Add a task…" spellcheck="false" aria-label="New task" tabindex="-1">
+      <!-- Today | Ongoing: which list the new task goes into. Starts on Today each time the bar opens. -->
+      <button type="button" id="add-list" role="switch" aria-checked="false" title="Today or Ongoing" aria-label="Add to Ongoing" tabindex="-1">
+        <span class="knob"></span><span class="opt" data-v="today">Today</span><span class="opt" data-v="ongoing">Ongoing</span>
+      </button>
       <button id="add-btn" type="submit" title="Add task (Enter)" aria-label="Add task" tabindex="-1"></button>
     </form>
     <div id="search" class="opener">
@@ -51,37 +55,42 @@
         <button id="select-btn" class="tool-btn"><span class="tool-icon"></span><span class="tool-label"></span></button>
       </div>
       <div id="sections"></div>
-      <div id="board-empty" class="empty"></div>
+      <div id="board-empty" class="empty">Nothing on today's board yet.<br>Add a task to start your day.</div>
     </section>
 
-    <aside id="side" class="panel" aria-label="To Do and Ongoing">
-      <div class="side-tabs" role="tablist" data-active="todo">
+    <aside id="side" class="panel" aria-label="Ongoing and Done">
+      <div class="side-tabs" role="tablist" data-active="ongoing">
         <span class="tab-knob"></span>
-        <button class="side-tab" data-tab="todo" role="tab">
-          <span class="title">To Do</span><span class="count"></span>
-        </button>
         <button class="side-tab" data-tab="ongoing" role="tab">
           <span class="title">Ongoing</span><span class="count"></span>
         </button>
-      </div>
-      <div class="side-page" data-page="todo">
-        <div class="list" data-list="today" data-status="todo"></div>
-        <div class="empty">Nothing to do.</div>
+        <button class="side-tab" data-tab="done" role="tab">
+          <span class="title">Done</span><span class="count"></span>
+        </button>
       </div>
       <div class="side-page" data-page="ongoing">
-        <div class="list" data-list="ongoing" data-status="todo"></div>
-        <div class="empty">No ongoing projects waiting.<br>With this tab open, add one above.</div>
+        <div class="side-sections"></div>
+        <div class="empty">No ongoing projects yet.<br>With this tab open, add one above.</div>
+      </div>
+      <div class="side-page" data-page="done">
+        <div class="side-tools">
+          <button id="clear-done-btn" class="tool-btn"><span class="tool-icon"></span><span class="tool-label">Clear done</span></button>
+        </div>
+        <div class="list" data-list="" data-status="done"></div>
+        <div class="empty">Nothing done yet.<br>Finished tasks gather here.</div>
       </div>
     </aside>
+
+    <div id="side-resizer" role="separator" aria-orientation="vertical" aria-label="Resize the side panel" title="Drag to resize · double-click to reset"></div>
 
     <button id="sidebar-btn" class="icon-btn" title="Hide the side panel" aria-label="Show or hide the side panel"></button>
 
     <div id="edge-tabs">
-      <button class="edge-tab" data-tab="todo" title="To Do" aria-label="Show To Do">
-        <span class="title">To Do</span><span class="count"></span>
-      </button>
       <button class="edge-tab" data-tab="ongoing" title="Ongoing" aria-label="Show Ongoing">
         <span class="title">Ongoing</span><span class="count"></span>
+      </button>
+      <button class="edge-tab" data-tab="done" title="Done" aria-label="Show Done">
+        <span class="title">Done</span><span class="count"></span>
       </button>
     </div>
   </main>

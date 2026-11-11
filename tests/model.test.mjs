@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   normalizeRanges, toggleBold, isRangeBold, segments, fromSegments, trimRich,
-  createTask, applyPatch, validateTask, migrate, arrange, orderBetween, nextOrder,
+  createTask, applyPatch, validateTask, migrate, arrangeBoard, arrangeOngoing, arrangeDone, orderBetween, nextOrder,
   TOMBSTONE_TTL_MS,
 } from '../src/shared/model.mjs';
 
@@ -109,29 +109,28 @@ function mk(id, status, order, priority = null, createdAt = `2026-10-26T00:00:0$
   return { ...createTask({ status, priority, order }), id, createdAt };
 }
 
-test('arrange: default groups board by status, To Do apart, Done last', () => {
+test('board: default groups today by status, To Do first, no Done', () => {
   const tasks = [
     mk('d1', 'done', 1), mk('p2', 'in_progress', 3), mk('h1', 'on_hold', 2),
     mk('t1', 'todo', 4), mk('p1', 'in_progress', 1), { ...mk('x', 'in_progress', 0), deletedAt: 'z' },
   ];
-  const a = arrange(tasks, 'default');
-  assert.deepEqual(a.todo.map((t) => t.id), ['t1']);
-  assert.deepEqual(a.sections.map((s) => s.status), ['in_progress', 'awaiting_approval', 'on_hold', 'done']);
-  assert.deepEqual(a.sections.map((s) => s.tasks.map((t) => t.id)), [['p1', 'p2'], [], ['h1'], ['d1']]);
+  const b = arrangeBoard(tasks, 'default');
+  assert.deepEqual(b.map((s) => s.status), ['todo', 'in_progress', 'awaiting_approval', 'on_hold']);
+  assert.deepEqual(b.map((s) => s.tasks.map((t) => t.id)), [['t1'], ['p1', 'p2'], [], ['h1']]);
 });
 
-test('arrange: priority sort is one list, high then medium then none', () => {
-  const tasks = [mk('n', 'done', 1), mk('m', 'in_progress', 2, 'medium'), mk('h', 'on_hold', 3, 'high')];
-  const a = arrange(tasks, 'priority');
-  assert.equal(a.sections.length, 1);
-  assert.equal(a.sections[0].status, null);
-  assert.deepEqual(a.sections[0].tasks.map((t) => t.id), ['h', 'm', 'n']);
+test('board: priority sort is one list with To Do in it, high then medium then none', () => {
+  const tasks = [mk('n', 'todo', 1), mk('m', 'in_progress', 2, 'medium'), mk('h', 'on_hold', 3, 'high'), mk('d', 'done', 4, 'high')];
+  const b = arrangeBoard(tasks, 'priority');
+  assert.equal(b.length, 1);
+  assert.equal(b[0].status, null);
+  assert.deepEqual(b[0].tasks.map((t) => t.id), ['h', 'm', 'n']);
 });
 
-test('arrange: created sort ignores drag order', () => {
-  const tasks = [mk('b', 'done', 1, null, '2026-10-26T02:00:00Z'), mk('a', 'done', 9, null, '2026-10-26T01:00:00Z')];
-  assert.deepEqual(arrange(tasks, 'created').sections[0].tasks.map((t) => t.id), ['a', 'b']);
-  assert.deepEqual(arrange(tasks, 'manual').sections[0].tasks.map((t) => t.id), ['b', 'a']);
+test('board: created sort ignores drag order', () => {
+  const tasks = [mk('b', 'todo', 1, null, '2026-10-26T02:00:00Z'), mk('a', 'todo', 9, null, '2026-10-26T01:00:00Z')];
+  assert.deepEqual(arrangeBoard(tasks, 'created')[0].tasks.map((t) => t.id), ['a', 'b']);
+  assert.deepEqual(arrangeBoard(tasks, 'manual')[0].tasks.map((t) => t.id), ['b', 'a']);
 });
 
 test('orderBetween and nextOrder', () => {
@@ -144,21 +143,47 @@ test('orderBetween and nextOrder', () => {
 });
 
 test('Awaiting Approval sits between In Progress and On Hold', () => {
-  const a = arrange([mk('h', 'on_hold', 1), mk('w', 'awaiting_approval', 2), mk('p', 'in_progress', 3)], 'default');
-  assert.deepEqual(a.sections.filter((s) => s.tasks.length).map((s) => s.tasks[0].id), ['p', 'w', 'h']);
+  const b = arrangeBoard([mk('h', 'on_hold', 1), mk('w', 'awaiting_approval', 2), mk('p', 'in_progress', 3)], 'default');
+  assert.deepEqual(b.filter((s) => s.tasks.length).map((s) => s.tasks[0].id), ['p', 'w', 'h']);
 });
 
-test('each list arranges apart: To Do on the side, the rest on the board', () => {
+test('the board shows today only; Ongoing groups its projects; Done gathers both lists', () => {
   const on = (id, status, order) => ({ ...mk(id, status, order), list: 'ongoing' });
   const tasks = [on('od', 'done', 1), on('ot', 'todo', 2), on('op2', 'in_progress', 4), on('op1', 'in_progress', 3),
-    on('ow', 'awaiting_approval', 5), mk('t', 'todo', 6), mk('p', 'in_progress', 7)];
-  const today = arrange(tasks, 'default');
-  assert.deepEqual(today.todo.map((t) => t.id), ['t']);
-  assert.deepEqual(today.sections.flatMap((s) => s.tasks.map((t) => t.id)), ['p']);
-  const ongoing = arrange(tasks, 'default', 'ongoing');
-  assert.deepEqual(ongoing.todo.map((t) => t.id), ['ot']);
-  assert.deepEqual(ongoing.sections.map((s) => s.tasks.map((t) => t.id)), [['op1', 'op2'], ['ow'], [], ['od']]);
-  assert.deepEqual(arrange([on('b', 'done', 2), on('a', 'done', 1)], 'manual', 'ongoing').sections[0].tasks.map((t) => t.id), ['a', 'b']);
+    on('ow', 'awaiting_approval', 5), mk('t', 'todo', 6), mk('p', 'in_progress', 7), mk('d', 'done', 8)];
+  assert.deepEqual(arrangeBoard(tasks, 'default').flatMap((s) => s.tasks.map((t) => t.id)), ['t', 'p']);
+  const og = arrangeOngoing(tasks, 'default');
+  assert.deepEqual(og.map((s) => s.status), ['todo', 'in_progress', 'awaiting_approval', 'on_hold']);
+  assert.deepEqual(og.map((s) => s.tasks.map((t) => t.id)), [['ot'], ['op1', 'op2'], ['ow'], []]);
+  // Ongoing stays grouped whatever the sort; the sort orders each group.
+  assert.equal(arrangeOngoing(tasks, 'priority').length, 4);
+  assert.deepEqual(arrangeDone(tasks).map((t) => t.id).sort(), ['d', 'od']);
+});
+
+test('done: latest finished first, by doneAt', () => {
+  const at = (id, doneAt) => ({ ...mk(id, 'done', 1), doneAt });
+  const tasks = [at('a', '2026-11-01T10:00:00.000Z'), at('b', '2026-11-03T10:00:00.000Z'), at('c', '2026-11-02T10:00:00.000Z'),
+    { ...at('x', '2026-11-04T00:00:00.000Z'), deletedAt: 'z' }];
+  assert.deepEqual(arrangeDone(tasks).map((t) => t.id), ['b', 'c', 'a']);
+});
+
+test('doneAt: set on becoming done, kept through edits, cleared on leaving', () => {
+  const t = createTask({ text: 'x' }, Date.parse('2026-11-01T00:00:00Z'));
+  assert.equal(t.doneAt, null);
+  const d = applyPatch(t, { status: 'done' }, Date.parse('2026-11-02T00:00:00Z'));
+  assert.equal(d.doneAt, '2026-11-02T00:00:00.000Z');
+  const e = applyPatch(d, { notes: 'later' }, Date.parse('2026-11-05T00:00:00Z'));
+  assert.equal(e.doneAt, '2026-11-02T00:00:00.000Z');
+  assert.equal(applyPatch(e, { status: 'todo' }).doneAt, null);
+  assert.equal(applyPatch(d, { doneAt: 'forged' }).doneAt, d.doneAt);
+  assert.ok(createTask({ status: 'done' }).doneAt);
+});
+
+test('doneAt: older done tasks borrow their last edit', () => {
+  const v = validateTask({ id: 'a', text: 'x', status: 'done', updatedAt: '2026-11-01T00:00:00Z' });
+  assert.equal(v.doneAt, '2026-11-01T00:00:00.000Z');
+  assert.equal(validateTask({ id: 'b', status: 'todo', doneAt: '2026-11-01T00:00:00Z' }).doneAt, null);
+  assert.equal(validateTask({ id: 'c', status: 'done', doneAt: '2026-10-01T00:00:00Z', updatedAt: '2026-11-01T00:00:00Z' }).doneAt, '2026-10-01T00:00:00.000Z');
 });
 
 test('list and notesDir default, validate and survive a patch', () => {

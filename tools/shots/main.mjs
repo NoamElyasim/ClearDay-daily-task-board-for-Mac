@@ -135,6 +135,7 @@ const SHOTS = {
   'priority-picker-light': { theme: 'light', width: 780, height: 560, setup: clickFirst('#sections [data-action="priority"]') },
   'editing-dark': { theme: 'dark', width: 780, height: 560, setup: (js) => js(`cleardayDebug.startEdit(${firstId}); 1`) },
   'ongoing-dark': { theme: 'dark', width: 780, height: 560, prefs: { sidePanel: 'ongoing' } },
+  'done-light': { theme: 'light', width: 780, height: 560, prefs: { sidePanel: 'done' } },
   'ongoing-compact-light': { theme: 'light', width: 420, height: 600, prefs: { sidePanel: 'ongoing' },
     setup: (js) => js('cleardayDebug.setDrawer(true); 1') },
   'add-open-dark': { theme: 'dark', width: 780, height: 560, setup: clickFirst('#add-open') },
@@ -154,7 +155,7 @@ const SHOTS = {
       await window.clearday.tasks.update(id, { notes: 'x', notesHtml: html });
       cleardayDebug.state.tasks.set(id, (await window.clearday.tasks.list()).find((t) => t.id === id)); cleardayDebug.toggleNotes(id); document.activeElement.blur(); 1 })()`);
   } },
-  'folded-light': { theme: 'light', width: 780, height: 560, prefs: { collapsed: ['today:done'] } },
+  'folded-light': { theme: 'light', width: 780, height: 560, prefs: { collapsed: ['today:in_progress'] } },
   'all-folded-dark': { theme: 'dark', width: 420, height: 600, setup: clickFirst('#fold-all-btn') },
   'selecting-light': { theme: 'light', width: 340, height: 600, setup: async (js) => {
     await js(`document.getElementById('select-btn').click(); 1`);
@@ -188,7 +189,9 @@ app.whenReady().then(run).catch((e) => { console.error(e); app.exit(1); });
 
 async function run() {
   fs.mkdirSync(OUT, { recursive: true });
-  for (const [name, opts] of Object.entries(SHOTS)) await shot(name, opts);
+  // `npm run shots -- expanded-dark ongoing-dark` renders just those.
+  const only = process.argv.filter((a) => a in SHOTS);
+  for (const [name, opts] of Object.entries(SHOTS)) if (!only.length || only.includes(name)) await shot(name, opts);
 
   // Midnight: put the clock two seconds before it and watch the header.
   {

@@ -11,9 +11,9 @@ export const state = {
   picked: new Set(),      // the ids picked while selecting
   editingId: null,
   openNotes: new Set(),   // the id whose notes panel is open (one at most)
-  collapsed: new Set(),   // folded board sections, as 'list:status' keys
+  collapsed: new Set(),   // folded sections (board and Ongoing tab), as 'list:status' keys
   compact: false,
-  side: 'todo',           // side tab showing: 'todo' | 'ongoing'
+  side: 'ongoing',        // side tab showing: 'ongoing' | 'done'
   sideHidden: false,      // the side panel folded away (wide layout)
   notesTools: 'open',     // the notes' formatting menu: 'open' | 'min'
   spellcheck: true,       // spelling in notes (Preferences)
