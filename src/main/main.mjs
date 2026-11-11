@@ -15,6 +15,7 @@ import { buildTemplate } from './context-menu.mjs';
 import { initQuick, setQuickEnabled, setQuickShortcut, pauseQuick, stopQuick, showQuick, quickAdd, quickHidden, quickStatus } from './quick.mjs';
 import { startBridge } from './bridge.mjs';
 import { relayHover } from './hover.mjs';
+import * as attachments from './attachments.mjs';
 import { SORTS, SORT_LABELS, SCHEMA_VERSION } from '../shared/model.mjs';
 
 const DIR = import.meta.dirname;
@@ -30,6 +31,9 @@ const ZOOM = { small: 0.9, medium: 1, large: 1.12 };
 let win = null;
 let tray = null;
 let quitting = false;
+
+// Images in notes load through clearday-file:, registered before ready.
+attachments.registerScheme();
 
 // ─── Window placement ────────────────────────────────────────────────────────
 function defaultBounds() {
@@ -83,6 +87,11 @@ function createWindow() {
   if (settings.get('alwaysOnTop')) win.setAlwaysOnTop(true, 'floating');
   // No traffic lights: the board's header is the whole chrome.
   win.setWindowButtonVisibility(false);
+
+  // The window only ever shows the board: links in notes open in the
+  // browser (link:open), and a file dropped outside a note does nothing.
+  win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  win.webContents.on('will-navigate', (e) => e.preventDefault());
 
   win.loadFile(path.join(DIR, '..', 'renderer', 'index.html'));
   // Renderer errors would otherwise vanish in a dev run.
@@ -299,6 +308,13 @@ ipcMain.handle('tasks:update', (_e, id, patch) => store.update(id, patch || {}))
 ipcMain.handle('tasks:remove', (_e, id) => store.remove(id));
 ipcMain.handle('tasks:restore', (_e, id) => store.restore(id));
 
+// Attachments and links in notes (attachments.mjs).
+ipcMain.handle('attach:path', (_e, file) => attachments.addPath(String(file || '')));
+ipcMain.handle('attach:bytes', (_e, name, mime, bytes) => attachments.addBytes(name, mime, bytes));
+ipcMain.handle('attach:pick', () => attachments.pick(win));
+ipcMain.handle('attach:open', (_e, file) => attachments.open(file));
+ipcMain.handle('link:open', (_e, url) => attachments.openLink(url));
+
 ipcMain.handle('settings:get', () => settings.all());
 ipcMain.handle('settings:set', (_e, patch) => { setSetting(patch || {}); return settings.all(); });
 
@@ -409,6 +425,7 @@ if (!app.requestSingleInstanceLock()) {
   app.whenReady().then(async () => {
     app.setAboutPanelOptions({ applicationName: 'ClearDay', applicationVersion: app.getVersion() });
     Menu.setApplicationMenu(appMenu());
+    attachments.handleScheme();
     applyTheme();
     applyLoginItem();
     await applyShowIn();
@@ -425,5 +442,7 @@ if (!app.requestSingleInstanceLock()) {
     // fired at midnight.
     powerMonitor.on('resume', () => win?.webContents.send('clock:resume'));
     powerMonitor.on('unlock-screen', () => win?.webContents.send('clock:resume'));
+    // Attachment files no note refers to any more, cleared once things settle.
+    setTimeout(() => attachments.sweep(store.everything()), 15000);
   });
 }

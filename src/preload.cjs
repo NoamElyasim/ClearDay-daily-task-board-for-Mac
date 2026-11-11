@@ -1,5 +1,5 @@
 // The renderer's whole view of the app: tasks, settings, menus, app actions.
-const { contextBridge, ipcRenderer } = require('electron');
+const { contextBridge, ipcRenderer, webUtils } = require('electron');
 
 const on = (channel) => (cb) => ipcRenderer.on(channel, (_e, payload) => cb(payload));
 
@@ -42,6 +42,17 @@ contextBridge.exposeInMainWorld('clearday', {
     status: () => ipcRenderer.invoke('mcp:status'),
     connectDesktop: () => ipcRenderer.invoke('mcp:connect-desktop'),
     copyCodeCommand: () => ipcRenderer.invoke('mcp:copy-code-command'),
+  },
+  // Files attached to notes: copied in by the main process, which answers
+  // { file, name, image } or { error }.
+  attachments: {
+    // The path of a dropped or pasted File, or '' for one with no file behind it.
+    pathFor: (file) => { try { return webUtils.getPathForFile(file) || ''; } catch (_) { return ''; } },
+    addPath: (p) => ipcRenderer.invoke('attach:path', p),
+    addBytes: (name, mime, bytes) => ipcRenderer.invoke('attach:bytes', name, mime, bytes),
+    pick: () => ipcRenderer.invoke('attach:pick'),
+    open: (file) => ipcRenderer.invoke('attach:open', file),
+    openLink: (url) => ipcRenderer.invoke('link:open', url),
   },
   onTasksChanged: on('tasks:changed'),
   onPrefsOpen: on('prefs:open'),

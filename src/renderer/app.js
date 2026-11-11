@@ -898,6 +898,16 @@ window.addEventListener('keydown', (e) => {
   }
 });
 
+// ─── Files dropped outside a note ────────────────────────────────────────────
+// Only a note takes a dropped file (notes.js); anywhere else the drop is
+// refused, instead of the window opening the file.
+document.addEventListener('dragover', (e) => {
+  if (e.defaultPrevented) return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'none';
+});
+document.addEventListener('drop', (e) => e.preventDefault());
+
 // ─── Boot ────────────────────────────────────────────────────────────────────
 onChange((opts) => render(opts));
 // Added or changed outside the window (quick add, Claude): reload the board.

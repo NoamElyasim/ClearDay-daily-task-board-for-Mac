@@ -26,6 +26,8 @@ writeSeed(TMP);
 // After the env var is set: these resolve the user-data path when imported.
 await import('../../src/main/paths.mjs');
 const settings = await import('../../src/main/settings.mjs');
+const attachments = await import('../../src/main/attachments.mjs');
+attachments.registerScheme();
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -40,6 +42,7 @@ ipcMain.handle('settings:set', (_e, p) => {
 });
 ipcMain.handle('menu:sort', () => {});
 ipcMain.handle('app:info', () => ({ version: app.getVersion(), dataFile: '' }));
+for (const ch of ['attach:open', 'link:open', 'attach:pick']) ipcMain.handle(ch, () => null);
 
 // Quick add and the Claude connection aren't exercised here; Preferences
 // asks for their status.
@@ -155,6 +158,16 @@ const SHOTS = {
       await window.clearday.tasks.update(id, { notes: 'x', notesHtml: html });
       cleardayDebug.state.tasks.set(id, (await window.clearday.tasks.list()).find((t) => t.id === id)); cleardayDebug.toggleNotes(id); document.activeElement.blur(); 1 })()`);
   } },
+  // A note with an image (the app icon), a file chip and a link.
+  'notes-attach-light': { theme: 'light', width: 780, height: 640, setup: async (js) => {
+    const img = attachments.addPath(path.join(REPO, 'build', 'icon.png'));
+    const html = `<div>Moodboard from the client call:</div><img src="clearday-file://att/${img.file}" alt="icon.png">`
+      + '<div><span class="att" contenteditable="false" data-att="00000000-0000-4000-8000-0000000000aa.pdf" data-name="Booth brief v3.pdf">Booth brief v3.pdf</span>&nbsp;and the '
+      + '<a href="https://example.com/specs">print specs</a></div>';
+    await js(`(async () => { const id = ${firstId}; await window.clearday.tasks.update(id, { notes: 'x', notesHtml: ${JSON.stringify(html)}, notesHeight: 330 });
+      cleardayDebug.state.tasks.set(id, (await window.clearday.tasks.list()).find((t) => t.id === id)); cleardayDebug.toggleNotes(id); document.activeElement.blur();
+      await new Promise((r) => setTimeout(r, 400)); document.querySelector('.notes-editor').scrollTop = 1e4; 1 })()`);
+  } },
   'folded-light': { theme: 'light', width: 780, height: 560, prefs: { collapsed: ['today:in_progress'] } },
   'all-folded-dark': { theme: 'dark', width: 420, height: 600, setup: clickFirst('#fold-all-btn') },
   'selecting-light': { theme: 'light', width: 340, height: 600, setup: async (js) => {
@@ -188,6 +201,7 @@ app.on("window-all-closed", () => {});
 app.whenReady().then(run).catch((e) => { console.error(e); app.exit(1); });
 
 async function run() {
+  attachments.handleScheme();
   fs.mkdirSync(OUT, { recursive: true });
   // `npm run shots -- expanded-dark ongoing-dark` renders just those.
   const only = process.argv.filter((a) => a in SHOTS);

@@ -147,9 +147,73 @@ export function createTask({ text = '', bold = [], status = 'todo', priority = n
   };
 }
 
+// ─── Notes: attachments and plain text ───────────────────────────────────────
+// Files attached to a note are copied into the app's attachments folder as
+// <uuid>.<ext> and referenced from the note's cleaned HTML, which stays the
+// one record of them (a future sync carries the HTML and the files):
+//   an image   <img src="clearday-file://att/<file>" alt="<name>">
+//   a document <span class="att" data-att="<file>" data-name="<name>" …>name</span>
+export const ATT_FILE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.[a-z0-9]{1,8}$/;
+export const ATT_URL = 'clearday-file://att/';
+const ATT_REF = /(?:clearday-file:\/\/att\/|data-att=")([0-9a-f-]{36}\.[a-z0-9]{1,8})/g;
+const ATT_EL = /<img [^>]*src="clearday-file:\/\/att\/[^"]+"[^>]*>|<span class="att"[^>]*>[^<]*<\/span>/g;
+
+// The attachment files a note's HTML refers to.
+export function attachmentFiles(html) {
+  return new Set([...String(html || '').matchAll(ATT_REF)].map((m) => m[1]));
+}
+
+const unescapeAttr = (s) => s.replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+
+// How an attachment reads in the plain notes: "[image: name]", "[file: name]".
+function attachmentLines(html) {
+  return [...String(html || '').matchAll(ATT_EL)].map(([el]) => {
+    const alt = el.match(/ alt="([^"]*)"/), name = el.match(/ data-name="([^"]*)"/);
+    return el.startsWith('<img') ? `[image: ${unescapeAttr(alt?.[1] || 'image')}]` : `[file: ${unescapeAttr(name?.[1] || 'file')}]`;
+  });
+}
+
+const escapeHtml = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+const BULLET = /^\s*(?:[-*•])\s+(.*)$/;
+
+// Plain notes (older notes, or notes Claude wrote) as editor markup: lines
+// starting with "- ", "* " or "• " become bullets.
+export function plainToHtml(text) {
+  if (!text) return '';
+  let html = '';
+  let inList = false;
+  for (const line of String(text).split('\n')) {
+    const m = line.match(BULLET);
+    if (m) {
+      if (!inList) { html += '<ul>'; inList = true; }
+      html += `<li>${escapeHtml(m[1]) || '<br>'}</li>`;
+      continue;
+    }
+    if (inList) { html += '</ul>'; inList = false; }
+    html += `<div>${escapeHtml(line) || '<br>'}</div>`;
+  }
+  if (inList) html += '</ul>';
+  return html;
+}
+
+// Plain notes written over a note that holds attachments (Claude rewriting
+// it): the attachments stay, after the new text. Lines that only name one of
+// them ("[image: x]", as Claude read it) are not repeated.
+function keepAttachments(notes, oldHtml) {
+  const els = [...String(oldHtml || '').matchAll(ATT_EL)].map((m) => m[0]);
+  if (!els.length) return null;
+  const lines = new Set(attachmentLines(oldHtml));
+  const text = String(notes).split('\n').filter((l) => !lines.has(l.trim())).join('\n').replace(/\n+$/, '');
+  return {
+    notes: [text, ...attachmentLines(oldHtml)].filter(Boolean).join('\n'),
+    notesHtml: plainToHtml(text) + els.map((el) => `<div>${el}</div>`).join(''),
+  };
+}
+
 // notes is the plain text (search, Claude); notesHtml, when set, is the same
-// note with its formatting (bold, underline, strikethrough, sizes, bullets),
-// already cleaned by the editor. Setting notes alone clears the formatting.
+// note with its formatting (bold, underline, strikethrough, sizes, bullets,
+// links, attachments), already cleaned by the editor. Setting notes alone
+// clears the formatting, but keeps any attachments.
 const EDITABLE = ['text', 'bold', 'status', 'priority', 'list', 'notes', 'notesHtml', 'notesHeight', 'notesDir', 'order', 'deletedAt'];
 
 // Applies a partial update. Unknown keys are dropped and every field is
@@ -164,7 +228,11 @@ export function applyPatch(task, patch, now = Date.now()) {
   if (!LISTS.includes(next.list)) next.list = LISTS.includes(task.list) ? task.list : 'today';
   if (!NOTES_DIRS.includes(next.notesDir)) next.notesDir = NOTES_DIRS.includes(task.notesDir) ? task.notesDir : 'auto';
   next.notes = String(next.notes ?? '');
-  if ('notes' in patch && !('notesHtml' in patch)) next.notesHtml = '';
+  if ('notes' in patch && !('notesHtml' in patch)) {
+    const kept = keepAttachments(next.notes, task.notesHtml);
+    next.notesHtml = kept ? kept.notesHtml : '';
+    if (kept) next.notes = kept.notes;
+  }
   next.notesHtml = String(next.notesHtml ?? '');
   next.notesHeight = clampNotesHeight(next.notesHeight);
   if (!Number.isFinite(next.order)) next.order = task.order;

@@ -18,6 +18,8 @@ writeSeed(TMP);
 await import('../../src/main/paths.mjs');
 const store = await import('../../src/main/store.mjs');
 const settings = await import('../../src/main/settings.mjs');
+const attachments = await import('../../src/main/attachments.mjs');
+attachments.registerScheme();
 
 let win;
 ipcMain.handle('tasks:list', () => store.list());
@@ -28,6 +30,14 @@ ipcMain.handle('tasks:restore', (_e, id) => store.restore(id));
 ipcMain.handle('settings:get', () => settings.all());
 ipcMain.handle('settings:set', (_e, p) => { settings.set(p || {}); win.webContents.send('settings', settings.all()); return settings.all(); });
 ipcMain.handle('menu:sort', () => {});
+// Attachments are stored for real (in the scratch folder); opening one, or
+// a link, is only recorded.
+const opened = [];
+ipcMain.handle('attach:path', (_e, f) => attachments.addPath(f));
+ipcMain.handle('attach:bytes', (_e, n, m, b) => attachments.addBytes(n, m, b));
+ipcMain.handle('attach:pick', () => []);
+ipcMain.handle('attach:open', (_e, f) => { opened.push(['file', f]); return true; });
+ipcMain.handle('link:open', (_e, u) => { opened.push(['link', u]); return true; });
 ipcMain.handle('app:info', () => ({ version: app.getVersion(), dataFile: '' }));
 
 // Quick add and the Claude connection aren't exercised here; Preferences
@@ -55,6 +65,7 @@ app.on('window-all-closed', () => {});
 app.whenReady().then(run).catch((e) => { console.error(e); app.exit(1); });
 
 async function run() {
+  attachments.handleScheme();
   win = new BrowserWindow({
     // Hidden: a visible window loses focus to whatever else is going on on the
     // desktop (Stage Manager shelves it), and keystrokes then go nowhere.
@@ -320,6 +331,91 @@ async function run() {
   await click('#add');   // the form's padding: empty space
   await sleep(200);
   check('a click outside the note closes it', await js(`document.querySelectorAll('.notes').length`) === 0);
+
+  // ── Attachments and links in notes ──
+  {
+    const fl = byText('Book flights for ADIPEC');
+    await click(`${taskSel(fl.id)} [data-action="notes"]`);
+    const ed = `${taskSel(fl.id)} .notes-editor`;
+    const caretEnd = () => js(`(() => { const ed = document.querySelector('${ed}'); ed.focus();
+      const r = document.createRange(); r.selectNodeContents(ed); r.collapse(false); const s = getSelection(); s.removeAllRanges(); s.addRange(r); return 1; })()`);
+    check('Attach and Link sit beside the note\'s label', await js(`(() => {
+      const head = document.querySelector('${taskSel(fl.id)} .notes-head');
+      return !!head.querySelector('.nt-attach') && !!head.querySelector('.nt-link'); })()`));
+    // A screenshot pasted from the clipboard: a PNG with no file behind it.
+    await caretEnd();
+    await js(`(() => {
+      const png = Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAFklEQVR42mP8z8DwnwEIGBkZGBgYAAAeBAIBnXIrMQAAAABJRU5ErkJggg=='), (c) => c.charCodeAt(0));
+      const dt = new DataTransfer(); dt.items.add(new File([png], 'image.png', { type: 'image/png' }));
+      document.querySelector('${ed}').dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true }));
+      return 1; })()`);
+    await sleep(900);
+    const imgFile = [...(task(fl.id).notesHtml.matchAll(/clearday-file:\/\/att\/([0-9a-f-]+\.png)/g))].map((m) => m[1])[0];
+    check('a pasted image is copied in and shows inline in the note', !!imgFile &&
+      fs.existsSync(path.join(TMP, 'attachments', imgFile)) && task(fl.id).notes.includes('[image: Pasted image.png]') &&
+      await js(`(() => { const i = document.querySelector('${ed} img'); return !!i && i.complete && i.naturalWidth === 2; })()`),
+      task(fl.id).notesHtml);
+    // A document dropped onto the note becomes a file chip.
+    await js(`(() => {
+      const dt = new DataTransfer(); dt.items.add(new File(['%PDF-1.4 brief'], 'brief.pdf', { type: 'application/pdf' }));
+      const n = document.querySelector('${taskSel(fl.id)} .notes'), r = n.getBoundingClientRect();
+      n.dispatchEvent(new DragEvent('drop', { dataTransfer: dt, bubbles: true, cancelable: true, clientX: r.left + 30, clientY: r.bottom - 30 }));
+      return 1; })()`);
+    await sleep(900);
+    check('a dropped document becomes a file chip, its name in the plain notes', task(fl.id).notes.includes('[file: brief.pdf]') &&
+      /<span class="att" contenteditable="false" data-att="[0-9a-f-]+\.pdf" data-name="brief\.pdf">brief\.pdf<\/span>/.test(task(fl.id).notesHtml) &&
+      await js(`!!document.querySelector('${ed} .att[data-name="brief.pdf"]')`), task(fl.id).notesHtml);
+    await click(`${ed} .att`);
+    await click(`${ed} img`);
+    check('clicking the chip or the image opens its copy', opened.some(([k, f]) => k === 'file' && /\.pdf$/.test(f)) &&
+      opened.some(([k, f]) => k === 'file' && f === imgFile), JSON.stringify(opened));
+    // A web address typed into the note becomes a link at the space.
+    await caretEnd();
+    await type(' see https://example.com/brief');
+    await key(' ');
+    await type('next');
+    await sleep(700);
+    check('a typed web address becomes a link when followed by a space', /<a href="https:\/\/example\.com\/brief">https:\/\/example\.com\/brief<\/a>/.test(task(fl.id).notesHtml) &&
+      /brief next/.test(task(fl.id).notes) && !/<a [^>]*>[^<]*next/.test(task(fl.id).notesHtml), task(fl.id).notesHtml);
+    await click(`${ed} a`);
+    check('clicking a link opens it in the browser', opened.some(([k, u]) => k === 'link' && u === 'https://example.com/brief'));
+    // ⌘K links the selected word.
+    await caretEnd();
+    await key('Enter');
+    await type('the docs');
+    await js(`(() => { const ed = document.querySelector('${ed}'); const w = document.createTreeWalker(ed, NodeFilter.SHOW_TEXT);
+      let t, n; while ((n = w.nextNode())) if (n.textContent.includes('the docs')) t = n;
+      const i = t.textContent.indexOf('docs'); const r = document.createRange(); r.setStart(t, i); r.setEnd(t, i + 4);
+      const s = getSelection(); s.removeAllRanges(); s.addRange(r); return 1; })()`);
+    await key('k', ['meta']);
+    await sleep(700);   // the note saves meanwhile; the selection must survive it
+    check('⌘K opens a link field, focused', await js(`document.activeElement?.classList.contains('pop-field')`));
+    await type('clearday.app/help');
+    await key('Enter');
+    await sleep(700);
+    check('Enter links the selected words', /<a href="https:\/\/clearday\.app\/help">docs<\/a>/.test(task(fl.id).notesHtml) &&
+      task(fl.id).notes.includes('the docs (https://clearday.app/help)'), task(fl.id).notesHtml);
+    await click('#add');
+    await sleep(200);
+    // Claude rewriting the notes as plain text keeps the attachments.
+    store.update(fl.id, { notes: 'Dates confirmed: 4–7 Nov' });
+    check('plain notes from Claude keep the note\'s attachments', task(fl.id).notesHtml.includes(imgFile) &&
+      task(fl.id).notesHtml.includes('brief.pdf') && task(fl.id).notes.startsWith('Dates confirmed'));
+    // The sweep clears files no note refers to, once they are a day old.
+    const orphan = path.join(TMP, 'attachments', '00000000-0000-4000-8000-000000000000.txt');
+    fs.writeFileSync(orphan, 'old');
+    fs.utimesSync(orphan, new Date(Date.now() - 2 * 86400000), new Date(Date.now() - 2 * 86400000));
+    const fresh = path.join(TMP, 'attachments', '00000000-0000-4000-8000-000000000001.txt');
+    fs.writeFileSync(fresh, 'new');
+    attachments.sweep(store.everything());
+    check('the sweep deletes day-old files no note uses, and keeps the rest', !fs.existsSync(orphan) && fs.existsSync(fresh) &&
+      fs.existsSync(path.join(TMP, 'attachments', imgFile)));
+    // Only the board's own files load: a note can't pull in anything else.
+    check('a note\'s cleaner drops outside images and javascript: links', await js(`(async () => {
+      const { cleanHtml } = await import('./notes.js');
+      const out = cleanHtml('<img src="https://evil.example/x.png"><a href="javascript:alert(1)">x</a><img src="clearday-file://att/../../etc/passwd">');
+      return out === 'x'; })()`));
+  }
 
   // ── Delete and undo ──
   await click(`${taskSel(id)} .text`);

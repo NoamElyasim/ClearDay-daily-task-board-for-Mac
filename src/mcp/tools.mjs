@@ -44,7 +44,7 @@ export const TOOLS = [
         status: { type: 'string', enum: STATUSES },
         priority: { type: 'string', enum: ['none', 'medium', 'high'] },
         list: { type: 'string', enum: LISTS },
-        notes: { type: 'string', description: 'Replaces the notes' },
+        notes: { type: 'string', description: 'Replaces the notes. Images and files attached to them (shown as [image: name] / [file: name]) are kept.' },
       },
       required: ['id'],
     },

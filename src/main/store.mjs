@@ -57,6 +57,11 @@ export function list() {
   return load().tasks.filter((t) => !t.deletedAt);
 }
 
+// Every task, tombstones included (the attachment sweep needs both).
+export function everything() {
+  return load().tasks;
+}
+
 export function create(fields) {
   const d = load();
   const task = createTask({ ...fields, order: nextOrder(d.tasks) });

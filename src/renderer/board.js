@@ -100,8 +100,10 @@ function createNotes(task) {
   const n = document.createElement('div');
   n.className = 'notes';
   // Closed with the ≡ button that opened it; there is no close button here.
-  const label = Object.assign(document.createElement('span'), { className: 'notes-label', textContent: 'Notes' });
-  n.append(label);
+  // The label, with Attach and Link beside it (added by the editor).
+  const head = Object.assign(document.createElement('div'), { className: 'notes-head' });
+  head.append(Object.assign(document.createElement('span'), { className: 'notes-label', textContent: 'Notes' }));
+  n.append(head);
   n.ed = buildEditor(n, {
     html: notesHtml(task),
     placeholder: 'Write notes for this task…',

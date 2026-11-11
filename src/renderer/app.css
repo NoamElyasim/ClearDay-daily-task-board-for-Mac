@@ -536,10 +536,15 @@ svg { display: block; }
   from { opacity: 0; clip-path: inset(0 0 100% 0 round 8px); }
   to { opacity: 1; clip-path: inset(0 0 0 0 round 8px); }
 }
-.notes-label {
-  position: absolute; top: 10px; left: 16px;
-  font-size: 11px; font-weight: 500; color: var(--text-dim);
+.notes-head {
+  position: absolute; top: 5px; left: 16px; z-index: 2;
+  display: flex; align-items: center; gap: 2px;
 }
+.notes-label { margin-right: 4px; font-size: 11px; font-weight: 500; color: var(--text-dim); }
+.notes-head .nt-btn { width: 22px; height: 22px; border-radius: 7px; }
+.notes-head .nt-btn svg { width: 13px; height: 13px; }
+/* A file dragged over the note: it outlines to take the drop. */
+.notes.drop-over { box-shadow: inset 0 0 0 2px var(--accent); }
 .notes-editor {
   height: 100%; overflow-y: auto; scrollbar-width: thin;
   padding-right: 40px; outline: none;
@@ -553,6 +558,26 @@ svg { display: block; }
 .notes-editor .fs-s { font-size: 11px; }
 .notes-editor .fs-l { font-size: 15px; }
 .notes-editor .fs-xl { font-size: 18px; font-weight: 600; }
+/* Links, images and file chips. A click opens them (notes.js). */
+.notes-editor a { color: inherit; text-decoration: underline; text-decoration-color: var(--text-faint); text-underline-offset: 2px; cursor: pointer; }
+.notes-editor a:hover { text-decoration-color: currentColor; }
+.notes-editor img {
+  display: block; max-width: 100%; max-height: 180px; margin: 6px 0;
+  border-radius: 8px; cursor: pointer;
+}
+.notes-editor .att {
+  display: inline-flex; align-items: center; gap: 5px; max-width: 100%;
+  margin: 1px 0; padding: 1px 9px 1px 7px; border-radius: var(--radius-control);
+  background: var(--surface); color: var(--text);
+  font-size: 11.5px; line-height: 1.6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  vertical-align: middle; cursor: pointer; user-select: none;
+  transition: background-color var(--dur-fast) ease, color var(--dur-fast) ease;
+}
+.notes-editor .att::before {   /* a page with a folded corner */
+  content: ''; flex: none; width: 10px; height: 12px; background: currentColor; opacity: 0.6;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 12'%3E%3Cpath d='M1 .5h5l3.5 3.5v7a.5.5 0 0 1-.5.5H1a.5.5 0 0 1-.5-.5V1A.5.5 0 0 1 1 .5Z' fill='none' stroke='black' stroke-width='1.1'/%3E%3Cpath d='M6 .5V4h3.5' fill='none' stroke='black' stroke-width='1.1'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+.notes-editor .att:hover { background: var(--accent); color: var(--accent-text); }
 
 /* The formatting menu, down the note's right side. Folded, only its toggle
    shows: a dash while open, a chevron pointing down while folded. */
@@ -686,6 +711,14 @@ svg { display: block; }
 .pop-item.danger svg { color: var(--danger); }
 .pop-label { padding: 6px 10px 3px; font-size: 11px; font-weight: 500; color: var(--text-dim); }
 .pop-sep { height: 1px; background: var(--hairline); margin: 4px 6px; }
+.pop-field {
+  display: block; width: 240px; height: 30px; margin: 2px 0 4px; padding: 0 10px;
+  border: 0; border-radius: 10px; outline: none;
+  background: var(--surface); color: var(--text); font: inherit; font-size: 12.5px;
+  user-select: text;
+}
+.pop-field:focus { box-shadow: inset 0 0 0 1.5px var(--accent); }
+.pop-field::placeholder { color: var(--text-dim); }
 .swatch { width: 12px; height: 12px; border-radius: 50%; flex: none; background: var(--sw); }
 .swatch.mark-sw { width: 9px; height: 13px; margin: 0 1.5px; border-radius: 0 0 4.5px 4.5px; }
 .swatch.none { background: transparent; border: 1.5px dashed var(--text-faint); }

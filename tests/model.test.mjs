@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   normalizeRanges, toggleBold, isRangeBold, segments, fromSegments, trimRich,
   createTask, applyPatch, validateTask, migrate, arrangeBoard, arrangeOngoing, arrangeDone, orderBetween, nextOrder,
+  attachmentFiles, plainToHtml, ATT_FILE,
   TOMBSTONE_TTL_MS,
 } from '../src/shared/model.mjs';
 
@@ -211,4 +212,28 @@ test('notes formatting rides along with the plain text, and plain notes alone cl
   assert.equal(applyPatch(rich, { status: 'done' }).notesHtml, '<b>Call</b> Dana');
   assert.equal(applyPatch(rich, { notes: 'Email Dana' }).notesHtml, '');
   assert.equal(validateTask({ id: 'old', text: 'v0.5' }).notesHtml, '');
+});
+
+test('attachments: found in a note, and kept when plain notes replace it', () => {
+  const img = '<img src="clearday-file://att/0b5c1e2a-1111-4222-8333-944445555666.png" alt="logo &amp; mark.png">';
+  const doc = '<span class="att" data-att="0b5c1e2a-1111-4222-8333-944445555777.pdf" data-name="brief.pdf" contenteditable="false">brief.pdf</span>';
+  const t = applyPatch(createTask({ text: 'x' }), { notes: 'old\n[image: logo & mark.png]', notesHtml: `<div>old</div><div>${img}</div><div>${doc}</div>` });
+  assert.deepEqual([...attachmentFiles(t.notesHtml)].sort(),
+    ['0b5c1e2a-1111-4222-8333-944445555666.png', '0b5c1e2a-1111-4222-8333-944445555777.pdf']);
+  // Claude rewrites the notes as plain text, repeating the image line it read.
+  const n = applyPatch(t, { notes: 'new text\n[image: logo & mark.png]' });
+  assert.equal(n.notes, 'new text\n[image: logo & mark.png]\n[file: brief.pdf]');
+  assert.ok(n.notesHtml.startsWith('<div>new text</div>'));
+  assert.ok(n.notesHtml.includes(img) && n.notesHtml.includes(doc));
+  assert.equal(n.notesHtml.split('clearday-file://').length, 2);   // the image once, not twice
+  // A note without attachments still loses its formatting to plain notes.
+  const plain = applyPatch(applyPatch(createTask(), { notes: 'a', notesHtml: '<b>a</b>' }), { notes: 'b' });
+  assert.equal(plain.notesHtml, '');
+  assert.ok(ATT_FILE.test('0b5c1e2a-1111-4222-8333-944445555666.png'));
+  assert.ok(!ATT_FILE.test('../etc/passwd'));
+});
+
+test('plainToHtml: bullets and escaping', () => {
+  assert.equal(plainToHtml('a <b>\n- one\n- two\nend'), '<div>a &lt;b&gt;</div><ul><li>one</li><li>two</li></ul><div>end</div>');
+  assert.equal(plainToHtml(''), '');
 });
