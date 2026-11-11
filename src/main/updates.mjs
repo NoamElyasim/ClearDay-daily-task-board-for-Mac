@@ -64,11 +64,15 @@ export function install(tag, { onProgress, onFailed, beforeQuit }) {
   if (!app.isPackaged || !dir) { onFailed('Updates install into the app itself, not a run from source.'); return false; }
   if (!/^v?\d+\.\d+\.\d+[\w.-]*$/.test(String(tag))) { onFailed('That release has no version to install.'); return false; }
   // The script as it was tagged with the release, not whatever main holds.
-  const script = `https://raw.githubusercontent.com/${REPO}/${tag}/install.sh`;
+  // CLEARDAY_INSTALL_SCRIPT runs a local copy instead, to try a changed
+  // installer from a dev build before it is released.
+  const local = process.env.CLEARDAY_INSTALL_SCRIPT;
+  const command = local ? `bash ${JSON.stringify(local)}`
+    : `curl -fsSL https://raw.githubusercontent.com/${REPO}/${tag}/install.sh | bash`;
   const logFile = LOG();
   const fd = fs.openSync(logFile, 'w');
   beforeQuit();
-  const child = spawn('/bin/bash', ['-c', `curl -fsSL ${script} | bash`], {
+  const child = spawn('/bin/bash', ['-c', command], {
     detached: true,   // outlives this app, which the installer quits
     stdio: ['ignore', fd, fd],
     env: { ...process.env, CLEARDAY_INSTALL_DIR: dir },

@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.10.1 — 2026-11-12
+
+- **Updates finish.** Updating from inside ClearDay installed the new
+  version but left the old one open, its notice stuck on "Installing…".
+  The installer now quits the running ClearDay first, and the new version
+  opens by itself. If you are stuck on that notice, quit ClearDay (⌘Q) and
+  open it again: you are already on the new version.
+
 ## v0.10.0 — 2026-11-12
 
 - **Work and Personal.** Two separate boards. A Work | Personal switch

@@ -51,18 +51,33 @@ cleanup() {
 
 # Quits ClearDay before its app is replaced. Opening the new copy while the
 # old one is still quitting fails (LaunchServices -609), hence the wait.
+#
+# The running app is found with ps, not pgrep: when ClearDay's own updater
+# runs this script, the script is a child of the app it has to quit, and
+# macOS's pgrep leaves its own ancestors out of what it finds. The update
+# then went in underneath an app that was never told to quit.
 quit_clearday() {
-  local dest=$1 pids="" pid alive
-  for pid in $(pgrep -f "$APP_PROCESS" || true); do
+  local dest=$1 pids="" pid cmd alive
+  while read -r pid cmd; do
+    # The app itself: its binary alone, or with flags. Claude's MCP servers
+    # run the same binary with server.mjs after it, and are left alone.
+    case "$cmd" in
+      *"/$APP.app/Contents/MacOS/$APP" | *"/$APP.app/Contents/MacOS/$APP --"*) ;;
+      *) continue ;;
+    esac
     # An install-only run touches nothing but the copy it replaces.
-    if [ "${CLEARDAY_NO_OPEN:-}" != 1 ] || [ "$(ps -o command= -p "$pid" 2>/dev/null)" = "$dest/Contents/MacOS/$APP" ]; then
-      pids="$pids $pid"
+    if [ "${CLEARDAY_NO_OPEN:-}" = 1 ]; then
+      case "$cmd" in
+        "$dest/Contents/MacOS/$APP" | "$dest/Contents/MacOS/$APP --"*) ;;
+        *) continue ;;
+      esac
     fi
-  done
+    pids="$pids $pid"
+  done < <(ps -axo pid=,command=)
   if [ -z "$pids" ]; then return 0; fi
   say "Quitting the running ClearDay"
   for pid in $pids; do kill "$pid" 2>/dev/null || true; done
-  for _ in $(seq 20); do
+  for _ in $(seq 40); do
     alive=""
     for pid in $pids; do
       if kill -0 "$pid" 2>/dev/null; then alive=1; fi
@@ -70,6 +85,9 @@ quit_clearday() {
     if [ -z "$alive" ]; then return 0; fi
     sleep 0.25
   done
+  # Still there after ten seconds: it is not going to quit by being asked.
+  for pid in $pids; do kill -9 "$pid" 2>/dev/null || true; done
+  sleep 0.5
 }
 
 main() {

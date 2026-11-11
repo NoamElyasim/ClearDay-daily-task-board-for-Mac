@@ -455,7 +455,13 @@ ipcMain.handle('update:skip', (_e, version) => { setSetting({ skippedVersion: St
 ipcMain.handle('update:install', () => {
   if (!update) return false;
   return updates.install(update.tag, {
-    onProgress: (step) => sendToWin('update:progress', step),
+    onProgress: (step) => {
+      sendToWin('update:progress', step);
+      // The installer quits ClearDay before it puts the new one in place. If
+      // this ClearDay is still here to read "is installed", it was missed:
+      // restart, so the window isn't left waiting on the old version.
+      if (/ is installed in /.test(step)) { app.relaunch(); app.quit(); }
+    },
     onFailed: (message) => sendToWin('update:failed', message),
     beforeQuit: () => store.flush(),
   });
