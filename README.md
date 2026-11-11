@@ -74,7 +74,7 @@ claude mcp add clearday --scope user --env ELECTRON_RUN_AS_NODE=1 -- \
     means a status or a priority. Buttons invert when you point at them.
   - A light/dark switch in the header. Follow System is in Preferences.
 - **Quick add from anywhere.** Press ⌘ twice in any app and a small bar
-  rises above the Dock: type the task, pick Today or Ongoing and a priority,
+  rises above the Dock: type the task, pick To Do or Ongoing and a priority,
   press Enter. The task goes onto the board without ClearDay coming forward.
   Prefer another key, or a combination like ⌃T? Click the keycaps under
   Preferences → Quick task shortcut and press any key twice, or the
@@ -92,8 +92,8 @@ claude mcp add clearday --scope user --env ELECTRON_RUN_AS_NODE=1 -- \
   tabs does, to give the board the full width.
 - **Move the window from anywhere.** Drag any empty space: the header, the
   gaps between rows, the space under them.
-- **Add to Today or Ongoing.** The open Add bar has a Today | Ongoing switch.
-  It starts on Today each time, so an ongoing project is a choice you make.
+- **Add to To Do or Ongoing.** The open Add bar has a To Do | Ongoing switch.
+  It starts on To Do each time, so an ongoing project is a choice you make.
 - **Statuses fill the row.** Click the round button on a row and pick To Do,
   In Progress, Awaiting Approval, On Hold or Done. The whole row takes that
   colour. The edit tools appear when you hover over a row.

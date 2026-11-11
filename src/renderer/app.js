@@ -81,12 +81,12 @@ const searchBox = document.getElementById('search');
 const searchInput = document.getElementById('search-input');
 const resultsEl = document.getElementById('search-results');
 
-// The open bar's Today | Ongoing switch picks the list. It starts on Today
+// The open bar's To Do | Ongoing switch picks the list. It starts on To Do
 // each time the bar opens, and keeps its choice while the bar stays open.
 const addList = document.getElementById('add-list');
 function setAddOngoing(on) {
   addList.setAttribute('aria-checked', String(on));
-  addList.setAttribute('aria-label', on ? 'Add to Today' : 'Add to Ongoing');
+  addList.setAttribute('aria-label', on ? 'Add to To Do' : 'Add to Ongoing');
   addInput.placeholder = on ? 'Add an ongoing task…' : 'Add a task…';
 }
 addList.addEventListener('mousedown', (e) => e.preventDefault());   // the caret stays in the field

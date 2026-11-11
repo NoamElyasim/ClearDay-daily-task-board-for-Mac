@@ -9,9 +9,8 @@
   the latest first. A finished ongoing project carries an Ongoing tag, and
   **Clear done** deletes them all with one Undo. Drag a task onto the Done
   tab to finish it.
-- **Add to Today or Ongoing.** The open Add bar has a Today | Ongoing
-  switch, on Today each time it opens. Quick add's switch reads Today |
-  Ongoing too.
+- **Add to To Do or Ongoing.** The open Add bar has a To Do | Ongoing
+  switch, like quick add's, on To Do each time it opens.
 - **Size the side panel.** Drag the edge between the board and the panel;
   past its narrowest it folds away, and a double-click on the edge brings
   back the default width. The width is remembered.

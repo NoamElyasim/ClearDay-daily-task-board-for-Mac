@@ -503,7 +503,7 @@ async function run() {
       [...document.querySelectorAll('[data-page="ongoing"] .section')].map((s) => s.dataset.status).join() === 'todo,in_progress,awaiting_approval,on_hold'`));
   await click('#add-open');
   await sleep(450);
-  check('the open add bar has a Today | Ongoing switch, on Today', await js(`(() => {
+  check('the open add bar has a To Do | Ongoing switch, on To Do', await js(`(() => {
     const sw = document.getElementById('add-list');
     return sw.getAttribute('aria-checked') === 'false' && getComputedStyle(sw).opacity === '1' &&
       sw.getBoundingClientRect().right <= document.getElementById('add-btn').getBoundingClientRect().left; })()`));
@@ -518,7 +518,7 @@ async function run() {
   await key('Escape');
   await click('#add-open');
   await sleep(450);
-  check('reopened, the bar starts on Today again', await js(`document.getElementById('add-list').getAttribute('aria-checked') === 'false'`));
+  check('reopened, the bar starts on To Do again', await js(`document.getElementById('add-list').getAttribute('aria-checked') === 'false'`));
   await key('Escape');
   await click(`${taskSel(og.id)} .status-btn`);
   await js(`[...document.querySelectorAll('.popover .pop-item')].find((b) => b.textContent.includes('In Progress')).classList.add('e2e')`);
