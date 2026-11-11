@@ -581,6 +581,12 @@ document.getElementById('sort-btn').addEventListener('click', () => api.menus.so
 // ─── Hide ClearDay ───────────────────────────────────────────────────────────
 // The eye hides the window and the Dock icon; ClearDay stays in the menu
 // bar, where a click on its icon brings it back (main.mjs).
+// The shrink button puts the board away and leaves ClearDay's widget, a
+// small add bar, on the desktop (main/widget.mjs).
+const widgetBtn = document.getElementById('widget-btn');
+widgetBtn.innerHTML = ICONS.widget;
+widgetBtn.addEventListener('click', () => api.app.widget());
+
 const hideBtn = document.getElementById('hide-btn');
 hideBtn.innerHTML = ICONS.hide;
 hideBtn.addEventListener('click', () => api.app.hide());

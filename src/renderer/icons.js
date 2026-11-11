@@ -27,6 +27,9 @@ export const ICONS = {
   moon: svgFill('<path d="M13.6 10.1A5.9 5.9 0 0 1 5.9 2.4a5.9 5.9 0 1 0 7.7 7.7Z"/>'),
   close: svg('<path d="m4.5 4.5 7 7M11.5 4.5l-7 7"/>'),
   more: svg('<circle cx="3.5" cy="8" r=".9" fill="currentColor"/><circle cx="8" cy="8" r=".9" fill="currentColor"/><circle cx="12.5" cy="8" r=".9" fill="currentColor"/>'),
+  // Shrink to the widget (arrows in), and back to the full board (arrows out).
+  widget: svg('<path d="M9.3 6.7 13.6 2.4M9.3 3.6v3.1h3.1M6.7 9.3 2.4 13.6M6.7 12.4V9.3H3.6"/>'),
+  expand: svg('<path d="M9.4 6.6 13.4 2.6M10.3 2.6h3.1v3.1M6.6 9.4 2.6 13.4M5.7 13.4H2.6v-3.1"/>'),
   // Hide ClearDay: an eye, struck through.
   hide: svg('<defs><mask id="cd-eye-cut"><rect width="16" height="16" fill="#fff"/><path d="M2.6 2.6l10.8 10.8" stroke="#000" stroke-width="3.6"/></mask></defs><g mask="url(#cd-eye-cut)"><path d="M1.6 8c1.5-2.8 3.7-4.4 6.4-4.4S12.9 5.2 14.4 8c-1.5 2.8-3.7 4.4-6.4 4.4S3.1 10.8 1.6 8Z"/><circle cx="8" cy="8" r="2" fill="currentColor"/></g><path d="M2.6 2.6l10.8 10.8"/>'),
   // The two boards: a briefcase for Work, a house for Personal.

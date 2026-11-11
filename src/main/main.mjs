@@ -18,6 +18,7 @@ import { startBridge } from './bridge.mjs';
 import { relayHover } from './hover.mjs';
 import * as attachments from './attachments.mjs';
 import * as updates from './updates.mjs';
+import { initWidget, showWidget, hideWidget, closeWidget, refreshWidget, applyWidgetLook } from './widget.mjs';
 import { SORTS, SORT_LABELS, SCHEMA_VERSION } from '../shared/model.mjs';
 
 const DIR = import.meta.dirname;
@@ -100,7 +101,8 @@ function createWindow() {
   if (!app.isPackaged) {
     win.webContents.on('console-message', (e) => console.log(`[renderer:${e.level}] ${e.message}`));
   }
-  win.once('ready-to-show', () => win.show());
+  // Left as the widget, ClearDay comes back as the widget.
+  win.once('ready-to-show', () => { if (settings.get('widget')) showWidget(); else win.show(); });
   relayHover(win);
 
   // Hide rather than close: ⌘W, or the window's own close, keeps the board a
@@ -133,6 +135,10 @@ function createWindow() {
 // the Dock icon returns too, unless ClearDay lives in the menu bar only.
 async function showWindow() {
   if (!win || win.isDestroyed()) return;
+  if (settings.get('widget')) {
+    settings.set({ widget: false });
+    hideWidget();
+  }
   if (hidden) {
     hidden = false;
     await applyShowIn();
@@ -236,6 +242,7 @@ async function applyShowIn() {
 // the window reloads it.
 function tasksChangedElsewhere() {
   if (win && !win.isDestroyed()) win.webContents.send('tasks:changed');
+  refreshWidget();
 }
 
 function applySetting(keys) {
@@ -246,6 +253,8 @@ function applySetting(keys) {
   if (keys.includes('alwaysOnTop')) applyAlwaysOnTop();
   if (keys.includes('showIn')) applyShowIn();
   if (keys.includes('textSize')) applyTextSize();
+  if (keys.includes('textSize') || keys.includes('alwaysOnTop')) applyWidgetLook();
+  if (keys.includes('space')) refreshWidget();
   if (win && !win.isDestroyed() && keys.length) win.webContents.send('settings', settings.all());
 }
 
@@ -399,6 +408,26 @@ ipcMain.handle('app:reset-bounds', () => {
 ipcMain.handle('app:quit', () => app.quit());
 ipcMain.handle('app:hide', () => hideApp());
 
+// ─── The widget ──────────────────────────────────────────────────────────────
+// The header's shrink button: the board is put away and the pill shows.
+// showWindow() is the way back, from the pill's own button, the Dock or
+// menu-bar icon, or opening ClearDay again.
+ipcMain.handle('app:widget', () => {
+  if (!win || win.isDestroyed()) return false;
+  settings.set({ widget: true });
+  showWidget();
+  win.hide();
+  return true;
+});
+initWidget({
+  store,
+  settings,
+  setSpace: (space) => setSetting({ space }),
+  expand: () => showWindow(),
+  changed: () => tasksChangedElsewhere(),
+  zoom: () => ZOOM[settings.get('textSize')] || 1,
+});
+
 // ─── Updates ─────────────────────────────────────────────────────────────────
 // The latest release newer than this ClearDay, once a check has found one.
 let update = null;
@@ -508,7 +537,7 @@ if (!app.requestSingleInstanceLock()) {
   app.on('second-instance', showWindow);
   app.on('activate', showWindow);
   let stopBridge = () => {};
-  app.on('before-quit', () => { quitting = true; store.flush(); stopQuick(); stopBridge(); });
+  app.on('before-quit', () => { quitting = true; store.flush(); stopQuick(); stopBridge(); closeWidget(); });
   // The installer (an update, or the one-line install) quits ClearDay with
   // SIGTERM: quit properly, so the board is saved.
   process.on('SIGTERM', () => app.quit());

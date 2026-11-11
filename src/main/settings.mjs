@@ -33,6 +33,8 @@ const DEFAULTS = {
   notesTools: 'open',   // the notes' formatting menu: 'open' | 'min'
   skippedVersion: null, // an update dismissed with Later: not offered again
   hideTipSeen: false,   // the note shown the first time ClearDay is hidden
+  widget: false,        // shrunk to the small add-bar pill (widget.mjs)
+  widgetBounds: null,   // { x, y } where the pill was dragged to
 };
 
 const VALID = {
@@ -53,6 +55,8 @@ const VALID = {
   quickKey: (v) => parseShortcut(v) !== null,
   notesTools: (v) => ['open', 'min'].includes(v),
   hideTipSeen: (v) => typeof v === 'boolean',
+  widget: (v) => typeof v === 'boolean',
+  widgetBounds: (v) => v === null || (v && Number.isFinite(v.x) && Number.isFinite(v.y)),
   skippedVersion: (v) => v === null || (typeof v === 'string' && v.length < 24 && /^\d+\.\d+\.\d+/.test(v)),
   collapsed: (v) => Array.isArray(v) && v.length <= 20 && v.every((k) => typeof k === 'string' && k.length < 40),
 };

@@ -9,6 +9,8 @@
 //   import './tooltip.js'      in each window's script
 //   <html data-tip-side="above">  puts tips above their button (the quick-add
 //                                 bar, with nothing but screen below it)
+//   <form data-tip-box>           tips clear this box, not just the button
+//                                 inside it (a pill: the tip sits off its edge)
 const DELAY_MS = 120;
 const GAP = 7;      // between the button and its tip
 const EDGE = 6;     // kept clear of the window's edge
@@ -49,7 +51,8 @@ function place() {
   const r = target.getBoundingClientRect();
   if (!r.width && !r.height) return false;
   const w = el.offsetWidth, h = el.offsetHeight;
-  const above = r.top - GAP - h, below = r.bottom + GAP;
+  const box = target.closest('[data-tip-box]')?.getBoundingClientRect() || r;
+  const above = box.top - GAP - h, below = box.bottom + GAP;
   const preferAbove = document.documentElement.dataset.tipSide === 'above';
   const fitsBelow = below + h <= innerHeight - EDGE, fitsAbove = above >= EDGE;
   const top = (preferAbove && fitsAbove) || !fitsBelow ? (fitsAbove ? above : Math.max(EDGE, innerHeight - EDGE - h)) : below;

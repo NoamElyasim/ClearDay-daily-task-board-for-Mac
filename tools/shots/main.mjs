@@ -46,7 +46,10 @@ for (const ch of ['attach:open', 'link:open', 'attach:pick']) ipcMain.handle(ch,
 ipcMain.handle('update:known', () => null);
 ipcMain.handle('update:check', () => ({ current: app.getVersion(), latest: app.getVersion(), available: false }));
 for (const ch of ['update:skip', 'update:install']) ipcMain.handle(ch, () => false);
-for (const ch of ['app:hide', 'quick:reset-permission']) ipcMain.handle(ch, () => true);
+for (const ch of ['app:hide', 'app:widget', 'quick:reset-permission']) ipcMain.handle(ch, () => true);
+// The widget pill's channels (widget-preload.cjs).
+ipcMain.handle('widget:state', () => ({ space: settings.get('space'), count: 5 }));
+for (const ch of ['widget:add', 'widget:space', 'widget:expand']) ipcMain.handle(ch, () => ({ space: settings.get('space'), count: 5 }));
 
 // Quick add and the Claude connection aren't exercised here; Preferences
 // asks for their status.
@@ -176,6 +179,10 @@ const SHOTS = {
       cleardayDebug.state.tasks.set(id, (await window.clearday.tasks.list()).find((t) => t.id === id)); cleardayDebug.toggleNotes(id); document.activeElement.blur();
       await new Promise((r) => setTimeout(r, 400)); document.querySelector('.notes-editor').scrollTop = 1e4; 1 })()`);
   } },
+  // The widget: ClearDay as a small pill, a task typed in.
+  'widget-dark': { theme: 'dark', width: 520, height: 120, html: 'widget.html', preload: 'widget-preload.cjs', setup: (js) => js(`(() => {
+    const i = document.getElementById('w-input'); i.value = 'Send the invoice to Dana'; return 1; })()`) },
+  'widget-light': { theme: 'light', width: 520, height: 120, html: 'widget.html', preload: 'widget-preload.cjs', prefs: { space: 'personal' } },
   // A tooltip: the pointer resting on the header's hide button.
   'tooltip-light': { theme: 'light', width: 780, height: 560, setup: async (js, win) => {
     const r = await js(`(() => { const b = document.getElementById('hide-btn').getBoundingClientRect(); return { x: Math.round(b.x + b.width / 2), y: Math.round(b.y + b.height / 2) }; })()`);

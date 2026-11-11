@@ -31,6 +31,7 @@ contextBridge.exposeInMainWorld('clearday', {
     resetBounds: () => ipcRenderer.invoke('app:reset-bounds'),
     quit: () => ipcRenderer.invoke('app:quit'),
     hide: () => ipcRenderer.invoke('app:hide'),
+    widget: () => ipcRenderer.invoke('app:widget'),
   },
   quick: {
     status: () => ipcRenderer.invoke('quick:status'),

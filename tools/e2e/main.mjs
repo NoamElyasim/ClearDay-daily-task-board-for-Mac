@@ -18,6 +18,7 @@ writeSeed(TMP);
 await import('../../src/main/paths.mjs');
 const store = await import('../../src/main/store.mjs');
 const settings = await import('../../src/main/settings.mjs');
+const widget = await import('../../src/main/widget.mjs');
 const attachments = await import('../../src/main/attachments.mjs');
 attachments.registerScheme();
 
@@ -49,6 +50,15 @@ ipcMain.handle('update:install', () => { installs++; return true; });
 // Hiding the app and resetting quick add's permission are only recorded.
 const calls = { hide: 0, resetPermission: 0, openPermission: 0 };
 ipcMain.handle('app:hide', () => { calls.hide++; return true; });
+ipcMain.handle('app:widget', () => { calls.widget = (calls.widget || 0) + 1; return true; });
+// The widget itself is the real one, on the real store and settings.
+widget.initWidget({
+  store, settings,
+  setSpace: (space) => { settings.set({ space }); win.webContents.send('settings', settings.all()); widget.refreshWidget(); },
+  expand: () => { calls.expand = (calls.expand || 0) + 1; },
+  changed: () => win.webContents.send('tasks:changed'),
+  zoom: () => 1,
+});
 ipcMain.handle('quick:reset-permission', () => { calls.resetPermission++; return true; });
 ipcMain.handle('app:info', () => ({ version: app.getVersion(), dataFile: '' }));
 
@@ -1051,6 +1061,74 @@ done
     check('ready, it says so and keeps Ask macOS again at hand', /^Ready/.test(n.text) && n.buttons.join() === 'Ask macOS again', JSON.stringify(n));
     await key('Escape');
     await sleep(300);
+  }
+
+  // ── The widget: ClearDay as a small add bar ──
+  {
+    await click('#widget-btn');
+    check('the shrink button asks the app for the widget', calls.widget === 1);
+    widget.showWidget({ visible: false });
+    const pw = widget.widgetWindow();
+    const pc = pw.webContents;
+    await sleep(900);
+    const pjs = (code) => pc.executeJavaScript(code);
+    const prect = (sel) => pjs(`(() => { const r = document.querySelector(${JSON.stringify(sel)}).getBoundingClientRect();
+      return { x: Math.round(r.x + r.width / 2), y: Math.round(r.y + r.height / 2), top: r.top, bottom: r.bottom }; })()`);
+    const pclick = async (sel) => {
+      const r = await prect(sel);
+      pc.sendInputEvent({ type: 'mouseMove', x: r.x, y: r.y });
+      pc.sendInputEvent({ type: 'mouseDown', x: r.x, y: r.y, button: 'left', clickCount: 1 });
+      pc.sendInputEvent({ type: 'mouseUp', x: r.x, y: r.y, button: 'left', clickCount: 1 });
+      await sleep(300);
+    };
+    const left = (space) => store.list().filter((t) => t.space === space && t.list === 'today' && t.status !== 'done').length;
+    const shownCount = () => pjs(`Number(document.getElementById('w-count').textContent)`);
+    check('the widget is a small pill: a field, Work or Personal, To Do | Ongoing, a count and a way back', await pjs(`(() => {
+      const ids = ['w-add', 'w-input', 'w-space', 'w-list', 'w-count', 'w-expand'];
+      const r = document.getElementById('w').getBoundingClientRect();
+      return ids.every((i) => document.getElementById(i).getBoundingClientRect().width > 0) && r.height <= 56 && r.width <= 500 &&
+        document.getElementById('w-space').dataset.space === 'work' && !!document.querySelector('#w-space svg'); })()`));
+    check('it counts the tasks left today on the board showing', await shownCount() === left('work') && left('work') > 0, `${await shownCount()} vs ${left('work')}`);
+    const before = left('work');
+    pc.focus();
+    await pclick('#w-input');
+    await pc.insertText('Call the bank');
+    pc.sendInputEvent({ type: 'keyDown', keyCode: 'Enter' });
+    pc.sendInputEvent({ type: 'char', keyCode: '\r' });
+    pc.sendInputEvent({ type: 'keyUp', keyCode: 'Enter' });
+    await sleep(500);
+    const bank = byText('Call the bank');
+    check('Enter adds the task to Work\'s To Do, ticks, counts it, and keeps the field ready', bank?.space === 'work' && bank?.list === 'today' && bank?.status === 'todo' &&
+      await shownCount() === before + 1 && await pjs(`document.getElementById('w-add').classList.contains('added') &&
+        document.getElementById('w-input').value === '' && document.activeElement?.id === 'w-input'`));
+    check('and the board has it', await js(`!!document.querySelector('#sections ${taskSel(bank?.id)}')`));
+    await pclick('#w-space');
+    check('the briefcase flips to the house: the board itself switches to Personal', settings.get('space') === 'personal' &&
+      await pjs(`document.getElementById('w-space').dataset.space`) === 'personal' && await shownCount() === left('personal') &&
+      await js(`document.getElementById('space').dataset.space === 'personal'`));
+    await pclick('#w-list');
+    await pclick('#w-input');
+    await pc.insertText('Renew the passport');
+    await pclick('#w-add');
+    await sleep(400);
+    const pass = byText('Renew the passport');
+    check('switched to Ongoing, + adds a personal ongoing project', pass?.space === 'personal' && pass?.list === 'ongoing' &&
+      await pjs(`document.getElementById('w-input').placeholder.includes('ongoing')`));
+    // Its buttons have tips too, above the pill.
+    const ex = await prect('#w-expand');
+    pc.sendInputEvent({ type: 'mouseMove', x: ex.x - 2, y: ex.y });
+    pc.sendInputEvent({ type: 'mouseMove', x: ex.x, y: ex.y });
+    await sleep(350);
+    check('its buttons show tips above the pill, inside its window', await pjs(`(() => {
+      const t = document.getElementById('tooltip'), p = document.getElementById('w').getBoundingClientRect();
+      if (!t || !t.classList.contains('show')) return false;
+      const r = t.getBoundingClientRect();
+      return t.textContent === 'Open the full board' && r.bottom <= p.top && r.top >= 0 && r.right <= innerWidth; })()`));
+    await pclick('#w-expand');
+    check('the expand button asks for the full board', calls.expand === 1);
+    widget.closeWidget();
+    await click('.space-opt[data-space="work"]');
+    await sleep(400);
   }
 
   // ── Updates ──
