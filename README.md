@@ -271,3 +271,5 @@ Window size, theme and the other settings live in a separate
 - "Suspense Whoosh/Transition" by tyops on Freesound, CC BY 4.0
   (https://freesound.org/people/tyops/sounds/275143).
 - Music from the HeyGen music library.
+
+[![M8ven Score](https://m8ven.ai/badge/mcp/noamelyasim-clearday-daily-task-board-for-mac-3a1sb9?v=8efa2815ae3ca4bc7c8cd28588345fc4)](https://m8ven.ai/mcp/noamelyasim-clearday-daily-task-board-for-mac-3a1sb9?s=readme)
