@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.10.0 — 2026-11-12
 
 - **Work and Personal.** Two separate boards. A Work | Personal switch
   beside Add and Search flips the whole window: To Do, the sections,
