@@ -46,6 +46,7 @@ for (const ch of ['attach:open', 'link:open', 'attach:pick']) ipcMain.handle(ch,
 ipcMain.handle('update:known', () => null);
 ipcMain.handle('update:check', () => ({ current: app.getVersion(), latest: app.getVersion(), available: false }));
 for (const ch of ['update:skip', 'update:install']) ipcMain.handle(ch, () => false);
+for (const ch of ['app:hide', 'quick:reset-permission']) ipcMain.handle(ch, () => true);
 
 // Quick add and the Claude connection aren't exercised here; Preferences
 // asks for their status.
@@ -93,7 +94,7 @@ async function shot(name, { theme, width, height, setup, prefs = {}, html = 'ind
   `);
   const js = (code) => win.webContents.executeJavaScript(code);
   await sleep(600);
-  if (setup) await setup(js);
+  if (setup) await setup(js, win);
   await sleep(700);
   await js('new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))');
   const img = await win.webContents.capturePage();
@@ -156,7 +157,7 @@ const SHOTS = {
   // the coloured sections.
   'side-hidden-dark': { theme: 'dark', width: 780, height: 560, prefs: { showSide: false, collapsed: ['today:todo'] } },
   // The quick-add bar as it rises over the Dock, a task typed in.
-  'quick-dark': { theme: 'dark', width: 640, height: 112, html: 'quick.html', preload: 'quick-preload.cjs', setup: (js) => js(`(() => {
+  'quick-dark': { theme: 'dark', width: 640, height: 136, html: 'quick.html', preload: 'quick-preload.cjs', setup: (js) => js(`(() => {
     const i = document.getElementById('q-input'); i.value = 'Book the launch venue'; i.dispatchEvent(new Event('input'));
     document.getElementById('q').classList.add('in'); return 1; })()`) },
   'narrow-light': { theme: 'light', width: 320, height: 520 },
@@ -174,6 +175,23 @@ const SHOTS = {
     await js(`(async () => { const id = ${firstId}; await window.clearday.tasks.update(id, { notes: 'x', notesHtml: ${JSON.stringify(html)}, notesHeight: 330 });
       cleardayDebug.state.tasks.set(id, (await window.clearday.tasks.list()).find((t) => t.id === id)); cleardayDebug.toggleNotes(id); document.activeElement.blur();
       await new Promise((r) => setTimeout(r, 400)); document.querySelector('.notes-editor').scrollTop = 1e4; 1 })()`);
+  } },
+  // A tooltip: the pointer resting on the header's hide button.
+  'tooltip-light': { theme: 'light', width: 780, height: 560, setup: async (js, win) => {
+    const r = await js(`(() => { const b = document.getElementById('hide-btn').getBoundingClientRect(); return { x: Math.round(b.x + b.width / 2), y: Math.round(b.y + b.height / 2) }; })()`);
+    win.webContents.sendInputEvent({ type: 'mouseMove', x: r.x - 3, y: r.y });
+    win.webContents.sendInputEvent({ type: 'mouseMove', x: r.x, y: r.y });
+  } },
+  'tooltip-row-dark': { theme: 'dark', width: 780, height: 560, setup: async (js, win) => {
+    const r = await js(`(() => { const b = document.querySelector('#sections .status-btn').getBoundingClientRect(); return { x: Math.round(b.x + b.width / 2), y: Math.round(b.y + b.height / 2) }; })()`);
+    win.webContents.sendInputEvent({ type: 'mouseMove', x: r.x - 3, y: r.y });
+    win.webContents.sendInputEvent({ type: 'mouseMove', x: r.x, y: r.y });
+  } },
+  // Preferences while quick add waits for macOS's permission.
+  'prefs-permission-light': { theme: 'light', width: 780, height: 560, setup: async (js, win) => {
+    await js('cleardayDebug.openPrefs(); 1');
+    win.webContents.send('quick:status', 'permission');
+    await js(`new Promise((r) => setTimeout(r, 200)).then(() => { document.querySelector('.pref-note').scrollIntoView({ block: 'center' }); return 1; })`);
   } },
   // The update notice, as a newer release shows it.
   'update-light': { theme: 'light', width: 780, height: 560, setup: (js) => js(`import('./updates.js').then((m) => {

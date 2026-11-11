@@ -7,7 +7,8 @@
 // carrying a revoked signature on launch (and XProtect deletes it), so an
 // unsigned build simply does not open. An ad-hoc signature replaces it.
 //
-// MAC_SIGN_IDENTITY picks a real identity instead (a keychain certificate name).
+// MAC_SIGN_IDENTITY picks an identity (a keychain certificate name); without
+// it, the "ClearDay Signing" certificate is used when the keychain has one.
 //
 // Notarization is wired up but off (docs/notarize.md). It turns on only when
 // APPLE_TEAM_ID is set and MAC_SIGN_IDENTITY is a "Developer ID Application"
@@ -24,15 +25,35 @@ const ENTITLEMENTS = path.join(__dirname, '..', 'build', 'entitlements.mac.plist
 exports.default = async function afterPack(context) {
   if (context.electronPlatformName !== 'darwin') return;
   const appPath = path.join(context.appOutDir, `${context.packager.appInfo.productFilename}.app`);
-  const identity = process.env.MAC_SIGN_IDENTITY || '-';
+  const identity = process.env.MAC_SIGN_IDENTITY || defaultIdentity();
   if (process.env.APPLE_TEAM_ID && identity.includes('Developer ID Application')) {
     signForNotarization(appPath, identity);
     notarize(appPath);
     return;
   }
+  // The native helpers first: --deep does not reach binaries in
+  // Contents/Resources, and the app's signature seals them as they are.
+  for (const helper of ['cmdtap', 'pointer']) {
+    const bin = path.join(appPath, 'Contents', 'Resources', helper);
+    if (fs.existsSync(bin)) execFileSync('codesign', ['--force', '-s', identity, '-i', `com.noam.clearday.${helper}`, bin], { stdio: 'inherit' });
+  }
   execFileSync('codesign', ['--force', '--deep', '-s', identity, appPath], { stdio: 'inherit' });
   execFileSync('codesign', ['--verify', '--deep', '--strict', appPath], { stdio: 'inherit' });
 };
+
+// "ClearDay Signing", a self-made certificate in the keychain, when there is
+// one. Signed with it, every build is the same app to macOS, which keeps the
+// permissions it was given (Input Monitoring, for quick add) across updates.
+// An ad-hoc signature ties them to one exact build, so each update loses them.
+const LOCAL_IDENTITY = 'ClearDay Signing';
+function defaultIdentity() {
+  try {
+    const found = execFileSync('security', ['find-identity', '-p', 'codesigning'], { encoding: 'utf8' });
+    if (found.includes(`"${LOCAL_IDENTITY}"`)) return LOCAL_IDENTITY;
+  } catch (_) {}
+  console.warn(`  • no "${LOCAL_IDENTITY}" certificate in the keychain: signing ad-hoc. Quick add will lose its permission on every update.`);
+  return '-';
+}
 
 function run(cmd, args) {
   execFileSync(cmd, args, { stdio: 'inherit' });

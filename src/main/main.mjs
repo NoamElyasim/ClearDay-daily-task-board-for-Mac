@@ -6,13 +6,14 @@ import {
   screen, shell, ipcMain, clipboard,
 } from 'electron';
 import os from 'node:os';
+import { execFile } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import './paths.mjs';
 import * as settings from './settings.mjs';
 import * as store from './store.mjs';
 import { buildTemplate } from './context-menu.mjs';
-import { initQuick, setQuickEnabled, setQuickShortcut, pauseQuick, stopQuick, showQuick, quickAdd, quickHidden, quickStatus } from './quick.mjs';
+import { initQuick, setQuickEnabled, setQuickShortcut, pauseQuick, stopQuick, restartQuick, showQuick, quickAdd, quickHidden, quickStatus } from './quick.mjs';
 import { startBridge } from './bridge.mjs';
 import { relayHover } from './hover.mjs';
 import * as attachments from './attachments.mjs';
@@ -128,10 +129,48 @@ function createWindow() {
   win.webContents.on('did-finish-load', () => offerUpdate());
 }
 
-function showWindow() {
+// Brings the board forward. Hidden with the eye button, it comes back whole:
+// the Dock icon returns too, unless ClearDay lives in the menu bar only.
+async function showWindow() {
   if (!win || win.isDestroyed()) return;
+  if (hidden) {
+    hidden = false;
+    await applyShowIn();
+  }
   win.show();
   win.focus();
+}
+
+// ─── Hide: out of sight, still running ───────────────────────────────────────
+// The header's eye button hides the window and the Dock icon, leaving only
+// ClearDay's icon in the menu bar; a click on it brings everything back, and
+// so does opening ClearDay again (Spotlight, Applications). Quick add keeps
+// working meanwhile. Hidden is not remembered: a launch always shows the board.
+let hidden = false;
+
+async function hideApp() {
+  if (!win || win.isDestroyed()) return false;
+  // The first time, say how to get it back before it goes.
+  if (!settings.get('hideTipSeen')) {
+    const { response, checkboxChecked } = await dialog.showMessageBox(win, {
+      type: 'info',
+      buttons: ['Hide', 'Cancel'],
+      defaultId: 0,
+      cancelId: 1,
+      message: 'Hide ClearDay?',
+      detail: 'ClearDay keeps running, out of sight. To bring it back, click its icon in the menu bar, at the top right of the screen.\n\n'
+        + 'Can\'t see the icon there? Open ClearDay again from Spotlight (⌘Space, then type ClearDay) or from Applications.',
+      checkboxLabel: 'Don\'t show this again',
+      checkboxChecked: true,
+    });
+    if (response !== 0) return false;
+    if (checkboxChecked) settings.set({ hideTipSeen: true });
+  }
+  hidden = true;
+  if (!tray) createTray();
+  win.hide();
+  app.dock?.hide();
+  return true;
 }
 
 // ─── Right-click menu ────────────────────────────────────────────────────────
@@ -183,6 +222,7 @@ function applyAlwaysOnTop() {
 // mode is the reverse. One of the two is always there to bring the window back.
 async function applyShowIn() {
   if (process.platform !== 'darwin') return;
+  if (hidden) return;   // nothing changes until ClearDay is brought back
   if (settings.get('showIn') === 'menubar') {
     if (!tray) createTray();
     app.dock?.hide();
@@ -357,6 +397,7 @@ ipcMain.handle('app:reset-bounds', () => {
   settings.set({ bounds: b });
 });
 ipcMain.handle('app:quit', () => app.quit());
+ipcMain.handle('app:hide', () => hideApp());
 
 // ─── Updates ─────────────────────────────────────────────────────────────────
 // The latest release newer than this ClearDay, once a check has found one.
@@ -409,6 +450,17 @@ ipcMain.handle('quick:status', () => quickStatus());
 ipcMain.handle('quick:show', () => showQuick());
 ipcMain.handle('quick:open-permission', () =>
   shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent'));
+// "Ask macOS again": forgets what macOS has on record for ClearDay and Input
+// Monitoring (a Deny pressed by mistake, or an entry left by an older build
+// that shows as on yet no longer counts), then starts listening afresh, so
+// macOS asks once more. Only ClearDay's own entry is touched.
+ipcMain.handle('quick:reset-permission', async () => {
+  if (app.isPackaged) {
+    await new Promise((resolve) => execFile('/usr/bin/tccutil', ['reset', 'ListenEvent', 'com.noam.clearday'], () => resolve()));
+  }
+  restartQuick();
+  return true;
+});
 
 // ─── Claude (MCP) ────────────────────────────────────────────────────────────
 // Claude starts ClearDay's MCP server itself, as this app's binary in Node

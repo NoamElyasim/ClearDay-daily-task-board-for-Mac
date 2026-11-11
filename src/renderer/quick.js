@@ -1,6 +1,7 @@
 // The quick-add bar (see src/main/quick.mjs). Enter adds and fades the bar
 // away; Esc or clicking elsewhere just fades it.
 import { ICONS } from './icons.js';
+import './tooltip.js';
 
 const q = window.quick;
 const form = document.getElementById('q');
@@ -17,7 +18,7 @@ document.getElementById('q-add').innerHTML = ICONS.plus;
 function setPriority(p) {
   prio.dataset.priority = p;
   const label = `Priority: ${PRIORITY_NAMES[p]}`;
-  prio.title = label;
+  prio.title = `${label}. Click to change it`;
   prio.setAttribute('aria-label', label);
 }
 prio.addEventListener('click', () => {
@@ -29,6 +30,7 @@ prio.addEventListener('click', () => {
 function setOngoing(on) {
   list.setAttribute('aria-checked', String(on));
   list.setAttribute('aria-label', on ? 'Add to To Do' : 'Add to Ongoing');
+  list.title = on ? 'Adding to Ongoing. Click for To Do' : 'Adding to To Do. Click for Ongoing';
   input.placeholder = on ? 'Add an ongoing task…' : 'Add a task…';
 }
 list.addEventListener('click', () => { setOngoing(list.getAttribute('aria-checked') !== 'true'); input.focus(); });
@@ -40,7 +42,7 @@ function setSpace(space) {
   const other = s === 'work' ? 'personal' : 'work';
   spaceBtn.dataset.space = s;
   spaceBtn.innerHTML = ICONS[s];
-  spaceBtn.title = `Adding to ${SPACE_NAMES[s]}`;
+  spaceBtn.title = `Adding to ${SPACE_NAMES[s]}. Click for ${SPACE_NAMES[other]}`;
   spaceBtn.setAttribute('aria-label', `Adding to ${SPACE_NAMES[s]}. Switch to ${SPACE_NAMES[other]}`);
 }
 spaceBtn.addEventListener('click', () => {

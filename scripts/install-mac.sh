@@ -6,9 +6,9 @@
 # longer match it.
 #
 # Signing identity: $MAC_SIGN_IDENTITY, else the keychain certificate
-# "Claude Usage Bar Local Signing" if one exists (shared with the token
-# widget), else ad-hoc. A certificate keeps the signature stable across
-# rebuilds, so macOS keeps treating each build as the same app.
+# "ClearDay Signing" if one exists, else ad-hoc. A certificate keeps the
+# signature stable across rebuilds, so macOS keeps treating each build as the
+# same app, and quick add keeps its Input Monitoring permission.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -18,8 +18,8 @@ name="ClearDay"
 out="dist/mac$([ "$arch" = arm64 ] && echo -arm64)/$name.app"
 
 SIGN_ID=${MAC_SIGN_IDENTITY:-}
-if [ -z "$SIGN_ID" ] && security find-identity -p codesigning | grep -q "Claude Usage Bar Local Signing"; then
-  SIGN_ID="Claude Usage Bar Local Signing"
+if [ -z "$SIGN_ID" ] && security find-identity -p codesigning | grep -q '"ClearDay Signing"'; then
+  SIGN_ID="ClearDay Signing"
 fi
 SIGN_ID=${SIGN_ID:--}
 export MAC_SIGN_IDENTITY=$SIGN_ID

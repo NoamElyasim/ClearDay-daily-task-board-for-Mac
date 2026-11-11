@@ -13,6 +13,7 @@ import { initDnd } from './dnd.js';
 import { initPrefs, updatePrefs, openPrefs, closePrefs, isPrefsOpen } from './prefs.js';
 import { ICONS } from './icons.js';
 import './updates.js';
+import './tooltip.js';
 
 const api = window.clearday;
 const pane = document.getElementById('pane');
@@ -117,6 +118,7 @@ const addList = document.getElementById('add-list');
 function setAddOngoing(on) {
   addList.setAttribute('aria-checked', String(on));
   addList.setAttribute('aria-label', on ? 'Add to To Do' : 'Add to Ongoing');
+  addList.title = on ? 'Adding to Ongoing. Click for To Do' : 'Adding to To Do. Click for Ongoing';
   addInput.placeholder = on ? 'Add an ongoing task…' : 'Add a task…';
 }
 addList.addEventListener('mousedown', (e) => e.preventDefault());   // the caret stays in the field
@@ -455,7 +457,7 @@ async function deleteTasks(ids) {
   render({ animate: true });
   deleted.push(ids);
   const message = ids.length === 1 ? 'Task deleted' : `${ids.length} tasks deleted`;
-  showToast(message, { action: 'Undo', onAction: () => undoDelete(ids) });
+  showToast(message, { action: 'Undo', actionTip: 'Bring it back (⌘Z)', onAction: () => undoDelete(ids) });
 }
 
 async function undoDelete(group = deleted[deleted.length - 1]) {
@@ -575,6 +577,13 @@ function select(id) {
 }
 
 document.getElementById('sort-btn').addEventListener('click', () => api.menus.sort());
+
+// ─── Hide ClearDay ───────────────────────────────────────────────────────────
+// The eye hides the window and the Dock icon; ClearDay stays in the menu
+// bar, where a click on its icon brings it back (main.mjs).
+const hideBtn = document.getElementById('hide-btn');
+hideBtn.innerHTML = ICONS.hide;
+hideBtn.addEventListener('click', () => api.app.hide());
 
 // ─── Side panel: shown or hidden ─────────────────────────────────────────────
 // The header button folds the Ongoing | Done panel away so the board gets

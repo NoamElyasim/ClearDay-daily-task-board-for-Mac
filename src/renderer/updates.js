@@ -13,11 +13,12 @@ export const updateInfo = () => info;
 export const onUpdateInfo = (fn) => listeners.add(fn);
 const changed = () => { for (const fn of listeners) fn(info, installing); };
 
-function button(label, cls, onClick) {
+function button(label, cls, onClick, tip) {
   const b = document.createElement('button');
   b.type = 'button';
   b.className = cls;
   b.textContent = label;
+  if (tip) b.title = tip;
   b.addEventListener('click', onClick);
   return b;
 }
@@ -50,9 +51,9 @@ export function offer(next, { notice = true } = {}) {
   changed();
   if (!notice) return;
   show(`ClearDay ${info.latest} is available`, [
-    button("What's new", 'un-link un-notes', () => api.attachments.openLink(info.url)),
-    button('Update', 'un-main', installUpdate),
-    button('Later', 'un-link', () => { api.updates.skip(info.latest); hide(); }),
+    button("What's new", 'un-link un-notes', () => api.attachments.openLink(info.url), 'Read what changed, in your browser'),
+    button('Update', 'un-main', installUpdate, 'Install it now. ClearDay restarts in about a minute'),
+    button('Later', 'un-link', () => { api.updates.skip(info.latest); hide(); }, 'Skip this version. Preferences can still install it'),
   ]);
 }
 
@@ -78,8 +79,8 @@ api.updates.onFailed((message) => {
   installing = false;
   changed();
   show(`The update didn't finish: ${message}`, [
-    button('Try again', 'un-main', installUpdate),
-    button('Close', 'un-link', hide),
+    button('Try again', 'un-main', installUpdate, 'Run the update once more'),
+    button('Close', 'un-link', hide, 'Dismiss this notice'),
   ]);
 });
 

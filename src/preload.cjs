@@ -30,11 +30,13 @@ contextBridge.exposeInMainWorld('clearday', {
     exportTasks: () => ipcRenderer.invoke('app:export'),
     resetBounds: () => ipcRenderer.invoke('app:reset-bounds'),
     quit: () => ipcRenderer.invoke('app:quit'),
+    hide: () => ipcRenderer.invoke('app:hide'),
   },
   quick: {
     status: () => ipcRenderer.invoke('quick:status'),
     show: () => ipcRenderer.invoke('quick:show'),
     openPermission: () => ipcRenderer.invoke('quick:open-permission'),
+    resetPermission: () => ipcRenderer.invoke('quick:reset-permission'),
     recording: (on) => ipcRenderer.send('quick:recording', on),
     onStatus: on('quick:status'),
   },

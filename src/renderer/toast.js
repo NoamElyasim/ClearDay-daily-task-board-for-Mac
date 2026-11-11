@@ -1,7 +1,7 @@
 // Bottom-centre toasts, e.g. "Task deleted · Undo".
 const MAX = 3;
 
-export function showToast(message, { action, onAction, duration = 5000 } = {}) {
+export function showToast(message, { action, actionTip, onAction, duration = 5000 } = {}) {
   const host = document.getElementById('toasts');
   const el = document.createElement('div');
   el.className = 'toast';
@@ -19,6 +19,7 @@ export function showToast(message, { action, onAction, duration = 5000 } = {}) {
   if (action) {
     const b = document.createElement('button');
     b.textContent = action;
+    if (actionTip) b.title = actionTip;
     b.addEventListener('click', () => { dismiss(); onAction?.(); });
     el.append(b);
   }

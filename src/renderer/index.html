@@ -19,7 +19,8 @@
       <button id="theme-btn" class="theme-switch" role="switch" title="Dark mode" aria-label="Dark mode">
         <span class="theme-sun"></span><span class="theme-moon"></span><span class="theme-knob"></span>
       </button>
-      <button id="sort-btn" class="icon-btn" title="Sort" aria-label="Sort"></button>
+      <button id="hide-btn" class="icon-btn" title="Hide ClearDay. Its icon in the menu bar brings it back" aria-label="Hide ClearDay"></button>
+      <button id="sort-btn" class="icon-btn" title="Sort the board" aria-label="Sort"></button>
       <button id="settings-btn" class="icon-btn" title="Preferences (⌘,)" aria-label="Preferences"></button>
     </div>
   </header>
@@ -32,7 +33,7 @@
       </button>
       <input id="add-input" type="text" placeholder="Add a task…" spellcheck="false" aria-label="New task" tabindex="-1">
       <!-- To Do | Ongoing: which list the new task goes into. Starts on To Do each time the bar opens. -->
-      <button type="button" id="add-list" role="switch" aria-checked="false" title="To Do or Ongoing" aria-label="Add to Ongoing" tabindex="-1">
+      <button type="button" id="add-list" role="switch" aria-checked="false" title="Adding to To Do. Click for Ongoing" aria-label="Add to Ongoing" tabindex="-1">
         <span class="knob"></span><span class="opt" data-v="today">To Do</span><span class="opt" data-v="ongoing">Ongoing</span>
       </button>
       <button id="add-btn" type="submit" title="Add task (Enter)" aria-label="Add task" tabindex="-1"></button>
@@ -71,10 +72,10 @@
     <aside id="side" class="panel" aria-label="Ongoing and Done">
       <div class="side-tabs" role="tablist" data-active="ongoing">
         <span class="tab-knob"></span>
-        <button class="side-tab" data-tab="ongoing" role="tab">
+        <button class="side-tab" data-tab="ongoing" role="tab" title="Your long-term projects">
           <span class="title">Ongoing</span><span class="count"></span>
         </button>
-        <button class="side-tab" data-tab="done" role="tab">
+        <button class="side-tab" data-tab="done" role="tab" title="Everything you've finished">
           <span class="title">Done</span><span class="count"></span>
         </button>
       </div>
@@ -96,10 +97,10 @@
     <button id="sidebar-btn" class="icon-btn" title="Hide the side panel" aria-label="Show or hide the side panel"></button>
 
     <div id="edge-tabs">
-      <button class="edge-tab" data-tab="ongoing" title="Ongoing" aria-label="Show Ongoing">
+      <button class="edge-tab" data-tab="ongoing" title="Open your long-term projects" aria-label="Show Ongoing">
         <span class="title">Ongoing</span><span class="count"></span>
       </button>
-      <button class="edge-tab" data-tab="done" title="Done" aria-label="Show Done">
+      <button class="edge-tab" data-tab="done" title="Open everything you've finished" aria-label="Show Done">
         <span class="title">Done</span><span class="count"></span>
       </button>
     </div>

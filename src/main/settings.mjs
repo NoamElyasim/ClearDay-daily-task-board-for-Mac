@@ -32,6 +32,7 @@ const DEFAULTS = {
   quickKey: 'command',  // …or any key twice, or a combination: see shortcut.mjs
   notesTools: 'open',   // the notes' formatting menu: 'open' | 'min'
   skippedVersion: null, // an update dismissed with Later: not offered again
+  hideTipSeen: false,   // the note shown the first time ClearDay is hidden
 };
 
 const VALID = {
@@ -51,6 +52,7 @@ const VALID = {
   quickAdd: (v) => typeof v === 'boolean',
   quickKey: (v) => parseShortcut(v) !== null,
   notesTools: (v) => ['open', 'min'].includes(v),
+  hideTipSeen: (v) => typeof v === 'boolean',
   skippedVersion: (v) => v === null || (typeof v === 'string' && v.length < 24 && /^\d+\.\d+\.\d+/.test(v)),
   collapsed: (v) => Array.isArray(v) && v.length <= 20 && v.every((k) => typeof k === 'string' && k.length < 40),
 };

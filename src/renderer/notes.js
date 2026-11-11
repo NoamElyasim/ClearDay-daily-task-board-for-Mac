@@ -181,6 +181,9 @@ export function buildEditor(notesEl, { html, placeholder, onChange, onToolsToggl
   const run = (cmd, value) => { ed.focus(); document.execCommand(cmd, false, value); changed(); };
 
   toggle.addEventListener('click', () => onToolsToggle());
+  // Its tip follows the menu: folded or open (set by board.js as .tools-min).
+  const tipToggle = () => { toggle.title = notesEl.classList.contains('tools-min') ? 'Show the formatting menu' : 'Hide the formatting menu'; };
+  new MutationObserver(tipToggle).observe(notesEl, { attributes: true, attributeFilter: ['class'] });
   bold.addEventListener('click', () => run('bold'));
   under.addEventListener('click', () => run('underline'));
   strike.addEventListener('click', () => run('strikeThrough'));

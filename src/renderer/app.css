@@ -244,6 +244,8 @@ svg { display: block; }
   overflow-y: auto; overflow-x: hidden;
   scrollbar-width: thin;
 }
+/* Scrollbars, when macOS is set to always show them: a quiet thumb, no track. */
+.panel, .side-page, .notes-editor, #search-results { scrollbar-color: var(--surface-hover) transparent; }
 .panel::-webkit-scrollbar { width: 6px; }
 .panel::-webkit-scrollbar-thumb { background: var(--surface-hover); border-radius: 3px; }
 /* Rows scrolling out fade instead of being cut at the panel edge */

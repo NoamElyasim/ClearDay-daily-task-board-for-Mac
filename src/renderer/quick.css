@@ -6,7 +6,7 @@ button { font: inherit; color: inherit; background: none; border: 0; display: in
 button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 #q {
-  position: absolute; left: 22px; right: 22px; top: 20px; height: 64px;
+  position: absolute; left: 22px; right: 22px; top: 44px; height: 64px;   /* 44: room for a tooltip above */
   display: flex; align-items: center; gap: 12px;
   padding: 0 12px 0 20px;
   border-radius: 32px;

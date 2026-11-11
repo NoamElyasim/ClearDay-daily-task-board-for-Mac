@@ -57,7 +57,7 @@ function createRow(task) {
   grip.title = 'Drag to reorder';
   grip.innerHTML = ICONS.grip;
 
-  const status = button('status-btn', 'status', '', 'Set status');
+  const status = button('status-btn', 'status', '', 'Change the status');
   // While selecting, a tick circle takes the status button's place.
   const pick = document.createElement('span');
   pick.className = 'pick';
@@ -81,15 +81,16 @@ function createRow(task) {
   bookmarkSlot.className = 'bookmark-slot';
   controls.append(
     group,
-    button('ctl more', 'more', ICONS.more, 'More'),
+    button('ctl more', 'more', ICONS.more, 'Edit, bold, move or delete'),
     bookmarkSlot,
     button('ctl notes-btn', 'notes', ICONS.notes, 'Notes'),
   );
 
-  // In the Done tab, a finished ongoing project says where it came from.
+  // In the Done tab, a finished ongoing project says where it came from. The
+  // tag sits before the text, clear of the tools that fade in at the row's end.
   const tag = Object.assign(document.createElement('span'), { className: 'list-tag', textContent: 'Ongoing' });
 
-  row.append(grip, pick, status, text, tag, controls, button('bookmark', 'priority', '', 'Priority'));
+  row.append(grip, pick, status, tag, text, controls, button('bookmark', 'priority', '', 'Priority'));
   el.append(row);
   return el;
 }
@@ -167,7 +168,7 @@ function rowFor(task) {
 
   const status = row.querySelector('.status-btn');
   status.innerHTML = task.status === 'done' ? ICONS.check : '';
-  status.title = `Status: ${STATUS_LABELS[task.status]}`;
+  status.title = `${STATUS_LABELS[task.status]}. Click to change the status`;
 
   // The row being edited owns its own text until the edit ends.
   if (state.editingId !== task.id) renderRich(row.querySelector('.text'), task.text, task.bold);
@@ -175,10 +176,11 @@ function rowFor(task) {
   const bookmark = row.querySelector('.bookmark');
   if (task.priority) bookmark.dataset.priority = task.priority;
   else delete bookmark.dataset.priority;
-  bookmark.title = task.priority ? `${task.priority === 'high' ? 'High' : 'Medium'} priority` : 'Set priority';
+  bookmark.title = task.priority ? `${task.priority === 'high' ? 'High' : 'Medium'} priority. Click to change it` : 'Set a priority';
 
   const notesBtn = row.querySelector('.notes-btn');
   notesBtn.classList.toggle('has-notes', task.notes.trim().length > 0);
+  notesBtn.title = state.openNotes.has(task.id) ? 'Close the notes' : task.notes.trim() ? 'Open the notes' : 'Write notes';
 
   // Notes panel, attached under the row
   const open = state.openNotes.has(task.id);
@@ -228,7 +230,7 @@ function ensureSkeleton(container, sections, list) {
       head.append(
         fold,
         Object.assign(document.createElement('span'), { className: 'dot' }),
-        Object.assign(document.createElement('span'), { className: 'title', textContent: STATUS_LABELS[s.status] }),
+        Object.assign(document.createElement('span'), { className: 'title', textContent: headingFor(list, s.status) }),
         Object.assign(document.createElement('span'), { className: 'count' }),
       );
       sec.append(head);
@@ -241,6 +243,10 @@ function ensureSkeleton(container, sections, list) {
     return sec;
   }));
 }
+
+// A section's heading: its status, except that the Ongoing tab's To Do says
+// whose it is, beside the board's own To Do.
+const headingFor = (list, status) => (list === 'ongoing' && status === 'todo' ? 'Ongoing To Do' : STATUS_LABELS[status]);
 
 // Fills a set of sections built by ensureSkeleton.
 function fillSections(container, sections) {

@@ -46,6 +46,10 @@ ipcMain.handle('update:known', () => null);
 ipcMain.handle('update:check', () => FAKE_UPDATE);
 ipcMain.handle('update:skip', (_e, v) => { settings.set({ skippedVersion: v }); return true; });
 ipcMain.handle('update:install', () => { installs++; return true; });
+// Hiding the app and resetting quick add's permission are only recorded.
+const calls = { hide: 0, resetPermission: 0, openPermission: 0 };
+ipcMain.handle('app:hide', () => { calls.hide++; return true; });
+ipcMain.handle('quick:reset-permission', () => { calls.resetPermission++; return true; });
 ipcMain.handle('app:info', () => ({ version: app.getVersion(), dataFile: '' }));
 
 // Quick add and the Claude connection aren't exercised here; Preferences
@@ -53,7 +57,8 @@ ipcMain.handle('app:info', () => ({ version: app.getVersion(), dataFile: '' }));
 ipcMain.handle('quick:status', () => 'ready');
 const recordingCalls = [];   // what Preferences told main while picking a key
 ipcMain.on('quick:recording', (e, on) => { recordingCalls.push(on); e.sender.setIgnoreMenuShortcuts(!!on); });
-for (const ch of ['quick:show', 'quick:open-permission']) ipcMain.handle(ch, () => null);
+ipcMain.handle('quick:show', () => null);
+ipcMain.handle('quick:open-permission', () => { calls.openPermission++; return null; });
 ipcMain.handle('mcp:status', () => ({ desktop: false, desktopInstalled: true, code: false, command: '' }));
 for (const ch of ['mcp:connect-desktop', 'mcp:copy-code-command']) ipcMain.handle(ch, () => true);
 for (const ch of ['app:reveal-data', 'app:export', 'app:reset-bounds', 'app:quit']) ipcMain.handle(ch, () => null);
@@ -968,6 +973,84 @@ done
       return getComputedStyle(document.querySelector('.space-label')).display === 'none' && sw.width < 90 && sw.right <= innerWidth - 8; })()`));
     win.setSize(780, 560);
     await sleep(500);
+  }
+
+  // ── Hide, tooltips, and the two small fixes ──
+  {
+    await click('#hide-btn');
+    check('the eye button asks the app to hide', calls.hide === 1 && await js(`document.querySelector('#hide-btn svg mask') !== null`));
+    // A tooltip: fast to show, and it stays while the pointer rests there.
+    const sort = await rect('#sort-btn');
+    wc.sendInputEvent({ type: 'mouseMove', x: sort.x - 2, y: sort.y });
+    wc.sendInputEvent({ type: 'mouseMove', x: sort.x, y: sort.y });
+    await sleep(60);
+    const early = await js(`document.getElementById('tooltip')?.classList.contains('show') || false`);
+    await sleep(240);
+    const tipNow = () => js(`(() => { const t = document.getElementById('tooltip'); return t && t.classList.contains('show') ? t.textContent : null; })()`);
+    check('resting on a button shows its tip within a third of a second, not at once', !early && await tipNow() === 'Sort the board', String(await tipNow()));
+    check('the tip sits under its button, inside the window', await js(`(() => {
+      const t = document.getElementById('tooltip').getBoundingClientRect(), b = document.getElementById('sort-btn').getBoundingClientRect();
+      return t.top >= b.bottom && t.right <= innerWidth && t.left >= 0 && Math.abs((t.left + t.right) / 2 - (b.left + b.right) / 2) < 40; })()`));
+    check('the system tooltip is out of the way: no title left on the button', await js(`!document.getElementById('sort-btn').hasAttribute('title') &&
+      document.getElementById('sort-btn').dataset.tip === 'Sort the board'`));
+    await sleep(3000);
+    check('three seconds on, it is still there', await tipNow() === 'Sort the board');
+    await click('#add-open');
+    await sleep(450);
+    const sw = await rect('#add-list');
+    wc.sendInputEvent({ type: 'mouseMove', x: sw.x - 2, y: sw.y });
+    wc.sendInputEvent({ type: 'mouseMove', x: sw.x, y: sw.y });
+    await sleep(300);
+    const before = await tipNow();
+    wc.sendInputEvent({ type: 'mouseDown', x: sw.x, y: sw.y, button: 'left', clickCount: 1 });
+    wc.sendInputEvent({ type: 'mouseUp', x: sw.x, y: sw.y, button: 'left', clickCount: 1 });
+    await sleep(300);
+    const after = await tipNow();
+    check('a click keeps the tip, with its new meaning: the add bar\'s switch', before === 'Adding to To Do. Click for Ongoing' &&
+      after === 'Adding to Ongoing. Click for To Do', `${before} → ${after}`);
+    wc.sendInputEvent({ type: 'mouseMove', x: 200, y: 300 });
+    await sleep(250);
+    check('moving off the button takes the tip away', await tipNow() === null);
+    await key('Escape');
+    await sleep(300);
+    check('every button in the window has a tip', await js(`(() => {
+      const bare = [...document.querySelectorAll('#pane button')].filter((b) => !b.closest('#prefs, .popover, #search-results') &&
+        b.getBoundingClientRect().width > 0 && !b.title && !b.dataset.tip);
+      return bare.map((b) => b.id || b.className).join(', ') || true; })()`) === true);
+    // The Done tab's Ongoing tag sits before the text, clear of the row tools.
+    await click('.side-tab[data-tab="done"]');
+    await sleep(400);
+    check('the Ongoing tag sits between the circle and the text', await js(`(() => {
+      const row = [...document.querySelectorAll('[data-page="done"] .task[data-list="ongoing"]')][0];
+      if (!row) return false;
+      const tag = row.querySelector('.list-tag').getBoundingClientRect(), text = row.querySelector('.text').getBoundingClientRect(),
+        dot = row.querySelector('.status-btn').getBoundingClientRect();
+      return tag.width > 0 && tag.left >= dot.right && tag.right <= text.left; })()`));
+    await click('.side-tab[data-tab="ongoing"]');
+    await sleep(400);
+    check('the Ongoing tab\'s To Do group is headed Ongoing To Do; the board\'s stays To Do', await js(`
+      document.querySelector('[data-page="ongoing"] .section[data-status="todo"] .title').textContent === 'Ongoing To Do' &&
+      document.querySelector('#sections .section[data-status="todo"] .title').textContent === 'To Do'`));
+    // Preferences: quick add's state, and the two ways to fix its permission.
+    await click('#settings-btn');
+    await sleep(400);
+    wc.send('quick:status', 'permission');
+    await sleep(200);
+    const note = () => js(`(() => { const n = document.querySelector('#prefs .pref-note');
+      return { hidden: n.hidden, text: n.querySelector('.pref-hint').textContent, buttons: [...n.querySelectorAll('button')].filter((b) => !b.hidden).map((b) => b.textContent) }; })()`);
+    let n = await note();
+    check('waiting for permission, Preferences says so and offers both fixes', !n.hidden && /Waiting for permission/.test(n.text) &&
+      n.buttons.join() === 'Open Input Monitoring…,Ask macOS again', JSON.stringify(n));
+    await js(`[...document.querySelectorAll('#prefs .pref-note button')].forEach((b, i) => b.classList.add('e2e-q' + i)); document.querySelector('#prefs .pref-note').scrollIntoView({ block: 'center' }); 1`);
+    await click('#prefs .pref-note .e2e-q1');
+    await click('#prefs .pref-note .e2e-q0');
+    check('Ask macOS again and Open Input Monitoring reach the app', calls.resetPermission === 1 && calls.openPermission === 1, JSON.stringify(calls));
+    wc.send('quick:status', 'ready');
+    await sleep(200);
+    n = await note();
+    check('ready, it says so and keeps Ask macOS again at hand', /^Ready/.test(n.text) && n.buttons.join() === 'Ask macOS again', JSON.stringify(n));
+    await key('Escape');
+    await sleep(300);
   }
 
   // ── Updates ──

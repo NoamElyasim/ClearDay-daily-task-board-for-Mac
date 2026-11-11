@@ -27,6 +27,8 @@ export const ICONS = {
   moon: svgFill('<path d="M13.6 10.1A5.9 5.9 0 0 1 5.9 2.4a5.9 5.9 0 1 0 7.7 7.7Z"/>'),
   close: svg('<path d="m4.5 4.5 7 7M11.5 4.5l-7 7"/>'),
   more: svg('<circle cx="3.5" cy="8" r=".9" fill="currentColor"/><circle cx="8" cy="8" r=".9" fill="currentColor"/><circle cx="12.5" cy="8" r=".9" fill="currentColor"/>'),
+  // Hide ClearDay: an eye, struck through.
+  hide: svg('<defs><mask id="cd-eye-cut"><rect width="16" height="16" fill="#fff"/><path d="M2.6 2.6l10.8 10.8" stroke="#000" stroke-width="3.6"/></mask></defs><g mask="url(#cd-eye-cut)"><path d="M1.6 8c1.5-2.8 3.7-4.4 6.4-4.4S12.9 5.2 14.4 8c-1.5 2.8-3.7 4.4-6.4 4.4S3.1 10.8 1.6 8Z"/><circle cx="8" cy="8" r="2" fill="currentColor"/></g><path d="M2.6 2.6l10.8 10.8"/>'),
   // The two boards: a briefcase for Work, a house for Personal.
   work: svg('<rect x="1.9" y="4.9" width="12.2" height="8.6" rx="2.1"/><path d="M5.9 4.9V3.7a1 1 0 0 1 1-1h2.2a1 1 0 0 1 1 1v1.2M7 8.8h2"/>'),
   personal: svg('<path d="M2.6 7.3a1 1 0 0 1 .37-.78L7.4 2.9a1 1 0 0 1 1.2 0l4.43 3.62a1 1 0 0 1 .37.78v5.2a1 1 0 0 1-1 1H3.6a1 1 0 0 1-1-1Z"/><path d="M6.6 13.5v-2.6a1.4 1.4 0 0 1 2.8 0v2.6"/>'),

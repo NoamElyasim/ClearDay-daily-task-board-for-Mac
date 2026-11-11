@@ -266,6 +266,7 @@ export function shortcutRecorder({ hint, save, recording }) {
       if (!listening && v !== value) { value = v; show(v); }
       else if (!el.children.length) show(v);
       el.setAttribute('aria-label', `Quick task shortcut: ${shortcutCaps(value).join(' ')}. Click to change it.`);
+      el.title = 'Click, then press a key twice, or a combination like ⌃T';
     },
   };
 }
