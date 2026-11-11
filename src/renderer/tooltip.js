@@ -1,17 +1,14 @@
-// Tooltips: every button says what it does. The tip shows a moment after the
-// pointer arrives and stays for as long as it rests there, where the system's
-// own tooltip (the title attribute) takes a second to show and then goes away.
+// Tooltips, for the header's buttons only: light/dark, shrink, hide, sort and
+// Preferences are icons with no words, so each says what it does once the
+// pointer has rested on it for two seconds, and keeps saying it until the
+// pointer leaves. Everything else in the app stays quiet.
 //
-// Any element with a title gets one: its title moves into data-tip, so the
-// system tooltip never shows, and titles set later (a button whose meaning
-// changes) follow. One tip element serves the whole window.
+// Tips show only inside an element marked data-tips (the header's buttons).
+// Every other title in the window is put aside into data-tip all the same,
+// so the system's own tooltip never shows for it either.
 //
 //   import './tooltip.js'      in each window's script
-//   <html data-tip-side="above">  puts tips above their button (the quick-add
-//                                 bar, with nothing but screen below it)
-//   <form data-tip-box>           tips clear this box, not just the button
-//                                 inside it (a pill: the tip sits off its edge)
-const DELAY_MS = 120;
+const DELAY_MS = 2000;
 const GAP = 7;      // between the button and its tip
 const EDGE = 6;     // kept clear of the window's edge
 const DRAG_PX = 4;  // a press that travels this far is a drag: the tip goes
@@ -44,18 +41,16 @@ function tipEl() {
   return tip;
 }
 
-// Below the button, centred; above when there is no room below (or when the
-// window asks for above); always inside the window.
+// Below the button, centred; above when there is no room below; always
+// inside the window.
 function place() {
   const el = tipEl();
   const r = target.getBoundingClientRect();
   if (!r.width && !r.height) return false;
   const w = el.offsetWidth, h = el.offsetHeight;
-  const box = target.closest('[data-tip-box]')?.getBoundingClientRect() || r;
-  const above = box.top - GAP - h, below = box.bottom + GAP;
-  const preferAbove = document.documentElement.dataset.tipSide === 'above';
+  const above = r.top - GAP - h, below = r.bottom + GAP;
   const fitsBelow = below + h <= innerHeight - EDGE, fitsAbove = above >= EDGE;
-  const top = (preferAbove && fitsAbove) || !fitsBelow ? (fitsAbove ? above : Math.max(EDGE, innerHeight - EDGE - h)) : below;
+  const top = fitsBelow ? below : fitsAbove ? above : Math.max(EDGE, innerHeight - EDGE - h);
   const left = Math.min(innerWidth - EDGE - w, Math.max(EDGE, r.left + r.width / 2 - w / 2));
   el.style.left = `${Math.round(left)}px`;
   el.style.top = `${Math.round(top)}px`;
@@ -100,7 +95,7 @@ document.addEventListener('pointerover', (e) => {
   if (el) adopt(el);
   if (el === target) return;   // moving about inside the same button
   hide();
-  if (!el || !el.dataset.tip || e.pointerType === 'touch' || e.buttons) return;
+  if (!el || !el.dataset.tip || !el.closest('[data-tips]') || e.pointerType === 'touch' || e.buttons) return;
   target = el;
   timer = setTimeout(show, DELAY_MS);
 }, true);

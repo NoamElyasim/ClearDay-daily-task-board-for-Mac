@@ -7,10 +7,10 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 svg { display: block; }
 
 /* The pill drags the window from its grip and from every gap between its
-   controls; the controls themselves take clicks. 40px above it is room for
-   a tooltip, the rest for its shadow. */
+   controls; the controls themselves take clicks. The room around it is for
+   its shadow. */
 #w {
-  position: absolute; left: 20px; right: 20px; top: 40px; height: 52px;
+  position: absolute; left: 20px; right: 20px; top: 20px; height: 52px;
   display: flex; align-items: center; gap: 8px;
   padding: 0 10px 0 6px;
   border-radius: 26px;

@@ -11,9 +11,9 @@ import { BrowserWindow, ipcMain, screen } from 'electron';
 import path from 'node:path';
 
 const DIR = import.meta.dirname;
-// The pill plus room around it for its shadow and, above, its buttons'
-// tooltips (the window itself is transparent). widget.css places the pill.
-const SIZE = { width: 560, height: 120 };
+// The pill plus room around it for its shadow (the window itself is
+// transparent). widget.css places the pill.
+const SIZE = { width: 560, height: 100 };
 const FROM_EDGE = 4;   // the window from the screen's edge; the pill sits 20 further in
 
 let pill = null;

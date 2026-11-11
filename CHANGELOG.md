@@ -14,8 +14,8 @@
 - **Hide ClearDay.** The eye button in the header hides the window and the
   Dock icon. ClearDay's icon in the menu bar brings it back, and so does
   opening ClearDay again.
-- **Tips on every button.** Rest the pointer on a button and its tip shows
-  at once, and stays until you move away.
+- **Tips on the header's buttons.** Rest the pointer on one for two seconds
+  and a tip says what it does. It stays until you move away.
 - **Quick add keeps its permission.** Updates no longer make ⌘⌘ go silent.
   After this update macOS asks for Input Monitoring one last time: open
   Preferences → Quick task shortcut and press **Ask macOS again**. That

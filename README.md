@@ -101,8 +101,8 @@ claude mcp add clearday --scope user --env ELECTRON_RUN_AS_NODE=1 -- \
 - **Hide it.** The eye button in the header hides ClearDay completely,
   window and Dock icon, while it keeps running. See
   [Hiding ClearDay](#hiding-clearday) for the way back.
-- **Every button explains itself.** Rest the pointer on any button and a
-  tip says what it does. It shows at once and stays until you move away.
+- **The header's buttons explain themselves.** Rest the pointer on one for
+  two seconds and a tip says what it does. It stays until you move away.
 - **Works with Claude.** ClearDay includes an MCP server, so Claude Code and
   Claude Desktop can list, add, update, move, search and delete your tasks,
   on either board. Connect it from Preferences → Claude.

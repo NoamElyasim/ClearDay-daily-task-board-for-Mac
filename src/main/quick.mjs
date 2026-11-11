@@ -19,9 +19,8 @@ import readline from 'node:readline';
 import { accelerator, helperKey } from '../shared/shortcut.mjs';
 
 const DIR = import.meta.dirname;
-// The bar plus room for its shadow, and above it for its buttons' tooltips
-// (the window itself is transparent). quick.css places the bar inside.
-const SIZE = { width: 640, height: 136 };
+// The bar plus room for its shadow (the window itself is transparent).
+const SIZE = { width: 640, height: 112 };
 const ABOVE_DOCK = 6;
 
 let panel = null;

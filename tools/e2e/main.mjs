@@ -989,44 +989,39 @@ done
   {
     await click('#hide-btn');
     check('the eye button asks the app to hide', calls.hide === 1 && await js(`document.querySelector('#hide-btn svg mask') !== null`));
-    // A tooltip: fast to show, and it stays while the pointer rests there.
+    // Tooltips: the header's buttons only, two seconds after the pointer
+    // settles, staying until it leaves.
+    const tipNow = () => js(`(() => { const t = document.getElementById('tooltip'); return t && t.classList.contains('show') ? t.textContent : null; })()`);
     const sort = await rect('#sort-btn');
     wc.sendInputEvent({ type: 'mouseMove', x: sort.x - 2, y: sort.y });
     wc.sendInputEvent({ type: 'mouseMove', x: sort.x, y: sort.y });
-    await sleep(60);
-    const early = await js(`document.getElementById('tooltip')?.classList.contains('show') || false`);
-    await sleep(240);
-    const tipNow = () => js(`(() => { const t = document.getElementById('tooltip'); return t && t.classList.contains('show') ? t.textContent : null; })()`);
-    check('resting on a button shows its tip within a third of a second, not at once', !early && await tipNow() === 'Sort the board', String(await tipNow()));
+    await sleep(1500);
+    const early = await tipNow();
+    await sleep(800);
+    check('resting on a header button shows its tip after two seconds, not before', early === null && await tipNow() === 'Sort the board', `${early} / ${await tipNow()}`);
     check('the tip sits under its button, inside the window', await js(`(() => {
       const t = document.getElementById('tooltip').getBoundingClientRect(), b = document.getElementById('sort-btn').getBoundingClientRect();
       return t.top >= b.bottom && t.right <= innerWidth && t.left >= 0 && Math.abs((t.left + t.right) / 2 - (b.left + b.right) / 2) < 40; })()`));
-    check('the system tooltip is out of the way: no title left on the button', await js(`!document.getElementById('sort-btn').hasAttribute('title') &&
-      document.getElementById('sort-btn').dataset.tip === 'Sort the board'`));
     await sleep(3000);
     check('three seconds on, it is still there', await tipNow() === 'Sort the board');
-    await click('#add-open');
-    await sleep(450);
-    const sw = await rect('#add-list');
-    wc.sendInputEvent({ type: 'mouseMove', x: sw.x - 2, y: sw.y });
-    wc.sendInputEvent({ type: 'mouseMove', x: sw.x, y: sw.y });
-    await sleep(300);
-    const before = await tipNow();
-    wc.sendInputEvent({ type: 'mouseDown', x: sw.x, y: sw.y, button: 'left', clickCount: 1 });
-    wc.sendInputEvent({ type: 'mouseUp', x: sw.x, y: sw.y, button: 'left', clickCount: 1 });
-    await sleep(300);
-    const after = await tipNow();
-    check('a click keeps the tip, with its new meaning: the add bar\'s switch', before === 'Adding to To Do. Click for Ongoing' &&
-      after === 'Adding to Ongoing. Click for To Do', `${before} → ${after}`);
     wc.sendInputEvent({ type: 'mouseMove', x: 200, y: 300 });
     await sleep(250);
     check('moving off the button takes the tip away', await tipNow() === null);
-    await key('Escape');
-    await sleep(300);
-    check('every button in the window has a tip', await js(`(() => {
-      const bare = [...document.querySelectorAll('#pane button')].filter((b) => !b.closest('#prefs, .popover, #search-results') &&
-        b.getBoundingClientRect().width > 0 && !b.title && !b.dataset.tip);
-      return bare.map((b) => b.id || b.className).join(', ') || true; })()`) === true);
+    check('each of the header\'s five buttons has a tip', await js(`(() => {
+      const bs = [...document.querySelectorAll('.header-actions button')];
+      return bs.length === 5 && bs.every((b) => b.title || b.dataset.tip); })()`));
+    // Everywhere else stays quiet: no tip of ours, and no system tooltip.
+    const st = await rect('#sections .status-btn');
+    wc.sendInputEvent({ type: 'mouseMove', x: st.x - 2, y: st.y });
+    wc.sendInputEvent({ type: 'mouseMove', x: st.x, y: st.y });
+    const so = await rect('.side-tab[data-tab="done"]');
+    await sleep(2400);
+    const rowTip = await tipNow();
+    wc.sendInputEvent({ type: 'mouseMove', x: so.x, y: so.y });
+    await sleep(2400);
+    check('a row\'s buttons and the side tabs show no tip, and keep no title for the system to show', rowTip === null && await tipNow() === null &&
+      await js(`!document.querySelector('#sections .status-btn').hasAttribute('title') && !document.querySelector('.side-tab[data-tab="done"]').hasAttribute('title')`));
+    wc.sendInputEvent({ type: 'mouseMove', x: 200, y: 300 });
     // The Done tab's Ongoing tag sits before the text, clear of the row tools.
     await click('.side-tab[data-tab="done"]');
     await sleep(400);
@@ -1114,16 +1109,12 @@ done
     const pass = byText('Renew the passport');
     check('switched to Ongoing, + adds a personal ongoing project', pass?.space === 'personal' && pass?.list === 'ongoing' &&
       await pjs(`document.getElementById('w-input').placeholder.includes('ongoing')`));
-    // Its buttons have tips too, above the pill.
+    // The pill stays quiet: no tips on its buttons.
     const ex = await prect('#w-expand');
     pc.sendInputEvent({ type: 'mouseMove', x: ex.x - 2, y: ex.y });
     pc.sendInputEvent({ type: 'mouseMove', x: ex.x, y: ex.y });
-    await sleep(350);
-    check('its buttons show tips above the pill, inside its window', await pjs(`(() => {
-      const t = document.getElementById('tooltip'), p = document.getElementById('w').getBoundingClientRect();
-      if (!t || !t.classList.contains('show')) return false;
-      const r = t.getBoundingClientRect();
-      return t.textContent === 'Open the full board' && r.bottom <= p.top && r.top >= 0 && r.right <= innerWidth; })()`));
+    await sleep(2400);
+    check('the pill\'s buttons show no tip', await pjs(`!document.querySelector('#tooltip.show') && !document.getElementById('w-expand').hasAttribute('title')`));
     await pclick('#w-expand');
     check('the expand button asks for the full board', calls.expand === 1);
     widget.closeWidget();
