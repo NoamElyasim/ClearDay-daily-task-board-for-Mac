@@ -54,6 +54,16 @@ contextBridge.exposeInMainWorld('clearday', {
     open: (file) => ipcRenderer.invoke('attach:open', file),
     openLink: (url) => ipcRenderer.invoke('link:open', url),
   },
+  // A newer ClearDay on GitHub: { current, latest, tag, url, available }.
+  updates: {
+    check: () => ipcRenderer.invoke('update:check'),
+    known: () => ipcRenderer.invoke('update:known'),
+    skip: (version) => ipcRenderer.invoke('update:skip', version),
+    install: () => ipcRenderer.invoke('update:install'),
+    onAvailable: on('update:available'),
+    onProgress: on('update:progress'),
+    onFailed: on('update:failed'),
+  },
   onTasksChanged: on('tasks:changed'),
   onPrefsOpen: on('prefs:open'),
   onNotesDir: on('notes:dir'),

@@ -122,6 +122,9 @@ kbd {
   background: var(--surface);
 }
 .about p { font-size: 12.5px; color: var(--text-dim); margin-bottom: 10px; }
+.about .update-hint { margin: 6px 0 0; font-size: 11px; }
+.about .update-hint:empty { display: none; }
+.pref-action.primary { background: var(--accent); color: var(--accent-text); }
 
 .pref-note { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 0 0 8px; }
 .pref-note[hidden] { display: none; }

@@ -150,6 +150,10 @@ claude mcp add clearday --scope user --env ELECTRON_RUN_AS_NODE=1 -- \
   Default and Manual let you drag rows to reorder them, between sections,
   and between the board and the side panel.
 - **Undo.** A deleted task can be restored from the toast or with ⌘Z.
+- **Updates come to you.** When a new version is out, a notice offers to
+  install it: one click and ClearDay restarts on it, your board kept.
+  Preferences → About checks on demand. ClearDay only asks GitHub for the
+  latest release; nothing about you or your tasks is sent.
 - **Your day carries over.** At midnight only the date changes. Nothing is
   cleared or archived.
 - **Preferences** (the gear, or ⌘,):

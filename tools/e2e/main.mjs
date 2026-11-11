@@ -38,6 +38,14 @@ ipcMain.handle('attach:bytes', (_e, n, m, b) => attachments.addBytes(n, m, b));
 ipcMain.handle('attach:pick', () => []);
 ipcMain.handle('attach:open', (_e, f) => { opened.push(['file', f]); return true; });
 ipcMain.handle('link:open', (_e, u) => { opened.push(['link', u]); return true; });
+// Updates: GitHub is not asked; the check finds 9.9.9, and installing is
+// only recorded.
+const FAKE_UPDATE = { current: '0.9.0', latest: '9.9.9', tag: 'v9.9.9', available: true, url: 'https://github.com/example/releases/tag/v9.9.9' };
+let installs = 0;
+ipcMain.handle('update:known', () => null);
+ipcMain.handle('update:check', () => FAKE_UPDATE);
+ipcMain.handle('update:skip', (_e, v) => { settings.set({ skippedVersion: v }); return true; });
+ipcMain.handle('update:install', () => { installs++; return true; });
 ipcMain.handle('app:info', () => ({ version: app.getVersion(), dataFile: '' }));
 
 // Quick add and the Claude connection aren't exercised here; Preferences
@@ -905,6 +913,39 @@ done
       rs.every((r) => Math.abs(r.bottom - innerHeight) < 1) && bg[0] === bg[1] && !hits; })()`));
   win.setSize(780, 560);
   await sleep(500);
+
+  // ── Updates ──
+  {
+    wc.send('update:available', FAKE_UPDATE);
+    await sleep(400);
+    check('a newer release shows a notice with What\'s new, Update and Later', await js(`(() => {
+      const n = document.getElementById('update-note');
+      return !!n && /9\\.9\\.9 is available/.test(n.textContent) && [...n.querySelectorAll('button')].map((b) => b.textContent).join() === "What's new,Update,Later"; })()`));
+    await click('#update-note .un-link');
+    check('What\'s new opens the release page', opened.some(([k, u]) => k === 'link' && u === FAKE_UPDATE.url));
+    await click('#update-note button:last-child');
+    await sleep(400);
+    check('Later hides it and remembers the version', settings.get('skippedVersion') === '9.9.9' && await js(`!document.getElementById('update-note')`));
+    await click('#settings-btn');
+    await sleep(400);
+    check('Preferences still offers to install it, beside the version', await js(`(() => {
+      const b = [...document.querySelectorAll('.about .pref-action')].find((x) => /Install ClearDay 9\\.9\\.9/.test(x.textContent));
+      return !!b && b.classList.contains('primary'); })()`));
+    await js(`[...document.querySelectorAll('.about .pref-action')].find((x) => /Install/.test(x.textContent)).classList.add('e2e-upd'); 1`);
+    await click('.about .pref-action.e2e-upd');
+    await sleep(400);
+    check('installing from Preferences closes them and shows the update under way', installs === 1 &&
+      await js(`!document.getElementById('prefs').classList.contains('open') && /Updating to ClearDay 9\\.9\\.9/.test(document.getElementById('update-note')?.textContent)`));
+    wc.send('update:progress', 'Downloading ClearDay 9.9.9 (ClearDay-9.9.9-arm64.dmg)');
+    await sleep(200);
+    check('the installer\'s steps show in the notice', await js(`/Downloading ClearDay 9\\.9\\.9…/.test(document.getElementById('update-note')?.textContent)`));
+    wc.send('update:failed', "couldn't reach GitHub");
+    await sleep(200);
+    check('a failed update says why, with Try again', await js(`(() => { const n = document.getElementById('update-note');
+      return /didn't finish: couldn't reach GitHub/.test(n.textContent) && /Try again/.test(n.textContent); })()`));
+    await click('#update-note button:last-child');
+    await sleep(300);
+  }
 
   // ── Persistence ──
   store.flush();

@@ -20,6 +20,11 @@
   original moves. Web addresses become links as you type them, and ⌘K links
   the selected words. Claude sees attachments as [image: name] and
   [file: name], and keeps them when it rewrites a note.
+- **Updates tell you.** ClearDay checks GitHub for a new release soon
+  after it starts and twice a day. When there is one, a notice says so:
+  What's new, Update or Later. Update installs it and restarts ClearDay in
+  about a minute, your board kept. Preferences → About has the same
+  button, and a Check for updates.
 - **Install in one line.** Paste one `curl … | bash` line (see Install in
   the README) into Terminal: it downloads the latest release for your Mac,
   puts ClearDay in Applications and opens it, with no "can't verify"

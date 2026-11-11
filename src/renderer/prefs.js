@@ -5,6 +5,7 @@
 import { SORTS, SORT_LABELS } from '../shared/model.mjs';
 import { shortcutCaps, shortcutText } from '../shared/shortcut.mjs';
 import { shortcutRecorder } from './shortcut.js';
+import { updateInfo, onUpdateInfo, offer, installUpdate } from './updates.js';
 
 const api = window.clearday;
 let root = null;
@@ -94,6 +95,29 @@ function shortcut([k, d]) {
   }
   return [h('dt', {}, kbd), dd];
 }
+
+// About → updates: Check for updates, or Install <version> once one is out.
+const updateBtn = action('Check for updates', async () => {
+  if (updateInfo()) { closePrefs(); installUpdate(); return; }
+  updateBtn.disabled = true;
+  updateBtn.textContent = 'Checking…';
+  updateHint.textContent = '';
+  const r = await api.updates.check();
+  updateBtn.disabled = false;
+  if (r.available) offer(r);
+  else {
+    paintUpdate(null);
+    updateHint.textContent = r.error ? `Couldn't check: ${r.error}.` : `You have the latest version.`;
+  }
+});
+const updateHint = h('p', { className: 'pref-hint update-hint' });
+function paintUpdate(next, installing = false) {
+  updateBtn.disabled = installing;
+  updateBtn.textContent = installing ? 'Updating…' : next ? `Install ClearDay ${next.latest}` : 'Check for updates';
+  updateBtn.classList.toggle('primary', !!next && !installing);
+  updateHint.textContent = next && !installing ? `A new version is out. ClearDay restarts on it in about a minute.` : '';
+}
+onUpdateInfo(paintUpdate);
 
 function build(info) {
   const done = h('button', { className: 'prefs-done', textContent: 'Done', type: 'button' });
@@ -191,7 +215,8 @@ function build(info) {
       h('section', { className: 'about' },
         h('h3', { textContent: 'About' }),
         h('p', { textContent: `ClearDay ${info.version}` }),
-        action('Quit ClearDay', () => api.app.quit(), 'danger'),
+        h('div', { className: 'pref-actions' }, updateBtn, action('Quit ClearDay', () => api.app.quit(), 'danger')),
+        updateHint,
       ),
     ),
   );

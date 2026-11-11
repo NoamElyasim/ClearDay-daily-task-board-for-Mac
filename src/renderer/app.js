@@ -12,6 +12,7 @@ import { showToast } from './toast.js';
 import { initDnd } from './dnd.js';
 import { initPrefs, updatePrefs, openPrefs, closePrefs, isPrefsOpen } from './prefs.js';
 import { ICONS } from './icons.js';
+import './updates.js';
 
 const api = window.clearday;
 const pane = document.getElementById('pane');

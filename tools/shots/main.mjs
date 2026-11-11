@@ -43,6 +43,9 @@ ipcMain.handle('settings:set', (_e, p) => {
 ipcMain.handle('menu:sort', () => {});
 ipcMain.handle('app:info', () => ({ version: app.getVersion(), dataFile: '' }));
 for (const ch of ['attach:open', 'link:open', 'attach:pick']) ipcMain.handle(ch, () => null);
+ipcMain.handle('update:known', () => null);
+ipcMain.handle('update:check', () => ({ current: app.getVersion(), latest: app.getVersion(), available: false }));
+for (const ch of ['update:skip', 'update:install']) ipcMain.handle(ch, () => false);
 
 // Quick add and the Claude connection aren't exercised here; Preferences
 // asks for their status.
@@ -170,6 +173,11 @@ const SHOTS = {
       cleardayDebug.state.tasks.set(id, (await window.clearday.tasks.list()).find((t) => t.id === id)); cleardayDebug.toggleNotes(id); document.activeElement.blur();
       await new Promise((r) => setTimeout(r, 400)); document.querySelector('.notes-editor').scrollTop = 1e4; 1 })()`);
   } },
+  // The update notice, as a newer release shows it.
+  'update-light': { theme: 'light', width: 780, height: 560, setup: (js) => js(`import('./updates.js').then((m) => {
+    m.offer({ available: true, latest: '0.9.1', tag: 'v0.9.1', url: 'https://example.com' }); return 1; })`) },
+  'update-dark': { theme: 'dark', width: 420, height: 600, setup: (js) => js(`import('./updates.js').then((m) => {
+    m.offer({ available: true, latest: '0.9.1', tag: 'v0.9.1', url: 'https://example.com' }); return 1; })`) },
   'folded-light': { theme: 'light', width: 780, height: 560, prefs: { collapsed: ['today:in_progress'] } },
   'all-folded-dark': { theme: 'dark', width: 420, height: 600, setup: clickFirst('#fold-all-btn') },
   'selecting-light': { theme: 'light', width: 340, height: 600, setup: async (js) => {

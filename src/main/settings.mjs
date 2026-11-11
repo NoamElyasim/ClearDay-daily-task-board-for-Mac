@@ -30,6 +30,7 @@ const DEFAULTS = {
   quickAdd: true,       // press ⌘ twice anywhere for the quick-add bar
   quickKey: 'command',  // …or any key twice, or a combination: see shortcut.mjs
   notesTools: 'open',   // the notes' formatting menu: 'open' | 'min'
+  skippedVersion: null, // an update dismissed with Later: not offered again
 };
 
 const VALID = {
@@ -48,6 +49,7 @@ const VALID = {
   quickAdd: (v) => typeof v === 'boolean',
   quickKey: (v) => parseShortcut(v) !== null,
   notesTools: (v) => ['open', 'min'].includes(v),
+  skippedVersion: (v) => v === null || (typeof v === 'string' && v.length < 24 && /^\d+\.\d+\.\d+/.test(v)),
   collapsed: (v) => Array.isArray(v) && v.length <= 20 && v.every((k) => typeof k === 'string' && k.length < 40),
 };
 

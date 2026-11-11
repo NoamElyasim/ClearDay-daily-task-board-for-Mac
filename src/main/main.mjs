@@ -16,6 +16,7 @@ import { initQuick, setQuickEnabled, setQuickShortcut, pauseQuick, stopQuick, sh
 import { startBridge } from './bridge.mjs';
 import { relayHover } from './hover.mjs';
 import * as attachments from './attachments.mjs';
+import * as updates from './updates.mjs';
 import { SORTS, SORT_LABELS, SCHEMA_VERSION } from '../shared/model.mjs';
 
 const DIR = import.meta.dirname;
@@ -124,6 +125,7 @@ function createWindow() {
 
   win.webContents.on('context-menu', showContextMenu);
   win.webContents.on('did-finish-load', applyTextSize);
+  win.webContents.on('did-finish-load', () => offerUpdate());
 }
 
 function showWindow() {
@@ -335,7 +337,7 @@ ipcMain.on('win:drag-end', () => {
 
 ipcMain.handle('menu:sort', () => Menu.buildFromTemplate(sortTemplate()).popup({ window: win }));
 
-ipcMain.handle('app:info', () => ({ version: app.getVersion(), dataFile: store.FILE_PATH }));
+ipcMain.handle('app:info', () => ({ version: updates.currentVersion(), dataFile: store.FILE_PATH, packaged: app.isPackaged }));
 ipcMain.handle('app:reveal-data', () => { store.flush(); shell.showItemInFolder(store.FILE_PATH); });
 ipcMain.handle('app:export', async () => {
   const day = new Date().toISOString().slice(0, 10);
@@ -355,6 +357,39 @@ ipcMain.handle('app:reset-bounds', () => {
   settings.set({ bounds: b });
 });
 ipcMain.handle('app:quit', () => app.quit());
+
+// ─── Updates ─────────────────────────────────────────────────────────────────
+// The latest release newer than this ClearDay, once a check has found one.
+let update = null;
+
+// Tells the window about it, unless it was dismissed with Later.
+function offerUpdate() {
+  if (update && update.latest !== settings.get('skippedVersion') && win && !win.isDestroyed()) {
+    win.webContents.send('update:available', update);
+  }
+}
+
+function updateResult(r) {
+  if (r.available) { update = r; offerUpdate(); }
+}
+
+const sendToWin = (channel, payload) => { if (win && !win.isDestroyed()) win.webContents.send(channel, payload); };
+ipcMain.handle('update:check', async () => {
+  const r = await updates.check();
+  if (r.available) update = r;
+  return r;
+});
+// Preferences wants it even when dismissed; the notice only when not.
+ipcMain.handle('update:known', () => update && { ...update, skipped: update.latest === settings.get('skippedVersion') });
+ipcMain.handle('update:skip', (_e, version) => { setSetting({ skippedVersion: String(version) }); return true; });
+ipcMain.handle('update:install', () => {
+  if (!update) return false;
+  return updates.install(update.tag, {
+    onProgress: (step) => sendToWin('update:progress', step),
+    onFailed: (message) => sendToWin('update:failed', message),
+    beforeQuit: () => store.flush(),
+  });
+});
 
 // ─── Quick add (⌘⌘) ──────────────────────────────────────────────────────────
 initQuick({
@@ -421,6 +456,9 @@ if (!app.requestSingleInstanceLock()) {
   app.on('activate', showWindow);
   let stopBridge = () => {};
   app.on('before-quit', () => { quitting = true; store.flush(); stopQuick(); stopBridge(); });
+  // The installer (an update, or the one-line install) quits ClearDay with
+  // SIGTERM: quit properly, so the board is saved.
+  process.on('SIGTERM', () => app.quit());
 
   app.whenReady().then(async () => {
     app.setAboutPanelOptions({ applicationName: 'ClearDay', applicationVersion: app.getVersion() });
@@ -442,6 +480,9 @@ if (!app.requestSingleInstanceLock()) {
     // fired at midnight.
     powerMonitor.on('resume', () => win?.webContents.send('clock:resume'));
     powerMonitor.on('unlock-screen', () => win?.webContents.send('clock:resume'));
+    // A newer release? Checked soon after launch, then twice a day. A run
+    // from source checks only when pretending to be older.
+    if (app.isPackaged || process.env.CLEARDAY_VERSION_OVERRIDE) updates.schedule(updateResult);
     // Attachment files no note refers to any more, cleared once things settle.
     setTimeout(() => attachments.sweep(store.everything()), 15000);
   });
