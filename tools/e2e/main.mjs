@@ -150,9 +150,11 @@ async function run() {
   wc.send('settings', settings.all());
 
   // ── Moving the window from empty space ──
-  const board = await js(`(() => { const r = document.getElementById('board').getBoundingClientRect();
-    return { x: Math.round(r.left + r.width / 2), y: Math.round(r.bottom - 12) }; })()`);
-  check('the spot below the board\'s rows is empty space',
+  // With To Do on it the board fills the window; the side panel's Ongoing
+  // page has room to spare below its rows.
+  const board = await js(`(() => { const r = document.getElementById('side').getBoundingClientRect();
+    return { x: Math.round(r.left + r.width / 2), y: Math.round(r.bottom - 16) }; })()`);
+  check('the spot below the side panel\'s rows is empty space',
     await js(`!document.elementFromPoint(${board.x}, ${board.y}).closest('.row, button, input')`));
   wc.sendInputEvent({ type: 'mouseMove', x: board.x, y: board.y });
   wc.sendInputEvent({ type: 'mouseDown', x: board.x, y: board.y, globalX: 500, globalY: 500, button: 'left', clickCount: 1 });
@@ -599,6 +601,48 @@ async function run() {
   await sleep(500);
   check('and shows it again', settings.get('showSide') === true &&
     await js(`document.getElementById('side').getBoundingClientRect().width > 200`));
+  // ── Side panel: its width ──
+  {
+    const sideW = () => js(`document.getElementById('side').getBoundingClientRect().width`);
+    const drag = async (dx, dbl = false) => {
+      const r = await rect('#side-resizer');
+      wc.sendInputEvent({ type: 'mouseMove', x: r.x, y: r.y });
+      wc.sendInputEvent({ type: 'mouseDown', x: r.x, y: r.y, button: 'left', clickCount: 1 });
+      for (let i = 1; i <= 10; i++) { wc.sendInputEvent({ type: 'mouseMove', x: Math.round(r.x + dx * i / 10), y: r.y, button: 'left', modifiers: ['leftButtonDown'] }); await sleep(16); }
+      wc.sendInputEvent({ type: 'mouseUp', x: Math.round(r.x + dx), y: r.y, button: 'left', clickCount: 1 });
+      await sleep(450);
+    };
+    check('the resize handle sits in the gap between the board and the panel', await js(`(() => {
+      const h = document.getElementById('side-resizer').getBoundingClientRect(), x = (h.left + h.right) / 2;
+      const b = document.getElementById('board').getBoundingClientRect(), s = document.getElementById('side').getBoundingClientRect();
+      return x > b.right - 4 && x < s.left + 1 && getComputedStyle(document.getElementById('side-resizer')).cursor === 'col-resize'; })()`));
+    const w0 = await sideW();
+    moves.length = 0;
+    await drag(-60);
+    const w1 = await sideW();
+    check('dragging the edge left widens the panel, and the width is remembered', Math.abs(w1 - w0 - 60) <= 3 &&
+      Math.abs(settings.get('sideWidth') - w1) <= 2 && moves.length === 0, `${Math.round(w0)} → ${Math.round(w1)}, saved ${settings.get('sideWidth')}`);
+    await drag(-2000);
+    const mainW = await js(`document.getElementById('main').clientWidth - 24`);
+    check('it stops at 60% of the window', Math.abs(await sideW() - mainW * 0.6) <= 3, `${Math.round(await sideW())} of ${mainW}`);
+    await drag(140);
+    const kept = settings.get('sideWidth');
+    await drag(-80);
+    await drag(400);
+    check('dragged well past the minimum, the panel snaps closed and keeps its width', settings.get('showSide') === false &&
+      settings.get('sideWidth') === kept + 80,
+      `showSide ${settings.get('showSide')}, width ${settings.get('sideWidth')}`);
+    const keptW = settings.get('sideWidth');
+    await click('#sidebar-btn');
+    await sleep(500);
+    check('shown again, it comes back at that width', settings.get('showSide') === true && Math.abs(await sideW() - keptW) <= 2,
+      `${Math.round(await sideW())} vs ${keptW}`);
+    await click('#side-resizer', 2);
+    await sleep(450);
+    check('a double-click on the edge goes back to the default width', settings.get('sideWidth') === null && Math.abs(await sideW() - w0) <= 1,
+      `${Math.round(await sideW())} vs ${Math.round(w0)}`);
+  }
+
   check('the Ongoing | Done tabs are a switch whose knob slides to the chosen tab', await js(`(() => {
     const tabs = document.querySelector('.side-tabs'), knob = tabs.querySelector('.tab-knob');
     return tabs.dataset.active === 'ongoing' && getComputedStyle(knob).transform === 'none'; })()`));

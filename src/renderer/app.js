@@ -544,6 +544,73 @@ function showSidePanel(show) {
   sidebarBtn.title = show ? 'Hide the side panel' : 'Show the side panel';
 }
 
+// ─── Side panel: its width ───────────────────────────────────────────────────
+// The edge between the board and the panel drags the panel wider or
+// narrower, between SIDE_MIN and 60% of the window. Dragged well past the
+// minimum, the panel snaps closed (as the sidebar button would) and keeps
+// its last width for when it opens again. A double-click goes back to the
+// default width. Saved once, on release.
+const SIDE_MIN = 220;
+const SIDE_SNAP = 40;   // px past the minimum that close the panel
+const SIDE_GAP = 12;    // the gap between board and panel (#main's gap)
+const mainEl = document.getElementById('main');
+const resizer = document.getElementById('side-resizer');
+
+const sideEl = document.getElementById('side');
+
+function applySideWidth(w) {
+  if (Number.isFinite(w)) mainEl.style.setProperty('--side-w', `${Math.round(w)}px`);
+  else mainEl.style.removeProperty('--side-w');
+}
+
+// The handle sits centred in the gap left of the panel, wherever the panel's
+// edge is: after a drag, a window resize, or the panel's own transition.
+function placeResizer() {
+  resizer.style.left = `${sideEl.offsetLeft - SIDE_GAP / 2 - resizer.offsetWidth / 2}px`;
+}
+new ResizeObserver(placeResizer).observe(sideEl);
+new ResizeObserver(placeResizer).observe(mainEl);
+
+resizer.addEventListener('pointerdown', (e) => {
+  if (e.button !== 0 || state.compact || state.sideHidden) return;
+  e.preventDefault();
+  const box = mainEl.getBoundingClientRect();
+  const max = Math.max(SIDE_MIN, box.width * 0.6);
+  const startW = sideEl.getBoundingClientRect().width;
+  const startX = e.clientX;
+  let w = startW, closing = false;
+  resizer.setPointerCapture(e.pointerId);
+  pane.classList.add('resizing');
+  const move = (ev) => {
+    const want = startW + (startX - ev.clientX);
+    closing = want < SIDE_MIN - SIDE_SNAP;
+    w = Math.min(max, Math.max(SIDE_MIN, want));
+    applySideWidth(w);
+    pane.classList.toggle('side-snap', closing);
+  };
+  const up = () => {
+    resizer.removeEventListener('pointermove', move);
+    resizer.removeEventListener('pointerup', up);
+    resizer.removeEventListener('pointercancel', up);
+    pane.classList.remove('resizing', 'side-snap');
+    if (closing) {
+      applySideWidth(state.sideWidth);
+      api.settings.set({ showSide: false });
+    } else if (Math.abs(w - startW) >= 1) {
+      state.sideWidth = Math.round(w);
+      api.settings.set({ sideWidth: state.sideWidth });
+    }
+  };
+  resizer.addEventListener('pointermove', move);
+  resizer.addEventListener('pointerup', up);
+  resizer.addEventListener('pointercancel', up);
+});
+resizer.addEventListener('dblclick', () => {
+  state.sideWidth = null;
+  applySideWidth(null);
+  api.settings.set({ sideWidth: null });
+});
+
 // ─── Light / dark switch ─────────────────────────────────────────────────────
 // Flips the window to the other appearance. "System" stays in Preferences.
 const themeBtn = document.getElementById('theme-btn');
@@ -566,7 +633,7 @@ syncThemeSwitch();
 // The header is a native drag region. Anywhere else that isn't a control,
 // a row or a note moves the window too, once the pointer has travelled a few
 // points; a plain click there still deselects and closes things.
-const NOT_EMPTY = 'button, input, textarea, select, a, .row, .notes, .popover, #prefs, .toast, .grip, [contenteditable="true"]';
+const NOT_EMPTY = 'button, input, textarea, select, a, .row, .notes, .popover, #prefs, .toast, .grip, #side-resizer, [contenteditable="true"]';
 const MOVE_START_PX = 3;
 let justMoved = false;
 pane.addEventListener('pointerdown', (e) => {
@@ -865,6 +932,7 @@ function applySettings(s, { first = false } = {}) {
   state.collapsed = new Set(s.collapsed || []);
   if (s.notesTools !== state.notesTools) { state.notesTools = s.notesTools; if (!first) render(); }
   showSidePanel(s.showSide !== false);
+  if (s.sideWidth !== state.sideWidth || first) { state.sideWidth = s.sideWidth; applySideWidth(s.sideWidth); }
   const sortChanged = s.sort !== state.sort;
   const spellChanged = s.spellcheckNotes !== state.spellcheck;
   state.sort = s.sort;

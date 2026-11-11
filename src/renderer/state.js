@@ -15,6 +15,7 @@ export const state = {
   compact: false,
   side: 'ongoing',        // side tab showing: 'ongoing' | 'done'
   sideHidden: false,      // the side panel folded away (wide layout)
+  sideWidth: null,        // the side panel's dragged width in px; null is the default
   notesTools: 'open',     // the notes' formatting menu: 'open' | 'min'
   spellcheck: true,       // spelling in notes (Preferences)
 };

@@ -201,7 +201,9 @@ svg { display: block; }
   flex: 1; min-height: 0;
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) clamp(260px, 42%, 400px);
+  /* The side panel's width: dragged (--side-w, from Preferences' saved
+     sideWidth), never more than 60% of the window, else the default. */
+  grid-template-columns: minmax(0, 1fr) min(var(--side-w, clamp(260px, 42%, 400px)), 60%);
   gap: 12px;
   padding: 0 12px 12px;
 }
@@ -221,6 +223,28 @@ svg { display: block; }
    takes the width. */
 #main { transition: grid-template-columns var(--dur-move) var(--ease-out), gap var(--dur-move) var(--ease-out); }
 #pane.side-hidden:not(.compact) #main { grid-template-columns: minmax(0, 1fr) 0px; gap: 0; }
+
+/* The edge between board and panel: drag it to set the panel's width,
+   double-click it for the default. A hairline shows on hover. */
+/* Placed over the gap by app.js, which tracks the panel's left edge. */
+#side-resizer {
+  position: absolute; top: 0; bottom: 12px; left: 0; z-index: 7;
+  width: 10px;
+  cursor: col-resize;
+}
+#side-resizer::after {
+  content: ''; position: absolute; left: 50%; top: 8px; bottom: 8px; width: 2px; translate: -1px 0;
+  border-radius: 1px; background: var(--accent);
+  opacity: 0; transition: opacity var(--dur-fast) ease;
+}
+#side-resizer:hover::after, #pane.resizing #side-resizer::after { opacity: 0.35; }
+#pane.compact #side-resizer, #pane.side-hidden #side-resizer, #pane.selecting #side-resizer { display: none; }
+/* While dragging: the grid follows the pointer with no easing, and the
+   cursor stays a resize cursor wherever it wanders. */
+#pane.resizing #main { transition: none; }
+/* Dragged past the minimum: the panel fades to say it will close. */
+#pane.side-snap #side { opacity: 0.4; }
+#pane.resizing, #pane.resizing * { cursor: col-resize !important; user-select: none; }
 #pane.side-hidden:not(.compact) #side { opacity: 0; transform: translateX(30px); pointer-events: none; padding-left: 0; padding-right: 0; }
 #side {
   transition: opacity var(--dur-move) ease, transform var(--dur-move) var(--ease-out), padding var(--dur-move) var(--ease-out);
