@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ClearDay DMG background</title>
+<!-- The DMG window's background, 540 × 380 (main.mjs renders it at 1× and 2×).
+     Finder draws the two icons on the slots: their centres, (150, 144) and
+     (390, 144), must match build.dmg.contents in package.json. Colours are
+     the Light theme's (src/renderer/theme.css). -->
+<style>
+@font-face { font-family: Poppins; font-weight: 400; src: url(../../src/renderer/fonts/Poppins-Regular.ttf); }
+@font-face { font-family: Poppins; font-weight: 500; src: url(../../src/renderer/fonts/Poppins-Medium.ttf); }
+@font-face { font-family: Poppins; font-weight: 600; src: url(../../src/renderer/fonts/Poppins-SemiBold.ttf); }
+:root { --bg: #F5F0E0; --surface: #ECE6D3; --hairline: #E3DCC6; --raised: #FBF8EE;
+  --text: #111113; --text-dim: #6D6A60; --text-faint: #A8A292; }
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 540px; height: 380px; overflow: hidden; background: var(--bg); color: var(--text);
+  font-family: Poppins, sans-serif; -webkit-font-smoothing: antialiased; }
+
+h1 { position: absolute; top: 28px; left: 0; right: 0; text-align: center; font: 600 18px/26px Poppins; letter-spacing: -0.01em; }
+
+/* Where Finder puts the icons: 96 px icons centred at y 144, their names under them */
+.slot { position: absolute; top: 76px; width: 144px; height: 152px; border-radius: 26px; background: var(--surface); }
+.slot.app { left: 78px; }
+.slot.apps { left: 318px; }
+.arrow { position: absolute; left: 240px; top: 130px; width: 60px; height: 28px; }
+
+.note { position: absolute; left: 30px; right: 30px; top: 248px; height: 92px; padding: 13px 18px 0;
+  border-radius: 16px; background: var(--raised); box-shadow: inset 0 0 0 1px var(--hairline); }
+.q { font: 600 13px/18px Poppins; }
+.path { display: flex; align-items: center; gap: 6px; margin-top: 6px; font: 500 11.5px/1 Poppins; }
+.chip { padding: 5px 10px 4px; border-radius: 999px; background: var(--surface); }
+.sep { color: var(--text-dim); }
+.alt { margin-top: 11px; font: 400 11.5px/16px Poppins; color: var(--text-dim); }
+</style>
+</head>
+<body>
+<h1>Drag ClearDay into Applications</h1>
+<div class="slot app"></div>
+<svg class="arrow" viewBox="0 0 60 28" fill="none" stroke="#111113" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M4 14h50M43 4l11 10-11 10"/>
+</svg>
+<div class="slot apps"></div>
+<div class="note">
+  <div class="q">First time opening?</div>
+  <div class="path"><span class="chip">System Settings</span><span class="sep">→</span><span class="chip">Privacy &amp; Security</span><span class="sep">→</span><span class="chip">Open Anyway</span></div>
+  <div class="alt">Or skip this: install with one line in Terminal — see the README</div>
+</div>
+<script>
+// main.mjs waits for this before capturing
+window.artReady = Promise.all(['400', '500', '600'].map((w) => document.fonts.load(`${w} 12px Poppins`)))
+  .then(() => document.fonts.ready);
+</script>
+</body>
+</html>
