@@ -1042,7 +1042,7 @@ done
     wc.send('quick:status', 'permission');
     await sleep(200);
     const note = () => js(`(() => { const n = document.querySelector('#prefs .pref-note');
-      return { hidden: n.hidden, text: n.querySelector('.pref-hint').textContent, buttons: [...n.querySelectorAll('button')].filter((b) => !b.hidden).map((b) => b.textContent) }; })()`);
+      return { hidden: n.hidden, text: n.querySelector('.pref-hint').textContent, buttons: [...n.querySelectorAll('button')].filter((b) => b.getBoundingClientRect().width > 0).map((b) => b.textContent) }; })()`);
     let n = await note();
     check('waiting for permission, Preferences says so and offers both fixes', !n.hidden && /Waiting for permission/.test(n.text) &&
       n.buttons.join() === 'Open Input Monitoring…,Ask macOS again', JSON.stringify(n));
