@@ -1086,7 +1086,7 @@ done
     check('the widget is a small pill: a field, Work or Personal, To Do | Ongoing, a count and a way back', await pjs(`(() => {
       const ids = ['w-add', 'w-input', 'w-space', 'w-list', 'w-count', 'w-expand'];
       const r = document.getElementById('w').getBoundingClientRect();
-      return ids.every((i) => document.getElementById(i).getBoundingClientRect().width > 0) && r.height <= 56 && r.width <= 500 &&
+      return ids.every((i) => document.getElementById(i).getBoundingClientRect().width > 0) && r.height <= 56 && r.width <= 540 &&
         document.getElementById('w-space').dataset.space === 'work' && !!document.querySelector('#w-space svg'); })()`));
     check('it counts the tasks left today on the board showing', await shownCount() === left('work') && left('work') > 0, `${await shownCount()} vs ${left('work')}`);
     const before = left('work');

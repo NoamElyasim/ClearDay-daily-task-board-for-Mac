@@ -180,9 +180,9 @@ const SHOTS = {
       await new Promise((r) => setTimeout(r, 400)); document.querySelector('.notes-editor').scrollTop = 1e4; 1 })()`);
   } },
   // The widget: ClearDay as a small pill, a task typed in.
-  'widget-dark': { theme: 'dark', width: 520, height: 120, html: 'widget.html', preload: 'widget-preload.cjs', setup: (js) => js(`(() => {
+  'widget-dark': { theme: 'dark', width: 480, height: 40, html: 'widget.html', preload: 'widget-preload.cjs', setup: (js) => js(`(() => {
     const i = document.getElementById('w-input'); i.value = 'Send the invoice to Dana'; return 1; })()`) },
-  'widget-light': { theme: 'light', width: 520, height: 120, html: 'widget.html', preload: 'widget-preload.cjs', prefs: { space: 'personal' } },
+  'widget-light': { theme: 'light', width: 480, height: 40, html: 'widget.html', preload: 'widget-preload.cjs', prefs: { space: 'personal' } },
   // A tooltip: the pointer resting on the header's hide button.
   'tooltip-light': { theme: 'light', width: 780, height: 560, setup: async (js, win) => {
     const r = await js(`(() => { const b = document.getElementById('hide-btn').getBoundingClientRect(); return { x: Math.round(b.x + b.width / 2), y: Math.round(b.y + b.height / 2) }; })()`);
