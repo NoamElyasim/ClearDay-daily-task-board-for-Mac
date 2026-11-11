@@ -4,7 +4,7 @@
 import { app } from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
-import { SORTS } from '../shared/model.mjs';
+import { SORTS, SPACES } from '../shared/model.mjs';
 import { parseShortcut } from '../shared/shortcut.mjs';
 
 const FILE = path.join(app.getPath('userData'), 'settings.json');
@@ -23,6 +23,7 @@ const DEFAULTS = {
   showWeekday: true,
   // Preferences → Behavior
   spellcheckNotes: true,
+  space: 'work',        // the board showing: 'work' | 'personal'
   sidePanel: 'ongoing', // side tab showing: 'ongoing' | 'done'
   collapsed: [],        // folded sections (board, Ongoing tab), as 'list:status' keys
   showSide: true,       // the side panel (Ongoing | Done) in the wide layout
@@ -43,6 +44,7 @@ const VALID = {
   textSize: (v) => ['small', 'medium', 'large'].includes(v),
   showWeekday: (v) => typeof v === 'boolean',
   spellcheckNotes: (v) => typeof v === 'boolean',
+  space: (v) => SPACES.includes(v),
   sidePanel: (v) => ['ongoing', 'done'].includes(v),
   sideWidth: (v) => v === null || (Number.isFinite(v) && v >= 160 && v <= 1600),
   showSide: (v) => typeof v === 'boolean',

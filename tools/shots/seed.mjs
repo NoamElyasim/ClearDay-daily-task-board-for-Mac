@@ -26,11 +26,18 @@ const ROWS = [
   { text: 'Brand guidelines v2', status: 'awaiting_approval', list: 'ongoing' },
   { text: 'Plan the 2027 trade show calendar', status: 'todo', list: 'ongoing' },
   { text: 'New office signage', status: 'done', list: 'ongoing' },
+  // The Personal board.
+  { text: 'Book the dentist', status: 'todo', priority: 'medium', space: 'personal' },
+  { text: 'Pick up the dry cleaning', status: 'todo', space: 'personal' },
+  { text: 'Renew the car insurance', boldWords: ['car insurance'], status: 'in_progress', priority: 'high', space: 'personal',
+    notes: 'Compare two quotes before Friday.' },
+  { text: 'Plan the summer trip', status: 'in_progress', list: 'ongoing', space: 'personal' },
+  { text: 'Pay the electricity bill', status: 'done', space: 'personal' },
 ];
 
 export function seedTasks(base = Date.parse('2026-10-26T07:00:00Z')) {
   return ROWS.map((r, i) => {
-    const t = createTask({ text: r.text, bold: (r.boldWords || []).map((w) => word(r.text, w)), status: r.status, priority: r.priority || null, list: r.list || 'today', order: i + 1 },
+    const t = createTask({ text: r.text, bold: (r.boldWords || []).map((w) => word(r.text, w)), status: r.status, priority: r.priority || null, list: r.list || 'today', space: r.space || 'work', order: i + 1 },
       base + i * 60000);
     return r.notes ? applyPatch(t, { notes: r.notes }, base + i * 60000) : t;
   });

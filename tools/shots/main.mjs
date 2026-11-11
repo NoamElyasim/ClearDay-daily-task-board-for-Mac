@@ -141,6 +141,8 @@ const SHOTS = {
   'priority-picker-light': { theme: 'light', width: 780, height: 560, setup: clickFirst('#sections [data-action="priority"]') },
   'editing-dark': { theme: 'dark', width: 780, height: 560, setup: (js) => js(`cleardayDebug.startEdit(${firstId}); 1`) },
   'ongoing-dark': { theme: 'dark', width: 780, height: 560, prefs: { sidePanel: 'ongoing' } },
+  'spaces-light': { theme: 'light', width: 780, height: 560, prefs: { space: 'personal' } },
+  'spaces-compact-dark': { theme: 'dark', width: 420, height: 600, prefs: { space: 'personal' } },
   'done-light': { theme: 'light', width: 780, height: 560, prefs: { sidePanel: 'done' } },
   'ongoing-compact-light': { theme: 'light', width: 420, height: 600, prefs: { sidePanel: 'ongoing' },
     setup: (js) => js('cleardayDebug.setDrawer(true); 1') },

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   normalizeRanges, toggleBold, isRangeBold, segments, fromSegments, trimRich,
   createTask, applyPatch, validateTask, migrate, arrangeBoard, arrangeOngoing, arrangeDone, orderBetween, nextOrder,
-  attachmentFiles, plainToHtml, ATT_FILE,
+  attachmentFiles, plainToHtml, ATT_FILE, SPACES,
   TOMBSTONE_TTL_MS,
 } from '../src/shared/model.mjs';
 
@@ -236,4 +236,28 @@ test('attachments: found in a note, and kept when plain notes replace it', () =>
 test('plainToHtml: bullets and escaping', () => {
   assert.equal(plainToHtml('a <b>\n- one\n- two\nend'), '<div>a &lt;b&gt;</div><ul><li>one</li><li>two</li></ul><div>end</div>');
   assert.equal(plainToHtml(''), '');
+});
+
+test('space: Work by default, validated, and each board shows only its own', () => {
+  assert.deepEqual(SPACES, ['work', 'personal']);
+  assert.equal(createTask({ text: 'x' }).space, 'work');
+  assert.equal(createTask({ space: 'personal' }).space, 'personal');
+  assert.equal(createTask({ space: 'bogus' }).space, 'work');
+  // Tasks saved before 0.10 have no space.
+  assert.equal(validateTask({ id: 'a', text: 'old' }).space, 'work');
+  const p = applyPatch(createTask({ text: 'x' }), { space: 'personal' });
+  assert.equal(p.space, 'personal');
+  assert.equal(applyPatch(p, { space: 'nope' }).space, 'personal');
+
+  const at = (id, status, space, list = 'today') => ({ ...mk(id, status, 1), space, list });
+  const tasks = [at('w', 'todo', 'work'), at('p', 'todo', 'personal'), at('wo', 'in_progress', 'work', 'ongoing'),
+    at('po', 'in_progress', 'personal', 'ongoing'), at('wd', 'done', 'work'), at('pd', 'done', 'personal', 'ongoing')];
+  const ids = (sections) => sections.flatMap((s) => s.tasks.map((t) => t.id));
+  assert.deepEqual(ids(arrangeBoard(tasks, 'default', 'work')), ['w']);
+  assert.deepEqual(ids(arrangeBoard(tasks, 'default', 'personal')), ['p']);
+  assert.deepEqual(ids(arrangeBoard(tasks, 'default')).sort(), ['p', 'w']);
+  assert.deepEqual(ids(arrangeOngoing(tasks, 'default', 'personal')), ['po']);
+  assert.deepEqual(arrangeDone(tasks, 'work').map((t) => t.id), ['wd']);
+  assert.deepEqual(arrangeDone(tasks, 'personal').map((t) => t.id), ['pd']);
+  assert.equal(arrangeDone(tasks).length, 2);
 });

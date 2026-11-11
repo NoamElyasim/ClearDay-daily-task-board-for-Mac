@@ -110,6 +110,37 @@ svg { display: block; }
 #bar.adding #search, #bar.searching #add { flex-basis: 0px; opacity: 0; margin-left: -8px; pointer-events: none; }
 .opener.open { box-shadow: inset 0 0 0 1.5px var(--accent); }
 
+/* Work | Personal, at the row's far end: a switch whose knob slides behind
+   the board showing. Icons with their names; icons alone when the window is
+   narrow, and folded away there while Add or Search has the row. */
+#space {
+  position: relative; flex: none; display: flex; margin-left: auto;
+  height: 36px; padding: 3px;
+  border-radius: var(--radius-control); background: var(--surface);
+  transition: opacity 220ms ease, margin 420ms var(--ease-out);
+}
+#space .knob {
+  position: absolute; left: 3px; top: 3px; bottom: 3px; width: var(--space-w);
+  border-radius: var(--radius-control); background: var(--accent);
+  transition: transform var(--dur-move) var(--ease-out);
+}
+#space { --space-w: 92px; }
+#space[data-space="personal"] .knob { transform: translateX(100%); }
+.space-opt {
+  position: relative; display: flex; align-items: center; justify-content: center; gap: 6px;
+  width: var(--space-w); height: 30px; border-radius: var(--radius-control);
+  font-size: 12px; font-weight: 500; color: var(--text-dim);
+  transition: color var(--dur-move) ease;
+}
+.space-opt svg { width: 14px; height: 14px; }
+.space-opt:not([aria-checked="true"]):hover { color: var(--text); }
+.space-opt[aria-checked="true"] { color: var(--accent-text); }
+#pane.compact #space { --space-w: 34px; }
+#pane.compact .space-label { display: none; }
+#pane.compact #bar.adding #space, #pane.compact #bar.searching #space {
+  opacity: 0; pointer-events: none; margin-left: calc(-2 * var(--space-w) - 14px);
+}
+
 /* The closed face: a pill to press. */
 .opener-face {
   position: absolute; inset: 0; display: flex; align-items: center; justify-content: flex-start; gap: 8px;
@@ -292,7 +323,7 @@ svg { display: block; }
 
 /* The Ongoing tab groups its projects under smaller headings than the
    board's. */
-.side-sections .section + .section { margin-top: 12px; }
+
 .side-sections .section-head { font-size: 11px; padding-bottom: 6px; }
 .side-sections .fold { width: 18px; height: 18px; }
 /* The Done tab: Clear done above the list. */
@@ -341,7 +372,10 @@ svg { display: block; }
 .count { color: var(--text-dim); font-weight: 400; font-variant-numeric: tabular-nums; }
 .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--fill); }
 
-.section + .section { margin-top: 16px; }
+/* A gap rather than a margin: a hidden (empty) first section then leaves no
+   space above the one that shows. */
+#sections, .side-sections { display: flex; flex-direction: column; gap: 16px; }
+.side-sections { gap: 12px; }
 /* Empty sections stay out of the way, except while dragging, when they are
    drop targets. */
 .section.is-empty { display: none; }
@@ -481,7 +515,7 @@ svg { display: block; }
 #board { position: relative; }
 #board-tools { position: absolute; top: 6px; right: 8px; z-index: 5; display: flex; gap: 4px; }
 /* The first heading never runs under them: its title gives way instead. */
-#board-tools:not(.flat) ~ #sections > .section:first-child .section-head { padding-right: calc(var(--tools-w, 0px) + 14px); }
+#board-tools:not(.flat) ~ #sections > .section:not(.is-empty):not(.section:not(.is-empty) ~ .section) .section-head { padding-right: calc(var(--tools-w, 0px) + 14px); }
 .section-head .title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .section-head .count { flex: none; }
 #board.is-empty #board-tools { display: none; }

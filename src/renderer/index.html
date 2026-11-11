@@ -43,6 +43,16 @@
       </button>
       <input id="search-input" type="text" placeholder="Search tasks…" spellcheck="false" aria-label="Search tasks" tabindex="-1">
     </div>
+    <!-- Work | Personal: two separate boards. The whole window follows the one chosen. -->
+    <div id="space" role="radiogroup" aria-label="Work or Personal" data-space="work">
+      <span class="knob"></span>
+      <button type="button" class="space-opt" data-space="work" role="radio" title="Your work board" aria-label="Work">
+        <span class="space-icon"></span><span class="space-label">Work</span>
+      </button>
+      <button type="button" class="space-opt" data-space="personal" role="radio" title="Your personal board" aria-label="Personal">
+        <span class="space-icon"></span><span class="space-label">Personal</span>
+      </button>
+    </div>
     <div id="search-results" role="listbox" aria-label="Search results"></div>
   </div>
 
@@ -55,7 +65,7 @@
         <button id="select-btn" class="tool-btn"><span class="tool-icon"></span><span class="tool-label"></span></button>
       </div>
       <div id="sections"></div>
-      <div id="board-empty" class="empty">Nothing on today's board yet.<br>Add a task to start your day.</div>
+      <div id="board-empty" class="empty"></div>
     </section>
 
     <aside id="side" class="panel" aria-label="Ongoing and Done">

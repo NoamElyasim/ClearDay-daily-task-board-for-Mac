@@ -103,3 +103,28 @@ test('server: speaks MCP over stdio', async () => {
   proc.kill();
   assert.equal(JSON.parse(fs.readFileSync(path.join(dir, 'tasks.json'), 'utf8')).tasks[0].text, 'Ship 0.6.0');
 });
+
+test('tools: Work and Personal are separate boards', async () => {
+  const b = fileBackend(tmp());
+  const w = await callTool('add_task', { text: 'Send the quote' }, b);
+  assert.equal(w.data.space, 'work');
+  const p = await callTool('add_task', { text: 'Book the dentist', space: 'personal', list: 'ongoing' }, b);
+  assert.equal(p.data.space, 'personal');
+  assert.match(p.text, /Added to Personal · Ongoing/);
+
+  const all = await callTool('list_tasks', {}, b);
+  assert.match(all.text, /Work · Today \(1\)[\s\S]*Send the quote[\s\S]*Personal · Ongoing \(1\)[\s\S]*Book the dentist/);
+  assert.deepEqual((await callTool('list_tasks', { space: 'personal' }, b)).data.map((t) => t.text), ['Book the dentist']);
+  assert.equal((await callTool('list_tasks', { space: 'work' }, b)).data.length, 1);
+
+  const moved = await callTool('update_task', { id: w.data.id, space: 'personal' }, b);
+  assert.equal(moved.data.space, 'personal');
+  assert.match(moved.text, /moved to Personal · Today/);
+  assert.match((await callTool('search_tasks', { query: 'quote' }, b)).text, /Personal · Today/);
+  await assert.rejects(callTool('add_task', { text: 'x', space: 'home' }, b), /space must be one of/);
+
+  // With nothing personal, the Personal board is left out of a full listing.
+  const only = fileBackend(tmp());
+  await callTool('add_task', { text: 'Only work' }, only);
+  assert.doesNotMatch((await callTool('list_tasks', {}, only)).text, /Personal/);
+});

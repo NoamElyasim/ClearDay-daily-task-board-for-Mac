@@ -207,8 +207,8 @@ async function run() {
   // ── Status ──
   await click(`${taskSel(id)} .status-btn`);
   const picker = await js(`[...document.querySelectorAll('.popover .pop-item')].map((b) => b.textContent)`);
-  check('the status picker lists 5 statuses and Move to Ongoing', picker.length === 6 &&
-    picker.some((t) => t.includes('Awaiting Approval')) && picker[5].includes('Move to Ongoing'), picker.join(' | '));
+  check('the status picker lists 5 statuses, Move to Ongoing and Move to Personal', picker.length === 7 &&
+    picker.some((t) => t.includes('Awaiting Approval')) && picker[5].includes('Move to Ongoing') && picker[6].includes('Move to Personal'), picker.join(' | '));
   await js(`[...document.querySelectorAll('.popover .pop-item')].find((b) => b.textContent.includes('In Progress')).classList.add('e2e')`);
   await click('.popover .pop-item.e2e');
   await sleep(400);
@@ -500,7 +500,7 @@ async function run() {
   check('the Done tab shows the finished tasks of both lists, and is remembered', settings.get('sidePanel') === 'done' &&
     await js(`document.querySelector('[data-page="done"]').classList.contains('active') &&
       !document.querySelector('#sections .task[data-status="done"]') &&
-      [...document.querySelectorAll('[data-page="done"] .task')].length === ${store.list().filter((x) => x.status === 'done').length}`));
+      [...document.querySelectorAll('[data-page="done"] .task')].length === ${store.list().filter((x) => x.status === 'done' && x.space === 'work').length}`));
   check('a finished ongoing project carries an Ongoing tag; today\'s don\'t', await js(`(() => {
     const shown = (t) => getComputedStyle(t.querySelector('.list-tag')).display !== 'none';
     const rows = [...document.querySelectorAll('[data-page="done"] .task')];
@@ -590,10 +590,12 @@ async function run() {
 
   // Clear done: every finished task goes, with one Undo.
   {
-    const doneIds = store.list().filter((x) => x.status === 'done').map((x) => x.id);
+    const doneIds = store.list().filter((x) => x.status === 'done' && x.space === 'work').map((x) => x.id);
+    const personalDone = store.list().filter((x) => x.status === 'done' && x.space === 'personal').map((x) => x.id);
     await click('#clear-done-btn');
     await sleep(500);
-    check('Clear done deletes every done task, from both lists', doneIds.length >= 3 && doneIds.every((x) => !task(x)) &&
+    check('Clear done deletes every done task of this board, from both lists, and leaves the other board\'s', doneIds.length >= 3 && doneIds.every((x) => !task(x)) &&
+      personalDone.length >= 1 && personalDone.every((x) => !!task(x)) &&
       await js(`document.querySelector('[data-page="done"]').classList.contains('is-empty')`), `${doneIds.length} done`);
     await click('.toast button');
     await sleep(500);
@@ -677,7 +679,7 @@ async function run() {
   await type('booth');
   await sleep(150);
   const found = await js(`[...document.querySelectorAll('#search-results .result')].map((b) => b.textContent)`);
-  check('results appear while typing, from both text and notes', found.length >= 2 && found.every((t) => /booth/i.test(t.split('To Do ·')[0].split('Ongoing ·')[0]) || /in notes/.test(t)) && found.some((t) => /in notes/.test(t)), found.join(' | '));
+  check('results appear while typing, from both text and notes', found.length >= 2 && found.every((t) => /booth/i.test(t.split(/(?:Work|Personal) · /)[0]) || /in notes/.test(t)) && found.some((t) => /in notes/.test(t)), found.join(' | '));
   const firstHit = store.list().filter((x) => /booth/i.test(x.text) || /booth/i.test(x.notes))
     .find((x) => found[0].startsWith(x.text));
   await key('Enter');
@@ -913,6 +915,60 @@ done
       rs.every((r) => Math.abs(r.bottom - innerHeight) < 1) && bg[0] === bg[1] && !hits; })()`));
   win.setSize(780, 560);
   await sleep(500);
+
+  // ── Work | Personal: two separate boards ──
+  {
+    const shown = () => js(`[...document.querySelectorAll('#sections .task, #side .side-page .task')].map((e) => e.dataset.id)`);
+    check('the board starts on Work, showing only work tasks', settings.get('space') === 'work' &&
+      (await shown()).every((x) => task(x).space === 'work') && await js(`document.getElementById('space').dataset.space === 'work'`));
+    await click('.space-opt[data-space="personal"]');
+    await sleep(500);
+    const personal = await shown();
+    check('Personal shows its own board, Ongoing and Done, and is remembered', settings.get('space') === 'personal' &&
+      personal.length >= 3 && personal.every((x) => task(x).space === 'personal') &&
+      await js(`document.querySelector('.space-opt[data-space="personal"]').getAttribute('aria-checked') === 'true' &&
+        document.querySelector('.side-tab[data-tab="ongoing"] .count').textContent === '1'`), personal.length + ' rows');
+    await click('#add-open');
+    await sleep(450);
+    await type('Water the plants');
+    await key('Enter');
+    await key('Escape');
+    const plant = byText('Water the plants');
+    check('a task added on Personal is a personal task', plant?.space === 'personal' && plant?.list === 'today' &&
+      await js(`!!document.querySelector('#sections ${taskSel(plant?.id)}')`));
+    await click('.space-opt[data-space="work"]');
+    await sleep(500);
+    check('back on Work, it is not on the board', await js(`!document.querySelector('${taskSel(plant.id)}')`) &&
+      (await shown()).every((x) => task(x).space === 'work'));
+    // Search covers both boards; going to a result switches board.
+    await click('#search-open');
+    await sleep(450);
+    await type('plants');
+    await sleep(200);
+    const hit = await js(`document.querySelector('#search-results .result')?.textContent`);
+    await key('Enter');
+    await sleep(600);
+    check('search finds the other board\'s task, names its board, and going to it switches', /Personal · To Do/.test(hit || '') &&
+      settings.get('space') === 'personal' && await js(`document.querySelector('${taskSel(plant.id)} .row')?.classList.contains('selected')`), hit);
+    // Move to Work, from the status picker.
+    await click(`${taskSel(plant.id)} .status-btn`);
+    await js(`[...document.querySelectorAll('.popover .pop-item')].find((b) => b.textContent.includes('Move to Work')).classList.add('e2e')`);
+    await click('.popover .pop-item.e2e');
+    await sleep(500);
+    check('Move to Work takes it off this board and onto the other', task(plant.id).space === 'work' && task(plant.id).status === 'todo' &&
+      await js(`!document.querySelector('${taskSel(plant.id)}') && [...document.querySelectorAll('.toast span')].some((x) => x.textContent === 'Moved to Work')`));
+    await click('.space-opt[data-space="work"]');
+    await sleep(500);
+    check('and there it is, on Work', await js(`!!document.querySelector('#sections ${taskSel(plant.id)}')`));
+    // Narrow: the switch keeps its icons and drops the names.
+    win.setSize(480, 560);
+    await sleep(600);
+    check('in the narrow layout the switch shows icons only, inside the row', await js(`(() => {
+      const sw = document.getElementById('space').getBoundingClientRect();
+      return getComputedStyle(document.querySelector('.space-label')).display === 'none' && sw.width < 90 && sw.right <= innerWidth - 8; })()`));
+    win.setSize(780, 560);
+    await sleep(500);
+  }
 
   // ── Updates ──
   {

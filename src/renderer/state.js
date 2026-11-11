@@ -13,6 +13,7 @@ export const state = {
   openNotes: new Set(),   // the id whose notes panel is open (one at most)
   collapsed: new Set(),   // folded sections (board and Ongoing tab), as 'list:status' keys
   compact: false,
+  space: 'work',          // the board showing: 'work' | 'personal'
   side: 'ongoing',        // side tab showing: 'ongoing' | 'done'
   sideHidden: false,      // the side panel folded away (wide layout)
   sideWidth: null,        // the side panel's dragged width in px; null is the default

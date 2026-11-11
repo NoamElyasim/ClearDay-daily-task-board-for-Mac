@@ -394,11 +394,12 @@ ipcMain.handle('update:install', () => {
 // ─── Quick add (⌘⌘) ──────────────────────────────────────────────────────────
 initQuick({
   add: (fields) => {
-    const t = store.create({ text: String(fields?.text || '').trim(), status: 'todo', list: fields?.list, priority: fields?.priority ?? null });
+    const t = store.create({ text: String(fields?.text || '').trim(), status: 'todo', list: fields?.list, priority: fields?.priority ?? null, space: fields?.space });
     tasksChangedElsewhere();
     return t;
   },
   statusChanged: (s) => { if (win && !win.isDestroyed()) win.webContents.send('quick:status', s); },
+  space: () => settings.get('space'),
 });
 ipcMain.handle('quick:add', (_e, fields) => quickAdd(fields));
 ipcMain.on('quick:hidden', () => quickHidden());

@@ -36,6 +36,17 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 #q-prio[data-priority="high"] .mark { background: var(--priority-high); box-shadow: inset 0 0 0 1px var(--bookmark-keyline); }
 #q-prio.bump .mark { transform: translateY(2px); }
 
+/* Work or Personal: the briefcase or the house, in a round button. */
+#q-space {
+  flex: none; width: 32px; height: 32px; border-radius: 50%;
+  background: var(--surface); color: var(--text);
+  transition: background-color var(--dur-fast) ease, color var(--dur-fast) ease, transform 220ms var(--ease-out);
+}
+#q-space:hover { background: var(--accent); color: var(--accent-text); }
+#q-space svg { width: 16px; height: 16px; }
+#q-space.bump { animation: q-bump 260ms var(--ease-out); }
+@keyframes q-bump { 40% { transform: scale(1.18); } }
+
 /* To Do | Ongoing: a switch whose knob slides behind the chosen word. */
 #q-list {
   position: relative; flex: none; display: flex; width: 140px; height: 32px; padding: 3px;

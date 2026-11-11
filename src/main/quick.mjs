@@ -32,10 +32,12 @@ let registered = null;          // the accelerator held with globalShortcut
 let status = 'off';             // 'off' | 'starting' | 'permission' | 'ready' | 'missing' | 'taken'
 let onStatus = () => {};
 let addTask = () => {};
+let currentSpace = () => 'work';   // the board ClearDay shows: the bar starts on it
 
-export function initQuick({ add, statusChanged }) {
+export function initQuick({ add, statusChanged, space }) {
   addTask = add;
   onStatus = statusChanged;
+  if (space) currentSpace = space;
 }
 
 export const quickStatus = () => status;
@@ -145,7 +147,7 @@ function place() {
 export function showQuick() {
   if (!panel) createPanel();
   place();
-  panel.webContents.send('quick:show', { dark: nativeTheme.shouldUseDarkColors });
+  panel.webContents.send('quick:show', { dark: nativeTheme.shouldUseDarkColors, space: currentSpace() });
   panel.show();
   panel.focus();
 }

@@ -291,15 +291,20 @@ function play(before) {
   }
 }
 
+const EMPTY_BOARD = {
+  work: 'Nothing on today\'s board yet.\nAdd a task to start your day.',
+  personal: 'Nothing personal on today\'s board yet.\nAdd a task to start.',
+};
+
 // The board always shows today: To Do, In Progress, Awaiting Approval and On
 // Hold. The side panel holds the ongoing projects (grouped the same way) and,
 // in its other tab, everything finished, from both lists.
 export function render({ animate = false } = {}) {
   const before = animate ? snapshot() : null;
   const all = [...state.tasks.values()];
-  const sections = arrangeBoard(all, state.sort);
-  const ongoing = arrangeOngoing(all, state.sort);
-  const done = arrangeDone(all);
+  const sections = arrangeBoard(all, state.sort, state.space);
+  const ongoing = arrangeOngoing(all, state.sort, state.space);
+  const done = arrangeDone(all, state.space);
 
   pane.classList.toggle('can-drag', canDrag(state.sort));
   ensureSkeleton(sectionsEl, sections, 'today');
@@ -310,6 +315,7 @@ export function render({ animate = false } = {}) {
 
   const boardCount = sections.reduce((n, s) => n + s.tasks.length, 0);
   boardEl.classList.toggle('is-empty', boardCount === 0);
+  document.getElementById('board-empty').innerText = EMPTY_BOARD[state.space];
   const counts = { ongoing: ongoing.reduce((n, s) => n + s.tasks.length, 0), done: done.length };
   for (const tab of ['ongoing', 'done']) {
     sideEl.querySelector(`[data-page="${tab}"]`).classList.toggle('is-empty', counts[tab] === 0);
@@ -358,7 +364,7 @@ function renderTools(sections) {
 }
 
 // The keys of the board's sections that have tasks to fold.
-export function foldableKeys(sections = arrangeBoard([...state.tasks.values()], state.sort)) {
+export function foldableKeys(sections = arrangeBoard([...state.tasks.values()], state.sort, state.space)) {
   return sections.filter((s) => s.status && s.tasks.length).map((s) => `today:${s.status}`);
 }
 

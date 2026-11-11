@@ -2,7 +2,7 @@
 // pickers, notes, delete with undo, drag and drop, preferences, and the
 // keyboard.
 import {
-  STATUSES, STATUS_LABELS, PRIORITIES, toggleBold, trimRich, orderBetween, arrangeDone,
+  STATUSES, STATUS_LABELS, PRIORITIES, SPACES, SPACE_LABELS, toggleBold, trimRich, orderBetween, arrangeDone,
 } from '../shared/model.mjs';
 import { state, load, changed, onChange, createTask, updateTask, removeTask, restoreTask } from './state.js';
 import { initBoard, render, taskEl, textEl, visibleOrder, showSide, foldableKeys } from './board.js';
@@ -73,6 +73,35 @@ function setSide(tab, { save = true } = {}) {
   if (save) api.settings.set({ sidePanel: tab });
 }
 
+// ─── Work | Personal ─────────────────────────────────────────────────────────
+// Two separate boards. The switch at the end of the Add | Search row picks
+// the one the whole window shows: today's board, Ongoing, Done, their
+// counts, and where Add puts a new task. Whatever was open or selected on
+// the board being left is closed first.
+const spaceEl = document.getElementById('space');
+for (const opt of spaceEl.querySelectorAll('.space-opt')) {
+  opt.querySelector('.space-icon').innerHTML = ICONS[opt.dataset.space];
+  opt.addEventListener('click', () => setSpace(opt.dataset.space));
+}
+
+function setSpace(space, { save = true, draw = true } = {}) {
+  if (!SPACES.includes(space)) return;
+  const changedSpace = space !== state.space;
+  if (changedSpace) {
+    if (state.editingId) commitEdit();
+    for (const id of [...state.openNotes]) closeNotes(id, { draw: false });
+    state.selectedId = null;
+    state.selecting = false;
+    state.picked.clear();
+    closePopover();
+  }
+  state.space = space;
+  spaceEl.dataset.space = space;
+  for (const opt of spaceEl.querySelectorAll('.space-opt')) opt.setAttribute('aria-checked', String(opt.dataset.space === space));
+  if (changedSpace && draw && state.tasks.size) render({ animate: true });
+  if (save && changedSpace) api.settings.set({ space });
+}
+
 // ─── Add and Search: buttons that open into bars ─────────────────────────────
 // Pressing one widens it across the row and turns it into its field, with
 // the caret already in; the other folds away. Esc, or leaving it empty,
@@ -126,7 +155,7 @@ addForm.addEventListener('submit', async (e) => {
   addInput.value = '';
   addInput.focus();   // stays open for the next one
   const list = addList.getAttribute('aria-checked') === 'true' ? 'ongoing' : 'today';
-  await createTask({ text, status: 'todo', list });
+  await createTask({ text, status: 'todo', list, space: state.space });
   // An ongoing task lands in the side panel, on its Ongoing tab. Folded
   // away, the drawer's tab nods, or a toast says where it went.
   if (list === 'ongoing') setSide('ongoing');
@@ -278,6 +307,21 @@ function moveItem(task) {
     : { label: 'Move to Ongoing', icon: ICONS.sort, onPick: () => moveList(task.id, 'ongoing') };
 }
 
+// Work ↔ Personal, keeping its list and status. It leaves the board showing.
+async function moveSpace(id, space) {
+  const t = await updateTask(id, { space });
+  if (!t) return;
+  if (state.selectedId === id) state.selectedId = null;
+  state.openNotes.delete(id);
+  render({ animate: true });
+  showToast(`Moved to ${SPACE_LABELS[space]}`, { duration: 2500 });
+}
+
+function moveSpaceItem(task) {
+  const to = (task.space || 'work') === 'work' ? 'personal' : 'work';
+  return { label: `Move to ${SPACE_LABELS[to]}`, icon: ICONS[to], onPick: () => moveSpace(task.id, to) };
+}
+
 function statusItems(task) {
   return [
     ...STATUSES.map((s) => ({
@@ -288,6 +332,7 @@ function statusItems(task) {
     })),
     { sep: true },
     moveItem(task),
+    moveSpaceItem(task),
   ];
 }
 
@@ -306,6 +351,7 @@ function moreItems(task) {
     { label: 'Bold', icon: ICONS.bold, onPick: () => toggleBoldFor(task.id) },
     { sep: true },
     moveItem(task),
+    moveSpaceItem(task),
     { label: 'Delete', icon: ICONS.trash, danger: true, onPick: () => deleteTask(task.id) },
   ];
 }
@@ -451,7 +497,7 @@ document.getElementById('delete-picked-btn').addEventListener('click', deletePic
 const clearDoneBtn = document.getElementById('clear-done-btn');
 clearDoneBtn.querySelector('.tool-icon').innerHTML = ICONS.trash;
 clearDoneBtn.title = 'Delete every done task';
-clearDoneBtn.addEventListener('click', () => deleteTasks(arrangeDone([...state.tasks.values()]).map((t) => t.id)));
+clearDoneBtn.addEventListener('click', () => deleteTasks(arrangeDone([...state.tasks.values()], state.space).map((t) => t.id)));
 
 // Collapse every section, or Expand them all once every one is folded.
 document.getElementById('fold-all-btn').addEventListener('click', () => {
@@ -759,7 +805,8 @@ function showResults(list, q = '') {
     }
     const meta = Object.assign(document.createElement('span'), {
       className: 'result-meta',
-      textContent: `${t.list === 'ongoing' ? 'Ongoing' : 'To Do'} · ${STATUS_LABELS[t.status]}${i < 0 ? ' · in notes' : ''}`,
+      // Its board, "Ongoing" for a long-term project, and its status.
+      textContent: `${SPACE_LABELS[t.space || 'work']} · ${t.list === 'ongoing' ? 'Ongoing · ' : ''}${STATUS_LABELS[t.status]}${i < 0 ? ' · in notes' : ''}`,
     });
     b.append(Object.assign(document.createElement('span'), { className: 'dot' }), text, meta);
     b.addEventListener('mousedown', (e) => e.preventDefault());   // keep the field's focus
@@ -782,6 +829,7 @@ function revealTask(id) {
   const t = state.tasks.get(id);
   closeSearch();
   if (!t) return;
+  setSpace(t.space || 'work', { draw: false });
   const list = t.list || 'today';
   const inSide = t.status === 'done' || list === 'ongoing';
   if (inSide) setSide(t.status === 'done' ? 'done' : 'ongoing');
@@ -948,6 +996,7 @@ function applySettings(s, { first = false } = {}) {
   const spellChanged = s.spellcheckNotes !== state.spellcheck;
   state.sort = s.sort;
   state.spellcheck = s.spellcheckNotes;
+  if (s.space !== state.space || first) setSpace(s.space, { save: false, draw: !first });
   if (s.sidePanel !== state.side || first) setSide(s.sidePanel, { save: false });
   if (!first) {
     updatePrefs(s);
@@ -961,5 +1010,5 @@ boot();
 // For the screenshot harness and debugging from the console.
 window.cleardayDebug = {
   state, updateDate, render, changed, toggleNotes, startEdit, toggleBoldFor, setDrawer, setSide,
-  openPrefs, closePrefs, popoverOpen, closePopover,
+  openPrefs, closePrefs, popoverOpen, closePopover, setSpace,
 };

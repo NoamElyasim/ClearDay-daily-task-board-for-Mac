@@ -21,6 +21,12 @@ export const BOARD_STATUSES = ['todo', 'in_progress', 'awaiting_approval', 'on_h
 // Ongoing list of long-term projects beside it.
 export const LISTS = ['today', 'ongoing'];
 
+// Which side of life a task belongs to. Work and Personal are two separate
+// boards: each has its own today, Ongoing and Done. Tasks from before 0.10
+// have no space; they are Work.
+export const SPACES = ['work', 'personal'];
+export const SPACE_LABELS = { work: 'Work', personal: 'Personal' };
+
 // Writing direction of a task's notes; 'auto' follows the text.
 export const NOTES_DIRS = ['auto', 'ltr', 'rtl'];
 
@@ -125,7 +131,7 @@ export function trimRich(text, bold) {
 
 // ─── Tasks ───────────────────────────────────────────────────────────────────
 
-export function createTask({ text = '', bold = [], status = 'todo', priority = null, order = 0, list = 'today' } = {}, now = Date.now()) {
+export function createTask({ text = '', bold = [], status = 'todo', priority = null, order = 0, list = 'today', space = 'work' } = {}, now = Date.now()) {
   const t = String(text);
   const ts = nowIso(now);
   return {
@@ -135,6 +141,7 @@ export function createTask({ text = '', bold = [], status = 'todo', priority = n
     status: STATUSES.includes(status) ? status : 'todo',
     priority: PRIORITIES.includes(priority) ? priority : null,
     list: LISTS.includes(list) ? list : 'today',
+    space: SPACES.includes(space) ? space : 'work',
     notes: '',
     notesHtml: '',
     notesHeight: DEFAULT_NOTES_HEIGHT,
@@ -214,7 +221,7 @@ function keepAttachments(notes, oldHtml) {
 // note with its formatting (bold, underline, strikethrough, sizes, bullets,
 // links, attachments), already cleaned by the editor. Setting notes alone
 // clears the formatting, but keeps any attachments.
-const EDITABLE = ['text', 'bold', 'status', 'priority', 'list', 'notes', 'notesHtml', 'notesHeight', 'notesDir', 'order', 'deletedAt'];
+const EDITABLE = ['text', 'bold', 'status', 'priority', 'list', 'space', 'notes', 'notesHtml', 'notesHeight', 'notesDir', 'order', 'deletedAt'];
 
 // Applies a partial update. Unknown keys are dropped and every field is
 // validated, so a bad patch from either side can never corrupt the store.
@@ -226,6 +233,7 @@ export function applyPatch(task, patch, now = Date.now()) {
   if (!STATUSES.includes(next.status)) next.status = task.status;
   if (!PRIORITIES.includes(next.priority)) next.priority = task.priority;
   if (!LISTS.includes(next.list)) next.list = LISTS.includes(task.list) ? task.list : 'today';
+  if (!SPACES.includes(next.space)) next.space = SPACES.includes(task.space) ? task.space : 'work';
   if (!NOTES_DIRS.includes(next.notesDir)) next.notesDir = NOTES_DIRS.includes(task.notesDir) ? task.notesDir : 'auto';
   next.notes = String(next.notes ?? '');
   if ('notes' in patch && !('notesHtml' in patch)) {
@@ -263,6 +271,7 @@ export function validateTask(raw) {
     status: STATUSES.includes(raw.status) ? raw.status : 'todo',
     priority: PRIORITIES.includes(raw.priority) ? raw.priority : null,
     list: LISTS.includes(raw.list) ? raw.list : 'today',
+    space: SPACES.includes(raw.space) ? raw.space : 'work',
     notes: String(raw.notes ?? ''),
     notesHtml: String(raw.notesHtml ?? ''),
     notesHeight: clampNotesHeight(raw.notesHeight),
@@ -305,28 +314,33 @@ export function comparator(sort) {
   return byOrder; // 'default' and 'manual' both follow the drag order
 }
 
-const live = (tasks, list) => tasks.filter((t) => !t.deletedAt && (!list || (t.list || 'today') === list));
+// Live tasks, of one list and one space when those are given (a space left
+// out means both).
+const live = (tasks, list, space) => tasks.filter((t) => !t.deletedAt
+  && (!list || (t.list || 'today') === list) && (!space || (t.space || 'work') === space));
 const byStatus = (tasks, cmp) => BOARD_STATUSES.map((status) => ({ status, tasks: tasks.filter((t) => t.status === status).sort(cmp) }));
 
-// The board: today's tasks that are not done. Default sort groups them by
-// status, To Do first; the other sorts show one list in that order.
+// The board: today's tasks that are not done, in one space. Default sort
+// groups them by status, To Do first; the other sorts show one list in that
+// order.
 //   → [{ status, tasks }]  (a section with status null is the one flat list)
-export function arrangeBoard(tasks, sort = 'default') {
+export function arrangeBoard(tasks, sort = 'default', space) {
   const cmp = comparator(sort);
-  const mine = live(tasks, 'today').filter((t) => t.status !== 'done');
+  const mine = live(tasks, 'today', space).filter((t) => t.status !== 'done');
   return sort === 'default' ? byStatus(mine, cmp) : [{ status: null, tasks: mine.sort(cmp) }];
 }
 
-// The Ongoing tab: the long-term projects not yet done, always grouped by
-// status (To Do first), each group in the sort's order.
-export function arrangeOngoing(tasks, sort = 'default') {
-  return byStatus(live(tasks, 'ongoing').filter((t) => t.status !== 'done'), comparator(sort));
+// The Ongoing tab: the space's long-term projects not yet done, always
+// grouped by status (To Do first), each group in the sort's order.
+export function arrangeOngoing(tasks, sort = 'default', space) {
+  return byStatus(live(tasks, 'ongoing', space).filter((t) => t.status !== 'done'), comparator(sort));
 }
 
-// The Done tab: finished tasks from both lists, the latest finished first.
-export function arrangeDone(tasks) {
+// The Done tab: the space's finished tasks, from today and Ongoing, the
+// latest finished first.
+export function arrangeDone(tasks, space) {
   const at = (t) => t.doneAt || t.updatedAt;
-  return live(tasks).filter((t) => t.status === 'done')
+  return live(tasks, null, space).filter((t) => t.status === 'done')
     .sort((a, b) => at(b).localeCompare(at(a)) || a.id.localeCompare(b.id));
 }
 
