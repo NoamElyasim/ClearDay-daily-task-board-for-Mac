@@ -13,6 +13,7 @@
     "readme": "electron tools/readme/main.mjs",
     "e2e": "electron tools/e2e/main.mjs",
     "make-icon": "electron scripts/make-icon.mjs",
+    "dmg-art": "electron tools/dmg/main.mjs",
     "dist:mac": "bash scripts/build-native.sh && electron-builder --mac",
     "install:mac": "bash scripts/install-mac.sh",
     "build:native": "bash scripts/build-native.sh",
@@ -44,10 +45,29 @@
         }
       ],
       "category": "public.app-category.productivity",
-      "identity": null
+      "identity": null,
+      "notarize": false
     },
     "dmg": {
-      "artifactName": "ClearDay-${version}-${arch}.${ext}"
+      "artifactName": "ClearDay-${version}-${arch}.${ext}",
+      "background": "build/dmg-background.png",
+      "window": {
+        "width": 540,
+        "height": 380
+      },
+      "iconSize": 96,
+      "contents": [
+        {
+          "x": 150,
+          "y": 144
+        },
+        {
+          "x": 390,
+          "y": 144,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ]
     },
     "asarUnpack": [
       "src/mcp/**",

@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+- **Install in one line.** Paste one `curl … | bash` line (see Install in
+  the README) into Terminal: it downloads the latest release for your Mac,
+  puts ClearDay in Applications and opens it, with no "can't verify"
+  warning to click through. Run it again to update.
+- **The DMG shows the way.** Its window has an arrow from ClearDay to
+  Applications, and a note for the first launch: System Settings → Privacy
+  & Security → Open Anyway, or skip that with the one-line install.
+- Notarization is wired into the build and switched off until there's an
+  Apple Developer account; docs/notarize.md says how to turn it on.
+
 ## v0.8.1 — 2026-11-08
 
 - **A new app icon:** three task rows stacked like the board. In Progress

@@ -170,6 +170,21 @@ claude mcp add clearday --scope user --env ELECTRON_RUN_AS_NODE=1 -- \
 
 ClearDay needs macOS 13 or later.
 
+### In one line
+
+Paste this into Terminal:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/NoamElyasim/ClearDay-daily-task-board-for-Mac/main/install.sh | bash
+```
+
+It downloads the latest release for your Mac (Apple Silicon or Intel), puts
+ClearDay in Applications and opens it. No warning from macOS to click
+through, and no password. Run the same line again to update.
+You can [read the script](install.sh) before you run it.
+
+### From the DMG
+
 1. Download the latest DMG from
    [Releases](https://github.com/NoamElyasim/ClearDay-daily-task-board-for-Mac/releases/latest):
    `arm64` for Apple Silicon (M1 and later), `x64` for Intel Macs.
@@ -197,7 +212,8 @@ npm install
 npm run install:mac      # builds, signs locally, copies to /Applications, opens it
 ```
 
-`npm run dist:mac` builds both DMGs into `dist/`.
+`npm run dist:mac` builds both DMGs into `dist/`. To sign and notarize them
+with an Apple Developer ID, see [docs/notarize.md](docs/notarize.md).
 
 ## Develop
 
