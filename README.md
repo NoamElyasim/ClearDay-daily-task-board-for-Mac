@@ -73,18 +73,41 @@ claude mcp add clearday --scope user --env ELECTRON_RUN_AS_NODE=1 -- \
   - The rest of the interface stays black and white, so colour only ever
     means a status or a priority. Buttons invert when you point at them.
   - A light/dark switch in the header. Follow System is in Preferences.
+- **Work and Personal.** Two separate boards in one app. The Work | Personal
+  switch beside Add and Search flips the whole window: each board has its
+  own To Do, sections, Ongoing and Done.
+  - A new task goes onto the board showing. Move a task to the other board
+    from its status picker.
+  - Search looks in both, says which board a task is on, and takes you there.
+  - Quick add and the widget have a briefcase/house button for the same
+    choice.
 - **Quick add from anywhere.** Press ⌘ twice in any app and a small bar
-  rises above the Dock: type the task, pick To Do or Ongoing and a priority,
-  press Enter. The task goes onto the board without ClearDay coming forward.
-  Prefer another key, or a combination like ⌃T? Click the keycaps under
-  Preferences → Quick task shortcut and press any key twice, or the
-  combination. A key pressed twice needs the Input Monitoring permission,
-  which macOS asks for once; a combination doesn't.
+  rises above the Dock: type the task, pick Work or Personal, To Do or
+  Ongoing, and a priority, then press Enter. The task goes onto the board
+  without ClearDay coming forward.
+  - Prefer another key, or a combination like ⌃T? Click the keycaps under
+    Preferences → Quick task shortcut and press any key twice, or the
+    combination.
+  - A key pressed twice needs the Input Monitoring permission, which macOS
+    asks for once; a combination doesn't. See
+    [Quick add doesn't open](#quick-add-doesnt-open) if it stays silent.
+- **The widget.** The shrink button in the header puts the board away and
+  leaves one small pill on the desktop: a field for a new task, Work or
+  Personal, To Do or Ongoing, and the number of tasks left today.
+  - Drag it anywhere by its grip; it stays where you leave it.
+  - Its arrows button brings the full board back. So does ClearDay's Dock
+    or menu-bar icon.
+  - It floats above other windows only with Preferences → Always on top.
+- **Hide it.** The eye button in the header hides ClearDay completely,
+  window and Dock icon, while it keeps running. See
+  [Hiding ClearDay](#hiding-clearday) for the way back.
+- **Every button explains itself.** Rest the pointer on any button and a
+  tip says what it does. It shows at once and stays until you move away.
 - **Works with Claude.** ClearDay includes an MCP server, so Claude Code and
-  Claude Desktop can list, add, update, move, search and delete your tasks.
-  Connect it from Preferences → Claude.
+  Claude Desktop can list, add, update, move, search and delete your tasks,
+  on either board. Connect it from Preferences → Claude.
 - **Add and Search buttons.** Each opens into a field with the caret ready.
-  Search shows matching tasks (text and notes, both lists) as you type;
+  Search shows matching tasks (text and notes, both boards) as you type;
   Enter jumps to the task.
 - **Size the side panel.** Drag the edge between the board and the panel to
   make it wider or narrower; double-click the edge for the default width.
@@ -183,6 +206,36 @@ claude mcp add clearday --scope user --env ELECTRON_RUN_AS_NODE=1 -- \
 
 </details>
 
+## Hiding ClearDay
+
+The eye button in the header hides ClearDay: the window and the Dock icon
+both go, and ClearDay keeps running, so quick add still works.
+
+To bring it back, click ClearDay's icon in the menu bar, at the top right of
+the screen. It looks like a short task list: three small circles, each with
+a line.
+
+**Can't find ClearDay?** On a crowded menu bar, a MacBook's notch can cover
+the icon. Open ClearDay again from Spotlight (⌘Space, type ClearDay, Enter)
+or from the Applications folder, and the window comes back.
+
+## Quick add doesn't open
+
+Pressing ⌘ twice (or your own key twice) needs macOS's Input Monitoring
+permission. If nothing happens:
+
+1. Open **Preferences → Quick task shortcut**. It says whether the shortcut
+   is ready or waiting for permission.
+2. Press **Ask macOS again**, then choose **Open System Settings** in the
+   message macOS shows and switch ClearDay on under Input Monitoring.
+
+This also fixes two traps: a **Deny** pressed by mistake, and ClearDay
+showing as switched on in System Settings while the shortcut stays silent.
+The second happened after updates up to 0.9.0. From 0.10.0 the permission
+survives updates.
+
+A combination such as ⌃T needs no permission.
+
 ## Install
 
 ClearDay needs macOS 13 or later.
@@ -248,7 +301,7 @@ Running it that way leaves your real board untouched.
 ### Layout
 
 ```
-src/main/       main process: window, menus, tray, settings, task store, right-click menu
+src/main/       main process: window, widget, menus, tray, settings, task store, right-click menu
 src/preload.cjs the renderer's API (window.clearday)
 src/shared/     the task model: plain functions shared by both sides
 src/renderer/   the UI; theme.css holds every colour
@@ -260,6 +313,7 @@ Tasks are kept in `~/Library/Application Support/ClearDay/tasks.json`. The
 format is plain, versioned JSON, ready for syncing to a phone later:
 
 - every task has an ID, a `createdAt` and an `updatedAt` timestamp
+- every task has a `space`, `work` or `personal`
 - deleted tasks are kept as tombstones for 30 days
 
 Window size, theme and the other settings live in a separate

@@ -1,5 +1,30 @@
 # Changelog
 
+## Unreleased
+
+- **Work and Personal.** Two separate boards. A Work | Personal switch
+  beside Add and Search flips the whole window: To Do, the sections,
+  Ongoing and Done. Your existing tasks are on Work. Search covers both,
+  and a task moves between them from its status picker. Claude can list,
+  add to and move between both.
+- **The widget.** The shrink button in the header turns ClearDay into a
+  small pill for adding tasks: a field, Work or Personal, To Do or Ongoing,
+  and the number of tasks left today. Drag it anywhere. Its arrows button
+  brings the board back.
+- **Hide ClearDay.** The eye button in the header hides the window and the
+  Dock icon. ClearDay's icon in the menu bar brings it back, and so does
+  opening ClearDay again.
+- **Tips on every button.** Rest the pointer on a button and its tip shows
+  at once, and stays until you move away.
+- **Quick add keeps its permission.** Updates no longer make ⌘⌘ go silent.
+  After this update macOS asks for Input Monitoring one last time: open
+  Preferences → Quick task shortcut and press **Ask macOS again**. That
+  button also undoes a Deny pressed by mistake.
+- Quick add has a briefcase/house button for Work or Personal.
+- In the Done tab, the Ongoing tag sits before the task's text, where the
+  row's tools no longer cover it.
+- The Ongoing tab's To Do group is headed "Ongoing To Do".
+
 ## v0.9.0 — 2026-11-11
 
 - **To Do comes first.** The board always shows today, top to bottom: To
