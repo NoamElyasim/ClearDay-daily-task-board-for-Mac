@@ -24,7 +24,7 @@
 </p>
 <p align="center">
   <img src="docs/readme/card-colour.png" width="49%" alt="Your day in colour: the status fills the row">
-  <img src="docs/readme/card-notes.png" width="49%" alt="Rich notes under every task">
+  <img src="docs/readme/card-notes.png" width="49%" alt="Rich notes: files, links and formatting">
 </p>
 <p align="center">
   <img src="docs/readme/card-ongoing.png" width="49%" alt="Ongoing projects, one tab away">
@@ -74,7 +74,7 @@ claude mcp add clearday --scope user --env ELECTRON_RUN_AS_NODE=1 -- \
     means a status or a priority. Buttons invert when you point at them.
   - A light/dark switch in the header. Follow System is in Preferences.
 - **Quick add from anywhere.** Press ⌘ twice in any app and a small bar
-  rises above the Dock: type the task, pick To Do or Ongoing and a priority,
+  rises above the Dock: type the task, pick Today or Ongoing and a priority,
   press Enter. The task goes onto the board without ClearDay coming forward.
   Prefer another key, or a combination like ⌃T? Click the keycaps under
   Preferences → Quick task shortcut and press any key twice, or the
@@ -86,16 +86,23 @@ claude mcp add clearday --scope user --env ELECTRON_RUN_AS_NODE=1 -- \
 - **Add and Search buttons.** Each opens into a field with the caret ready.
   Search shows matching tasks (text and notes, both lists) as you type;
   Enter jumps to the task.
-- **Hide the side panel** with the button beside its tabs to give the board
-  the full width.
+- **Size the side panel.** Drag the edge between the board and the panel to
+  make it wider or narrower; double-click the edge for the default width.
+  Drag it past its narrowest and it folds away, as the button beside its
+  tabs does, to give the board the full width.
 - **Move the window from anywhere.** Drag any empty space: the header, the
   gaps between rows, the space under them.
+- **Add to Today or Ongoing.** The open Add bar has a Today | Ongoing switch.
+  It starts on Today each time, so an ongoing project is a choice you make.
 - **Statuses fill the row.** Click the round button on a row and pick To Do,
   In Progress, Awaiting Approval, On Hold or Done. The whole row takes that
   colour. The edit tools appear when you hover over a row.
-- **To Do in its own panel.** The board lists In Progress first, then
-  Awaiting Approval, then On Hold, then Done. A row moves to its new section,
+- **Your day, top to bottom.** The board lists To Do first, then In
+  Progress, Awaiting Approval and On Hold. A row moves to its new section,
   animated, when its status changes.
+- **Done gathers in its own tab.** Finished tasks from Today and Ongoing
+  collect in the side panel's Done tab, the latest first; a finished ongoing
+  project carries an Ongoing tag. **Clear done** deletes them all, with Undo.
 - **Fold a section away.** Click the chevron beside its heading to hide its
   tasks. The count stays, and the app remembers what you folded.
   **Collapse**, level with the first heading, folds every section; once
@@ -104,14 +111,12 @@ claude mcp add clearday --scope user --env ELECTRON_RUN_AS_NODE=1 -- \
   circle on every row: click rows to pick them, ⌘A picks every task in view,
   then **Delete** removes them together. One Undo (or ⌘Z) brings them all
   back. Cancel or Esc leaves selecting.
-- **Ongoing projects.** Long-term work lives in an Ongoing tab beside To Do;
-  To Do | Ongoing is a switch with a sliding knob.
-  - With that tab open, the board shows your ongoing projects in the same
-    status sections, and the side keeps their To Do. The To Do tab brings
-    back today's board.
+- **Ongoing projects.** Long-term work lives in the side panel's Ongoing tab,
+  grouped by the same statuses, beside Done; Ongoing | Done is a switch with
+  a sliding knob. The board always shows today.
   - Move a task between Today and Ongoing from the status picker, or by
-    dragging it.
-  - New tasks go to whichever tab is open.
+    dragging it onto the board or into an Ongoing group.
+  - Drag a task onto the Done tab to finish it.
 - **Priority bookmarks.** A red (High) or amber (Medium) bookmark hangs from
   the top of the row. Click it to change the priority; on a row without one,
   a faint bookmark appears when you point at the row.
@@ -125,18 +130,25 @@ claude mcp add clearday --scope user --env ELECTRON_RUN_AS_NODE=1 -- \
     from a small menu at the note's side, which folds away to an arrow.
   - Type "- " to start a bulleted list. Enter continues it, and Backspace on
     an empty bullet ends it.
+  - Paste or drop an image and it shows in the note; drop a PDF or any other
+    file and it becomes a chip. ClearDay keeps its own copy (up to 50 MB),
+    so it still opens after you move the original. Click either to open it.
+    The paperclip beside the note's label attaches from a file picker.
+  - Web addresses become links as you type or paste them. Select words and
+    press ⌘K (or the link button) to link them; ⌘K on a link edits or
+    removes it. A click opens a link in your browser.
   - It saves as you type and resizes from its bottom edge.
   - Right-click in a note for spelling suggestions, Look Up, speech, and
     writing direction: left to right or right to left, kept per note.
 - **Responsive layout.**
-  - A wide window shows the board and the To Do panel side by side.
-  - A narrow window shows one column, with To Do in a drawer on the right
-    and the row tools behind "…".
-  - In the narrow layout, To Do and Ongoing each get a tab on the bottom
+  - A wide window shows the board and the Ongoing | Done panel side by side.
+  - A narrow window shows one column, with the panel in a drawer on the
+    right and the row tools behind "…".
+  - In the narrow layout, Ongoing and Done each get a tab on the bottom
     edge.
 - **Sorting.** Default (by status), By priority, By creation time, or Manual.
-  Default and Manual let you drag rows to reorder them, and drag rows between
-  To Do and the board.
+  Default and Manual let you drag rows to reorder them, between sections,
+  and between the board and the side panel.
 - **Undo.** A deleted task can be restored from the toast or with ⌘Z.
 - **Your day carries over.** At midnight only the date changes. Nothing is
   cleared or archived.
@@ -158,6 +170,7 @@ claude mcp add clearday --scope user --env ELECTRON_RUN_AS_NODE=1 -- \
 | ↑ / ↓ | Select a row |
 | ⌘B | Bold the selection, or the whole row. In a note: bold |
 | ⌘U / ⇧⌘X | In a note: underline / strikethrough |
+| ⌘K | In a note: link the selected words, or edit a link |
 | ⌘⌫ | Delete the selected task, or the picked tasks while selecting |
 | ⌘A | While selecting: pick every task in view |
 | ⌘Z | Undo the last delete |

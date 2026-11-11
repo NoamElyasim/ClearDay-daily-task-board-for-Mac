@@ -1,7 +1,26 @@
 # Changelog
 
-## Unreleased
+## v0.9.0 — 2026-11-11
 
+- **To Do comes first.** The board always shows today, top to bottom: To
+  Do, In Progress, Awaiting Approval, On Hold.
+- **Ongoing | Done.** The side panel's tabs are now Ongoing, every ongoing
+  project grouped by status, and Done, the finished tasks from both lists,
+  the latest first. A finished ongoing project carries an Ongoing tag, and
+  **Clear done** deletes them all with one Undo. Drag a task onto the Done
+  tab to finish it.
+- **Add to Today or Ongoing.** The open Add bar has a Today | Ongoing
+  switch, on Today each time it opens. Quick add's switch reads Today |
+  Ongoing too.
+- **Size the side panel.** Drag the edge between the board and the panel;
+  past its narrowest it folds away, and a double-click on the edge brings
+  back the default width. The width is remembered.
+- **Images, files and links in notes.** Paste or drop an image and it shows
+  in the note; drop any other file and it becomes a chip, or attach one with
+  the paperclip. ClearDay keeps its own copy, so it opens even after the
+  original moves. Web addresses become links as you type them, and ⌘K links
+  the selected words. Claude sees attachments as [image: name] and
+  [file: name], and keeps them when it rewrites a note.
 - **Install in one line.** Paste one `curl … | bash` line (see Install in
   the README) into Terminal: it downloads the latest release for your Mac,
   puts ClearDay in Applications and opens it, with no "can't verify"

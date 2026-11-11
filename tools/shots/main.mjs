@@ -147,14 +147,16 @@ const SHOTS = {
     await js(`new Promise((r) => setTimeout(r, 500))`);
     await js(`(() => { const i = document.getElementById('search-input'); i.value = 'booth'; i.dispatchEvent(new Event('input')); return 1; })()`);
   } },
-  'side-hidden-dark': { theme: 'dark', width: 780, height: 560, prefs: { showSide: false } },
+  // To Do folded, so the README's colour card and social preview open on
+  // the coloured sections.
+  'side-hidden-dark': { theme: 'dark', width: 780, height: 560, prefs: { showSide: false, collapsed: ['today:todo'] } },
   // The quick-add bar as it rises over the Dock, a task typed in.
   'quick-dark': { theme: 'dark', width: 640, height: 112, html: 'quick.html', preload: 'quick-preload.cjs', setup: (js) => js(`(() => {
     const i = document.getElementById('q-input'); i.value = 'Book the launch venue'; i.dispatchEvent(new Event('input'));
     document.getElementById('q').classList.add('in'); return 1; })()`) },
   'narrow-light': { theme: 'light', width: 320, height: 520 },
-  'notes-rich-dark': { theme: 'dark', width: 780, height: 560, setup: async (js) => {
-    await js(`(async () => { const id = ${firstId}; const html = '<div><b>Slides 4–7</b> still use the <u>old logo</u>.</div><ul><li>Ask Ben for the booth photo</li><li><s>Check the venue</s></li></ul><div><span class="fs-l">Next week</span></div>';
+  'notes-rich-dark': { theme: 'dark', width: 780, height: 560, prefs: { collapsed: ['today:todo'] }, setup: async (js) => {
+    await js(`(async () => { const id = ${firstId}; const html = '<div><b>Slides 4–7</b> still use the <u>old logo</u>.</div><ul><li>Ask Ben for the booth photo</li><li><s>Check the venue</s></li></ul><div><span class="att" contenteditable="false" data-att="00000000-0000-4000-8000-0000000000aa.pdf" data-name="Booth brief v3.pdf">Booth brief v3.pdf</span>&nbsp;and the <a href="https://example.com">print specs</a></div><div><span class="fs-l">Next week</span></div>';
       await window.clearday.tasks.update(id, { notes: 'x', notesHtml: html });
       cleardayDebug.state.tasks.set(id, (await window.clearday.tasks.list()).find((t) => t.id === id)); cleardayDebug.toggleNotes(id); document.activeElement.blur(); 1 })()`);
   } },

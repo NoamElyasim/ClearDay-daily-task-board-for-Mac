@@ -18,6 +18,7 @@ const SHORTCUTS = [
   ['⌘ ⌘', 'Quick add from anywhere (press ⌘ twice)'],
   ['↑ / ↓', 'Select a row'],
   ['⌘B', 'Bold the selection, or the whole row'],
+  ['⌘K', 'In a note: link the selected words, or edit a link'],
   ['⌘⌫', 'Delete the selected task'],
   ['⌘Z', 'Undo the last delete'],
   ['⌘,', 'Preferences'],
