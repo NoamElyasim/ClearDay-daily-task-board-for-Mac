@@ -263,17 +263,17 @@ async function setPriority(id, priority) {
   render();
 }
 
-// Today ↔ Ongoing, keeping the status.
+// To Do (today's board) ↔ Ongoing, keeping the status.
 async function moveList(id, list) {
   const t = await updateTask(id, { list });
   if (!t) return;
   render({ animate: true });
-  showToast(list === 'ongoing' ? 'Moved to Ongoing' : 'Moved to Today', { duration: 2500 });
+  showToast(list === 'ongoing' ? 'Moved to Ongoing' : 'Moved to To Do', { duration: 2500 });
 }
 
 function moveItem(task) {
   return task.list === 'ongoing'
-    ? { label: 'Move to Today', icon: ICONS.sort, onPick: () => moveList(task.id, 'today') }
+    ? { label: 'Move to To Do', icon: ICONS.sort, onPick: () => moveList(task.id, 'today') }
     : { label: 'Move to Ongoing', icon: ICONS.sort, onPick: () => moveList(task.id, 'ongoing') };
 }
 
@@ -758,7 +758,7 @@ function showResults(list, q = '') {
     }
     const meta = Object.assign(document.createElement('span'), {
       className: 'result-meta',
-      textContent: `${t.list === 'ongoing' ? 'Ongoing' : 'Today'} · ${STATUS_LABELS[t.status]}${i < 0 ? ' · in notes' : ''}`,
+      textContent: `${t.list === 'ongoing' ? 'Ongoing' : 'To Do'} · ${STATUS_LABELS[t.status]}${i < 0 ? ' · in notes' : ''}`,
     });
     b.append(Object.assign(document.createElement('span'), { className: 'dot' }), text, meta);
     b.addEventListener('mousedown', (e) => e.preventDefault());   // keep the field's focus

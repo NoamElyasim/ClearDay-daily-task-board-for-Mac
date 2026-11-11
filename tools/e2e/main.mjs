@@ -542,10 +542,10 @@ async function run() {
   await click('.side-tab[data-tab="ongoing"]');
   await sleep(300);
   await click(`${taskSel(og.id)} .status-btn`);
-  await js(`[...document.querySelectorAll('.popover .pop-item')].find((b) => b.textContent.includes('Move to Today')).classList.add('e2e')`);
+  await js(`[...document.querySelectorAll('.popover .pop-item')].find((b) => b.textContent.includes('Move to To Do')).classList.add('e2e')`);
   await click('.popover .pop-item.e2e');
   await sleep(400);
-  check('Move to Today puts it on today\'s board, status kept', task(og.id).list === 'today' && task(og.id).status === 'in_progress' &&
+  check('Move to To Do puts it on today\'s board, status kept', task(og.id).list === 'today' && task(og.id).status === 'in_progress' &&
     await js(`!!document.querySelector('#sections .section[data-status="in_progress"] ${taskSel(og.id)}')`));
 
   // Dragging a board row onto the Done tab: the tab opens mid-drag and the
@@ -669,7 +669,7 @@ async function run() {
   await type('booth');
   await sleep(150);
   const found = await js(`[...document.querySelectorAll('#search-results .result')].map((b) => b.textContent)`);
-  check('results appear while typing, from both text and notes', found.length >= 2 && found.every((t) => /booth/i.test(t.split('Today ·')[0].split('Ongoing ·')[0]) || /in notes/.test(t)) && found.some((t) => /in notes/.test(t)), found.join(' | '));
+  check('results appear while typing, from both text and notes', found.length >= 2 && found.every((t) => /booth/i.test(t.split('To Do ·')[0].split('Ongoing ·')[0]) || /in notes/.test(t)) && found.some((t) => /in notes/.test(t)), found.join(' | '));
   const firstHit = store.list().filter((x) => /booth/i.test(x.text) || /booth/i.test(x.notes))
     .find((x) => found[0].startsWith(x.text));
   await key('Enter');

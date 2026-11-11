@@ -100,7 +100,7 @@ claude mcp add clearday --scope user --env ELECTRON_RUN_AS_NODE=1 -- \
 - **Your day, top to bottom.** The board lists To Do first, then In
   Progress, Awaiting Approval and On Hold. A row moves to its new section,
   animated, when its status changes.
-- **Done gathers in its own tab.** Finished tasks from Today and Ongoing
+- **Done gathers in its own tab.** Finished tasks from To Do and Ongoing
   collect in the side panel's Done tab, the latest first; a finished ongoing
   project carries an Ongoing tag. **Clear done** deletes them all, with Undo.
 - **Fold a section away.** Click the chevron beside its heading to hide its
@@ -114,7 +114,7 @@ claude mcp add clearday --scope user --env ELECTRON_RUN_AS_NODE=1 -- \
 - **Ongoing projects.** Long-term work lives in the side panel's Ongoing tab,
   grouped by the same statuses, beside Done; Ongoing | Done is a switch with
   a sliding knob. The board always shows today.
-  - Move a task between Today and Ongoing from the status picker, or by
+  - Move a task between To Do and Ongoing from the status picker, or by
     dragging it onto the board or into an Ongoing group.
   - Drag a task onto the Done tab to finish it.
 - **Priority bookmarks.** A red (High) or amber (Medium) bookmark hangs from
