@@ -13,7 +13,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/NoamElyasim/ClearDay-daily-task-board-for-Mac/releases/download/v0.10.1/ClearDay-film.mp4"><img src="docs/film.gif" alt="ClearDay in 39 seconds: add a task, start it, prioritize it, write a note, switch to light, collapse the sections, select and delete, flip between Work and Personal, quick add with ⌘⌘, shrink to the widget, then pick your own shortcut"></a>
+  <a href="https://github.com/NoamElyasim/ClearDay-daily-task-board-for-Mac/releases/download/v0.11.0/ClearDay-film.mp4"><img src="docs/film.gif" alt="ClearDay in 41 seconds: add a task, start it, prioritize it, write a note, switch to light, collapse the sections, select and delete, flip between Work and Personal, quick add with ⌘⌘, shrink the board to a small capsule that opens into an add bar and grows back, then pick your own shortcut"></a>
   <br>
   <sub>Click the animation to watch the film with sound.</sub>
 </p>
