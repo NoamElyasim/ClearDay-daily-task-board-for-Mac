@@ -48,8 +48,11 @@ ipcMain.handle('update:check', () => ({ current: app.getVersion(), latest: app.g
 for (const ch of ['update:skip', 'update:install']) ipcMain.handle(ch, () => false);
 for (const ch of ['app:hide', 'app:widget', 'quick:reset-permission']) ipcMain.handle(ch, () => true);
 // The widget pill's channels (widget-preload.cjs).
-ipcMain.handle('widget:state', () => ({ space: settings.get('space'), count: 5 }));
-for (const ch of ['widget:add', 'widget:space', 'widget:expand']) ipcMain.handle(ch, () => ({ space: settings.get('space'), count: 5 }));
+const widgetState = (open = false) => ({ space: settings.get('space'), count: 5, open, side: 'left' });
+ipcMain.handle('widget:state', () => widgetState());
+ipcMain.handle('widget:open', () => widgetState(true));
+for (const ch of ['widget:add', 'widget:space', 'widget:expand', 'widget:fold']) ipcMain.handle(ch, () => widgetState());
+ipcMain.on('widget:drag', () => {});
 
 // Quick add and the Claude connection aren't exercised here; Preferences
 // asks for their status.
@@ -120,6 +123,8 @@ ipcMain.handle('tasks:restore', (_e, id) => storeRef.restore(id));
 
 const firstId = `cleardayDebug.state.tasks.values().next().value.id`;
 const openNotes = (js) => js(`cleardayDebug.toggleNotes(${firstId}); document.activeElement.blur(); 1`);
+// The widget's + pressed, and the bar it opens into fully grown.
+const openWidgetBar = (js) => js(`document.getElementById('w-add').click(); new Promise((r) => setTimeout(() => r(1), 500))`);
 const clickFirst = (sel) => (js) => js(`document.querySelector(${JSON.stringify(sel)}).click(); 1`);
 
 // Preferences scrolled to the quick task shortcut, listening, after these
@@ -179,10 +184,15 @@ const SHOTS = {
       cleardayDebug.state.tasks.set(id, (await window.clearday.tasks.list()).find((t) => t.id === id)); cleardayDebug.toggleNotes(id); document.activeElement.blur();
       await new Promise((r) => setTimeout(r, 400)); document.querySelector('.notes-editor').scrollTop = 1e4; 1 })()`);
   } },
-  // The widget: ClearDay as a small pill, a task typed in.
-  'widget-dark': { theme: 'dark', width: 480, height: 20, html: 'widget.html', preload: 'widget-preload.cjs', setup: (js) => js(`(() => {
-    const i = document.getElementById('w-input'); i.value = 'Send the invoice to Dana'; return 1; })()`) },
-  'widget-light': { theme: 'light', width: 480, height: 20, html: 'widget.html', preload: 'widget-preload.cjs', prefs: { space: 'personal' } },
+  // The widget: ClearDay as a small capsule, + and the way back to the board.
+  'widget-mini-dark': { theme: 'dark', width: 52, height: 20, html: 'widget.html', preload: 'widget-preload.cjs' },
+  'widget-mini-light': { theme: 'light', width: 52, height: 20, html: 'widget.html', preload: 'widget-preload.cjs' },
+  // + opens it into the add bar; a task typed in.
+  'widget-dark': { theme: 'dark', width: 520, height: 20, html: 'widget.html', preload: 'widget-preload.cjs', setup: async (js) => {
+    await openWidgetBar(js);
+    await js(`(() => { const i = document.getElementById('w-input'); i.value = 'Send the invoice to Dana'; return 1; })()`);
+  } },
+  'widget-light': { theme: 'light', width: 520, height: 20, html: 'widget.html', preload: 'widget-preload.cjs', prefs: { space: 'personal' }, setup: (js) => openWidgetBar(js) },
   // A tooltip: the pointer resting on the header's hide button.
   'tooltip-light': { theme: 'light', width: 780, height: 560, setup: async (js, win) => {
     const r = await js(`(() => { const b = document.getElementById('hide-btn').getBoundingClientRect(); return { x: Math.round(b.x + b.width / 2), y: Math.round(b.y + b.height / 2) }; })()`);

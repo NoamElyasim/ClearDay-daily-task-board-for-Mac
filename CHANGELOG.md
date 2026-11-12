@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.11.0 — 2026-11-12
+
+- **A smaller widget.** The shrink button now turns ClearDay into a small
+  capsule: a + and the arrows that bring the board back. Press + and it
+  opens into the add bar you know: a field, Work or Personal, To Do or
+  Ongoing, and the number of tasks left today.
+  - Enter adds the task and the bar stays for the next one.
+  - Click anywhere else, press Esc in the empty field, or press the bar's
+    new shrink arrows, and it folds back to the capsule. What you typed and
+    didn't add waits in the field.
+  - Drag it by any part of it, the + included.
+- Preferences no longer shows the quick-add permission buttons when they
+  don't apply.
+
 ## v0.10.1 — 2026-11-12
 
 - **Updates finish.** Updating from inside ClearDay installed the new

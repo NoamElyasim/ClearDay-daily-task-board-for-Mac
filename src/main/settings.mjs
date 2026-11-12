@@ -33,8 +33,8 @@ const DEFAULTS = {
   notesTools: 'open',   // the notes' formatting menu: 'open' | 'min'
   skippedVersion: null, // an update dismissed with Later: not offered again
   hideTipSeen: false,   // the note shown the first time ClearDay is hidden
-  widget: false,        // shrunk to the small add-bar pill (widget.mjs)
-  widgetBounds: null,   // { x, y } where the pill was dragged to
+  widget: false,        // shrunk to the small capsule (widget.mjs)
+  widgetBounds: null,   // { x, y } where the capsule was dragged to
 };
 
 const VALID = {

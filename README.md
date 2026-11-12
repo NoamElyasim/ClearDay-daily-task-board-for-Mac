@@ -92,11 +92,17 @@ claude mcp add clearday --scope user --env ELECTRON_RUN_AS_NODE=1 -- \
     asks for once; a combination doesn't. See
     [Quick add doesn't open](#quick-add-doesnt-open) if it stays silent.
 - **The widget.** The shrink button in the header puts the board away and
-  leaves one small pill on the desktop: a field for a new task, Work or
-  Personal, To Do or Ongoing, and the number of tasks left today.
-  - Drag it anywhere by its grip; it stays where you leave it.
-  - Its arrows button brings the full board back. So does ClearDay's Dock
-    or menu-bar icon.
+  leaves one small capsule on the desktop: a + and a pair of arrows.
+  - **+** opens it into the add bar: a field for a new task, Work or
+    Personal, To Do or Ongoing, and the number of tasks left today. Enter
+    adds the task and the bar stays for the next one.
+  - The bar folds back to the capsule when you click anywhere else, press
+    Esc in the empty field, or press its shrink arrows. What you typed and
+    didn't add is still there next time.
+  - Drag the capsule or the bar anywhere, by any part of it; it stays where
+    you leave it. The bar opens away from the nearer edge of the screen.
+  - The expand arrows, on the capsule or the bar, bring the full board
+    back. So does ClearDay's Dock or menu-bar icon.
   - It floats above other windows only with Preferences → Always on top.
 - **Hide it.** The eye button in the header hides ClearDay completely,
   window and Dock icon, while it keeps running. See

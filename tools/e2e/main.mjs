@@ -49,6 +49,7 @@ ipcMain.handle('update:skip', (_e, v) => { settings.set({ skippedVersion: v }); 
 ipcMain.handle('update:install', () => { installs++; return true; });
 // Hiding the app and resetting quick add's permission are only recorded.
 const calls = { hide: 0, resetPermission: 0, openPermission: 0 };
+let fakeCursor = { x: 0, y: 0 };
 ipcMain.handle('app:hide', () => { calls.hide++; return true; });
 ipcMain.handle('app:widget', () => { calls.widget = (calls.widget || 0) + 1; return true; });
 // The widget itself is the real one, on the real store and settings.
@@ -58,6 +59,7 @@ widget.initWidget({
   expand: () => { calls.expand = (calls.expand || 0) + 1; },
   changed: () => win.webContents.send('tasks:changed'),
   zoom: () => 1,
+  cursor: () => fakeCursor,   // where the test says the pointer is, for dragging the widget
 });
 ipcMain.handle('quick:reset-permission', () => { calls.resetPermission++; return true; });
 ipcMain.handle('app:info', () => ({ version: app.getVersion(), dataFile: '' }));
@@ -1058,17 +1060,21 @@ done
     await sleep(300);
   }
 
-  // ── The widget: ClearDay as a small add bar ──
+  // ── The widget: a small capsule that opens into the add bar ──
   {
     await click('#widget-btn');
     check('the shrink button asks the app for the widget', calls.widget === 1);
+    const { screen } = await import('electron');
+    const area = screen.getPrimaryDisplay().workArea;
+    // Left on the left half of the screen, so the bar grows to the right.
+    settings.set({ widgetBounds: { x: area.x + 80, y: area.y + 120 } });
     widget.showWidget({ visible: false });
     const pw = widget.widgetWindow();
     const pc = pw.webContents;
     await sleep(900);
     const pjs = (code) => pc.executeJavaScript(code);
     const prect = (sel) => pjs(`(() => { const r = document.querySelector(${JSON.stringify(sel)}).getBoundingClientRect();
-      return { x: Math.round(r.x + r.width / 2), y: Math.round(r.y + r.height / 2), top: r.top, bottom: r.bottom }; })()`);
+      return { x: Math.round(r.x + r.width / 2), y: Math.round(r.y + r.height / 2), top: r.top, bottom: r.bottom, left: r.left, right: r.right, width: r.width }; })()`);
     const pclick = async (sel) => {
       const r = await prect(sel);
       pc.sendInputEvent({ type: 'mouseMove', x: r.x, y: r.y });
@@ -1076,16 +1082,47 @@ done
       pc.sendInputEvent({ type: 'mouseUp', x: r.x, y: r.y, button: 'left', clickCount: 1 });
       await sleep(300);
     };
+    const pkey = (keyCode) => { pc.sendInputEvent({ type: 'keyDown', keyCode }); pc.sendInputEvent({ type: 'keyUp', keyCode }); };
+    const isOpen = () => pjs(`document.body.classList.contains('open')`);
+    // What can be seen and reached of the pill's controls.
+    const showing = () => pjs(`['w-add', 'w-input', 'w-space', 'w-list', 'w-count', 'w-shrink', 'w-expand'].filter((i) => {
+      const el = document.getElementById(i); const r = el.getBoundingClientRect(); const p = document.getElementById('w').getBoundingClientRect();
+      return getComputedStyle(el).visibility === 'visible' && r.width > 0 && r.left >= p.left - 1 && r.right <= p.right + 1; }).join()`);
     const left = (space) => store.list().filter((t) => t.space === space && t.list === 'today' && t.status !== 'done').length;
     const shownCount = () => pjs(`Number(document.getElementById('w-count').textContent)`);
-    check('the widget is a small pill: a field, Work or Personal, To Do | Ongoing, a count and a way back', await pjs(`(() => {
-      const ids = ['w-add', 'w-input', 'w-space', 'w-list', 'w-count', 'w-expand'];
-      const r = document.getElementById('w').getBoundingClientRect();
-      return ids.every((i) => document.getElementById(i).getBoundingClientRect().width > 0) && r.height <= 56 && r.width <= 540 &&
-        document.getElementById('w-space').dataset.space === 'work' && !!document.querySelector('#w-space svg'); })()`));
+    const mini = pw.getBounds();
+    const cap = await prect('#w');
+    const plus = await prect('#w-add');
+    check('the widget is a small capsule: only + and the way back to the board', await showing() === 'w-add,w-expand' &&
+      mini.width === 132 && mini.height === 100 && Math.round(cap.width) === 92 && Math.round(cap.bottom - cap.top) === 52 && Math.round(plus.width) === 40 &&
+      !(await isOpen()), `${await showing()} ${JSON.stringify(mini)} ${cap.width}`);
+    check('it sits where it was left', mini.x === area.x + 80 && mini.y === area.y + 120, JSON.stringify(mini));
+    // The whole capsule is its handle: a press on + that moves drags it.
+    fakeCursor = { x: 500, y: 500 };
+    pc.sendInputEvent({ type: 'mouseMove', x: plus.x, y: plus.y });
+    pc.sendInputEvent({ type: 'mouseDown', x: plus.x, y: plus.y, button: 'left', clickCount: 1 });
+    await sleep(150);   // the press reaches the app before the pointer moves on
+    pc.sendInputEvent({ type: 'mouseMove', x: plus.x + 9, y: plus.y + 3 });
+    fakeCursor = { x: 530, y: 540 };
+    pc.sendInputEvent({ type: 'mouseMove', x: plus.x + 12, y: plus.y + 4 });
+    await sleep(150);
+    pc.sendInputEvent({ type: 'mouseUp', x: plus.x + 12, y: plus.y + 4, button: 'left', clickCount: 1 });
+    await sleep(400);
+    const dragged = pw.getBounds();
+    check('dragged by its +, it moves with the pointer, stays a capsule, and remembers the place',
+      dragged.x === mini.x + 30 && dragged.y === mini.y + 40 && !(await isOpen()) &&
+      settings.get('widgetBounds').x === dragged.x && settings.get('widgetBounds').y === dragged.y, JSON.stringify(dragged));
+    pc.focus();
+    await pclick('#w-add');
+    await sleep(400);
+    const bar = pw.getBounds();
+    const pill = await prect('#w');
+    check('+ opens it into the add bar, growing to the right of where the capsule was', await isOpen() && bar.width === 600 && bar.x === dragged.x && bar.y === dragged.y &&
+      Math.round(pill.width) === 560 && await showing() === 'w-add,w-input,w-space,w-list,w-count,w-shrink,w-expand' &&
+      await pjs(`document.activeElement?.id === 'w-input' && document.getElementById('w-space').dataset.space === 'work' && !!document.querySelector('#w-space svg')`),
+      `${JSON.stringify(bar)} ${pill.width} ${await showing()}`);
     check('it counts the tasks left today on the board showing', await shownCount() === left('work') && left('work') > 0, `${await shownCount()} vs ${left('work')}`);
     const before = left('work');
-    pc.focus();
     await pclick('#w-input');
     await pc.insertText('Call the bank');
     pc.sendInputEvent({ type: 'keyDown', keyCode: 'Enter' });
@@ -1093,8 +1130,8 @@ done
     pc.sendInputEvent({ type: 'keyUp', keyCode: 'Enter' });
     await sleep(500);
     const bank = byText('Call the bank');
-    check('Enter adds the task to Work\'s To Do, ticks, counts it, and keeps the field ready', bank?.space === 'work' && bank?.list === 'today' && bank?.status === 'todo' &&
-      await shownCount() === before + 1 && await pjs(`document.getElementById('w-add').classList.contains('added') &&
+    check('Enter adds the task to Work\'s To Do, ticks, counts it, and keeps the bar open and the field ready', bank?.space === 'work' && bank?.list === 'today' && bank?.status === 'todo' &&
+      await shownCount() === before + 1 && await isOpen() && await pjs(`document.getElementById('w-add').classList.contains('added') &&
         document.getElementById('w-input').value === '' && document.activeElement?.id === 'w-input'`));
     check('and the board has it', await js(`!!document.querySelector('#sections ${taskSel(bank?.id)}')`));
     await pclick('#w-space');
@@ -1115,8 +1152,55 @@ done
     pc.sendInputEvent({ type: 'mouseMove', x: ex.x, y: ex.y });
     await sleep(2400);
     check('the pill\'s buttons show no tip', await pjs(`!document.querySelector('#tooltip.show') && !document.getElementById('w-expand').hasAttribute('title')`));
+    // Esc: first the field, then the bar.
+    await pclick('#w-input');
+    await pc.insertText('half a thought');
+    pkey('Escape');
+    await sleep(300);
+    check('Esc empties the field and the bar stays', await isOpen() && await pjs(`document.getElementById('w-input').value === ''`));
+    pkey('Escape');
+    await sleep(600);
+    const folded = pw.getBounds();
+    check('Esc in the empty field folds it back to the capsule, in the same spot', !(await isOpen()) && folded.width === 132 &&
+      folded.x === dragged.x && folded.y === dragged.y && await showing() === 'w-add,w-expand', `${JSON.stringify(folded)} ${await showing()}`);
+    // A click somewhere else folds it, and keeps what was typed.
+    await pclick('#w-add');
+    await sleep(400);
+    await pclick('#w-input');
+    await pc.insertText('Water the ficus');
+    pw.emit('blur');
+    await sleep(600);
+    check('a click somewhere else folds it', !(await isOpen()) && pw.getBounds().width === 132);
+    await pclick('#w-add');
+    await sleep(400);
+    check('and what was typed is still there when it opens again', await isOpen() && await pjs(`document.getElementById('w-input').value`) === 'Water the ficus' && !byText('Water the ficus'),
+      `${await isOpen()} "${await pjs(`document.getElementById('w-input').value`)}" ${!!byText('Water the ficus')}`);
+    await pclick('#w-shrink');
+    await sleep(600);
+    check('the bar\'s shrink button folds it too', !(await isOpen()) && pw.getBounds().width === 132 && pw.getBounds().x === dragged.x);
+    // On the right half of the screen the bar grows to the left: the capsule's end stays put.
+    settings.set({ widgetBounds: { x: area.x + area.width - 200, y: area.y + 120 } });
+    widget.showWidget({ visible: false });
+    await sleep(300);
+    const right = pw.getBounds();
+    await pclick('#w-add');
+    await sleep(400);
+    const grown = pw.getBounds();
+    const rpill = await prect('#w');
+    check('near the right edge the bar grows to the left, its right end where the capsule was', await isOpen() && grown.width === 600 &&
+      grown.x + grown.width === right.x + right.width && await pjs(`document.body.dataset.side`) === 'right' && Math.round(rpill.right) === 580,
+      `${JSON.stringify(right)} ${JSON.stringify(grown)} ${rpill.right}`);
+    pw.emit('blur');
+    await sleep(600);
+    check('and folds back to that end', !(await isOpen()) && pw.getBounds().x === right.x && pw.getBounds().width === 132);
     await pclick('#w-expand');
-    check('the expand button asks for the full board', calls.expand === 1);
+    check('the capsule\'s expand button asks for the full board', calls.expand === 1);
+    // Put away while open (the board came back some other way), it returns as the capsule.
+    await pclick('#w-add');
+    await sleep(400);
+    widget.hideWidget();
+    await sleep(200);
+    check('put away as the bar, it comes back as the capsule', !(await isOpen()) && pw.getBounds().width === 132 && pw.getBounds().x === right.x);
     widget.closeWidget();
     await click('.space-opt[data-space="work"]');
     await sleep(400);

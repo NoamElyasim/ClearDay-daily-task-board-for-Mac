@@ -409,9 +409,9 @@ ipcMain.handle('app:quit', () => app.quit());
 ipcMain.handle('app:hide', () => hideApp());
 
 // ─── The widget ──────────────────────────────────────────────────────────────
-// The header's shrink button: the board is put away and the pill shows.
-// showWindow() is the way back, from the pill's own button, the Dock or
-// menu-bar icon, or opening ClearDay again.
+// The header's shrink button: the board is put away and the capsule shows.
+// showWindow() is the way back, from the widget's expand button, the Dock
+// or menu-bar icon, or opening ClearDay again.
 ipcMain.handle('app:widget', () => {
   if (!win || win.isDestroyed()) return false;
   settings.set({ widget: true });
