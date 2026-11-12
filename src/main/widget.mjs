@@ -11,6 +11,7 @@
 // so; quick add (⌘⌘) is there for adding from under other windows.
 import { BrowserWindow, ipcMain, screen } from 'electron';
 import path from 'node:path';
+import { play, painted, boxOnScreen, motionAllowed } from './morph.mjs';
 
 const DIR = import.meta.dirname;
 // The capsule and the bar, each plus room around it for its shadow (the
@@ -20,7 +21,8 @@ const BAR = { width: 600, height: 100 };
 const FROM_EDGE = 4;   // the window from the screen's edge; the pill sits 20 further in
 
 let pill = null;
-let deps = null;       // { store, settings, setSpace, expand, changed, zoom, cursor }
+let loaded = null;     // resolves once the pill's page has loaded
+let deps = null;       // { store, settings, setSpace, expand, changed, zoom, cursor, animate }
 let open = false;      // the bar is showing, not the capsule
 // The end of the bar the capsule sits at: 'left' and the bar grows to the
 // right of it, 'right' and it grows to the left. It grows away from the
@@ -31,9 +33,10 @@ let dragFrom = null;   // { x, y, cx, cy }: the window and the pointer as a drag
 // store, settings: the app's own. setSpace(space) changes the board showing;
 // expand() brings the board back; changed() says a task was added; zoom()
 // is the page zoom Preferences → Text size asks for. cursor() is where the
-// pointer is on screen (the e2e test supplies its own).
+// pointer is on screen, and animate() whether changes of shape are played
+// on the stage (the e2e test supplies its own, and switches the stage off).
 export function initWidget(d) {
-  deps = { cursor: () => screen.getCursorScreenPoint(), ...d };
+  deps = { cursor: () => screen.getCursorScreenPoint(), animate: motionAllowed, ...d };
   ipcMain.handle('widget:state', () => state());
   ipcMain.handle('widget:add', (_e, fields) => add(fields));
   ipcMain.handle('widget:space', (_e, space) => { deps.setSpace(space); return state(); });
@@ -95,9 +98,10 @@ function create() {
   pill.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   pill.webContents.on('will-navigate', (e) => e.preventDefault());
   pill.webContents.on('did-finish-load', applyWidgetLook);
+  loaded = new Promise((resolve) => pill.webContents.once('did-finish-load', () => resolve(true)));
   // A click somewhere else: the page folds the bar back to the capsule.
   pill.on('blur', () => { if (alive() && open) pill.webContents.send('widget:blur'); });
-  pill.on('closed', () => { pill = null; open = false; dragFrom = null; });
+  pill.on('closed', () => { pill = null; loaded = null; open = false; dragFrom = null; });
 }
 
 // A shape's window size at the text size chosen.
@@ -152,7 +156,7 @@ function openBar() {
 
 // The bar becomes the capsule again, at the end it grew from. The page has
 // narrowed the pill by now. tell: the page didn't ask for this, so it is told.
-function foldBar({ tell = false } = {}) {
+function foldNow({ tell = false } = {}) {
   if (!alive() || !open) return state();
   const m = miniBounds();
   open = false;
@@ -160,6 +164,29 @@ function foldBar({ tell = false } = {}) {
   side = pickSide(m);
   savePlace();
   if (tell) pill.webContents.send('widget:reset', state());
+  return state();
+}
+
+// As the page asks for it. A window that gives up room on its left shows
+// its capsule in the wrong place for a frame, so when the bar grew to the
+// left the stage holds a picture of the capsule in place while the window
+// behind it, unseen for that moment, takes its new size.
+async function foldBar() {
+  if (!alive() || !open) return state();
+  if (side !== 'right' || !pill.isVisible() || !deps.animate()) return foldNow();
+  const picture = { rect: pill.getBounds(), src: (await pill.webContents.capturePage()).toDataURL(), show: 'hold' };
+  let folded = false;
+  const fold = async () => {
+    if (!alive()) return;
+    pill.setOpacity(0);
+    foldNow();
+    folded = true;
+    await painted(pill);
+    pill.setOpacity(1);
+  };
+  await play({ pill: picture }, { covered: fold, arrived: async () => {} });
+  if (!folded) foldNow();
+  if (alive()) pill.setOpacity(1);
   return state();
 }
 
@@ -211,22 +238,62 @@ function place() {
   side = pickSide(miniBounds());
 }
 
+// Built at launch, so the first shrink doesn't wait for its page.
+export function prepareWidget() {
+  if (!alive()) create();
+  return loaded;
+}
+
 // visible: false builds and places it without showing it (the e2e test
-// drives it hidden, as it does the board).
-export function showWidget({ visible = true } = {}) {
+// drives it hidden, as it does the board). ghost: shown but unseen, for the
+// stage to take its picture and then reveal it (revealWidget).
+export function showWidget({ visible = true, ghost = false } = {}) {
   if (!alive()) create();
   applyWidgetLook();
   place();
   pill.webContents.send('widget:reset', state());
-  if (visible) pill.show();
+  pill.setOpacity(ghost ? 0 : 1);
+  if (visible) pill.showInactive();
   refreshWidget();
+}
+
+export function revealWidget() {
+  if (alive()) pill.setOpacity(1);
 }
 
 // Put away as the capsule, so that is what comes back.
 export function hideWidget() {
   if (!alive()) return;
-  foldBar({ tell: true });
+  foldNow({ tell: true });
   pill.hide();
+  pill.setOpacity(1);
+}
+
+// The widget as the stage needs it (morph.mjs): its window, a picture of
+// it, its pill (the capsule or the bar), its + and the centre of its expand
+// arrows, all on screen. null if it isn't there to be seen.
+export async function widgetFace() {
+  if (!alive() || !pill.isVisible()) return null;
+  await loaded;
+  await painted(pill);
+  if (!alive()) return null;
+  const z = deps.zoom();
+  const [image, shape, plus, arrows] = await Promise.all([
+    pill.webContents.capturePage(),
+    boxOnScreen(pill, '#w', z),
+    boxOnScreen(pill, '#w-add', z),
+    boxOnScreen(pill, '#w-expand', z),
+  ]);
+  if (!shape || !arrows) return null;
+  return {
+    window: pill.getBounds(),
+    src: image.isEmpty() ? null : image.toDataURL(),
+    shape, plus,
+    plusIcon: open ? 16 / 34 : 18 / 40,   // the share of + its plus sign takes (widget.css)
+    radius: shape.height / 2,
+    arrows: { x: arrows.x + arrows.width / 2, y: arrows.y + arrows.height / 2 },
+    open,
+  };
 }
 
 export function closeWidget() {

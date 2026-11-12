@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; img-src 'self' data:">
+<title>ClearDay</title>
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="stage.css">
+</head>
+<body aria-hidden="true">
+<!-- One surface that becomes the board, the widget's capsule or its bar
+     (src/main/morph.mjs). #shell is the surface, with a picture of the
+     board in it (#fold unfolds it); #pill is a picture of the widget's
+     window, #mark the + that travels between the two. -->
+<div id="shell" hidden><div id="fold" hidden><img id="board" alt=""></div></div>
+<img id="pill" alt="" hidden>
+<div id="mark" hidden></div>
+<script type="module" src="stage.js"></script>
+</body>
+</html>

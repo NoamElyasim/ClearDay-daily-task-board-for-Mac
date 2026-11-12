@@ -585,7 +585,11 @@ document.getElementById('sort-btn').addEventListener('click', () => api.menus.so
 // small capsule with a +, on the desktop (main/widget.mjs).
 const widgetBtn = document.getElementById('widget-btn');
 widgetBtn.innerHTML = ICONS.widget;
-widgetBtn.addEventListener('click', () => api.app.widget());
+// The capsule forms under this button, so the app is told where it is.
+widgetBtn.addEventListener('click', () => {
+  const r = widgetBtn.getBoundingClientRect();
+  api.app.widget({ x: r.x + r.width / 2, y: r.y + r.height / 2 });
+});
 
 const hideBtn = document.getElementById('hide-btn');
 hideBtn.innerHTML = ICONS.hide;

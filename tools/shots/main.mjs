@@ -124,7 +124,7 @@ ipcMain.handle('tasks:restore', (_e, id) => storeRef.restore(id));
 const firstId = `cleardayDebug.state.tasks.values().next().value.id`;
 const openNotes = (js) => js(`cleardayDebug.toggleNotes(${firstId}); document.activeElement.blur(); 1`);
 // The widget's + pressed, and the bar it opens into fully grown.
-const openWidgetBar = (js) => js(`document.getElementById('w-add').click(); new Promise((r) => setTimeout(() => r(1), 500))`);
+const openWidgetBar = (js) => js(`document.getElementById('w-add').click(); new Promise((r) => setTimeout(() => r(1), 1100))`);
 const clickFirst = (sel) => (js) => js(`document.querySelector(${JSON.stringify(sel)}).click(); 1`);
 
 // Preferences scrolled to the quick task shortcut, listening, after these

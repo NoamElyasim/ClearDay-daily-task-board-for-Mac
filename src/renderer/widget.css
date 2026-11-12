@@ -11,7 +11,7 @@ svg { display: block; }
    add bar. The room around it is for its shadow. The window is the bar's
    size while the pill widens or narrows, so the pill is held at the end of
    it the capsule sits at (body[data-side], from main). */
-:root { --w-dur: 220ms; }
+:root { --w-dur: 720ms; }   /* one surface, stretching: the stage's pace (morph.mjs) */
 #w {
   position: absolute; top: 20px; height: 52px; width: 92px;
   display: flex; align-items: center;
@@ -54,18 +54,24 @@ body.open #w-add svg { width: 16px; height: 16px; }
 #w-add.added svg:first-child { opacity: 0; transform: scale(0.5) rotate(30deg); }
 #w-add.added svg:last-child { opacity: 1; transform: none; }
 
-/* Everything only the bar has. On the capsule it has no width, and is out
-   of reach of the pointer and the Tab key. */
+/* Everything only the bar has. #w-mid is the room between + and the expand
+   arrows, none on the capsule; it uncovers #w-row, which keeps the bar's
+   full width so nothing in it is squeezed on the way, and comes in a step
+   behind the surface. On the capsule it is out of reach of the pointer and
+   the Tab key. */
 #w-mid {
   flex: 1 1 0; min-width: 0; height: 100%; overflow: hidden;
+  visibility: hidden;
+  transition: margin-right var(--w-dur) var(--ease-out), visibility 0s linear var(--w-dur);
+}
+body.open #w-mid { visibility: visible; margin-right: 4px; transition: margin-right var(--w-dur) var(--ease-out), visibility 0s; }
+#w-row {
+  width: 446px; height: 100%; padding-right: 4px;
   display: flex; align-items: center; gap: 8px;
-  opacity: 0; visibility: hidden;
-  transition: opacity 100ms ease, margin-right var(--w-dur) var(--ease-out), visibility 0s linear var(--w-dur);
+  opacity: 0; transform: translateX(-14px);
+  transition: opacity 160ms ease, transform 420ms var(--ease-out);
 }
-body.open #w-mid {
-  opacity: 1; visibility: visible; padding-right: 4px; margin-right: 4px;
-  transition: opacity 180ms ease 70ms, margin-right var(--w-dur) var(--ease-out), visibility 0s;
-}
+body.open #w-row { opacity: 1; transform: none; transition: opacity 300ms ease 120ms, transform 420ms var(--ease-out) 120ms; }
 
 #w-input {
   flex: 1; min-width: 0; height: 34px; border: 0; outline: none; background: transparent;

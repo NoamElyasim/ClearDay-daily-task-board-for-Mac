@@ -103,6 +103,10 @@ claude mcp add clearday --scope user --env ELECTRON_RUN_AS_NODE=1 -- \
     you leave it. The bar opens away from the nearer edge of the screen.
   - The expand arrows, on the capsule or the bar, bring the full board
     back. So does ClearDay's Dock or menu-bar icon.
+  - Each shape forms where the last one was. The capsule appears under the
+    shrink button you pressed, and the board opens from wherever the
+    capsule is now, with that button back under the pointer: move the
+    capsule and you have moved the board.
   - It floats above other windows only with Preferences → Always on top.
 - **Hide it.** The eye button in the header hides ClearDay completely,
   window and Dock icon, while it keeps running. See
@@ -307,7 +311,7 @@ Running it that way leaves your real board untouched.
 ### Layout
 
 ```
-src/main/       main process: window, widget, menus, tray, settings, task store, right-click menu
+src/main/       main process: window, widget, the stage its shape changes play on, menus, tray, settings, task store, right-click menu
 src/preload.cjs the renderer's API (window.clearday)
 src/shared/     the task model: plain functions shared by both sides
 src/renderer/   the UI; theme.css holds every colour

@@ -9,11 +9,12 @@
 </head>
 <body>
 <!-- ClearDay as a small capsule: + and the way back to the board. + opens it
-     into the add bar (everything in #w-mid). src/main/widget.mjs. -->
+     into the add bar (everything in #w-row, which #w-mid uncovers).
+     src/main/widget.mjs. -->
 <form id="w" autocomplete="off" aria-label="ClearDay">
   <span id="w-grip" aria-hidden="true"></span>
   <button type="submit" id="w-add" title="Add a task" aria-label="Add a task"></button>
-  <div id="w-mid">
+  <div id="w-mid"><div id="w-row">
     <input id="w-input" type="text" placeholder="Add a task…" spellcheck="false" aria-label="New task">
     <button type="button" id="w-space" data-space="work" title="Adding to Work. Click for Personal" aria-label="Adding to Work. Switch to Personal"></button>
     <button type="button" id="w-list" role="switch" aria-checked="false" title="Adding to To Do. Click for Ongoing" aria-label="Add to Ongoing">
@@ -21,7 +22,7 @@
     </button>
     <span id="w-count" title="Tasks left today" aria-label="Tasks left today">0</span>
     <button type="button" id="w-shrink" title="Back to the small button" aria-label="Back to the small button"></button>
-  </div>
+  </div></div>
   <button type="button" id="w-expand" title="Open the full board" aria-label="Open the full board"></button>
 </form>
 <script type="module" src="widget.js"></script>

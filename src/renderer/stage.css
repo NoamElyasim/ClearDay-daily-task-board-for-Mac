@@ -1,0 +1,22 @@
+/* The stage (stage.js): a transparent page the size of the screen, on which
+   one surface changes between ClearDay's shapes. Everything is placed by
+   stage.js, in the screen's own coordinates. */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 100%; height: 100%; background: transparent; overflow: hidden; }
+[hidden] { display: none !important; }
+#shell, #fold, #board, #pill, #mark { position: absolute; pointer-events: none; }
+
+/* The surface: the app's background in the shape's place, with the widget
+   pill's outline and shadow. A box that changes size, not a clip-path:
+   Chromium draws an animated clip-path wrongly. */
+#shell {
+  overflow: hidden; background: var(--bg);
+  box-shadow: 0 0 0 1px var(--popover-border), 0 10px 28px rgba(0, 0, 0, 0.28), 0 2px 8px rgba(0, 0, 0, 0.14);
+}
+/* The board's picture, held still on the screen while the surface moves
+   around it; #fold shows it from the top down. */
+#fold { overflow: hidden; }
+#board { left: 0; top: 0; max-width: none; }
+/* The +: the capsule's button, on its way to or from the board's Add. */
+#mark { border-radius: 50%; background: var(--accent); color: var(--accent-text); display: grid; place-items: center; }
+#mark svg { display: block; width: 45%; height: 45%; }

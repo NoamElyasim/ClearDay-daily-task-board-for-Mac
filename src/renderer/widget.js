@@ -13,7 +13,7 @@ const spaceBtn = document.getElementById('w-space');
 const list = document.getElementById('w-list');
 const count = document.getElementById('w-count');
 const SPACE_NAMES = { work: 'Work', personal: 'Personal' };
-const FOLD_MS = 220;   // widget.css: --w-dur
+const FOLD_MS = 720;   // widget.css: --w-dur
 const still = window.matchMedia('(prefers-reduced-motion: reduce)');
 
 document.getElementById('w-grip').innerHTML = ICONS.grip;

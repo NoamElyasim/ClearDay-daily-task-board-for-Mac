@@ -18,7 +18,9 @@ import { startBridge } from './bridge.mjs';
 import { relayHover } from './hover.mjs';
 import * as attachments from './attachments.mjs';
 import * as updates from './updates.mjs';
-import { initWidget, showWidget, hideWidget, closeWidget, refreshWidget, applyWidgetLook } from './widget.mjs';
+import { initWidget, prepareWidget, showWidget, revealWidget, hideWidget, closeWidget, refreshWidget, applyWidgetLook, widgetFace } from './widget.mjs';
+import { initMorph, prepareStage, closeStage, play, painted, boxOnScreen, motionAllowed } from './morph.mjs';
+import { capsuleWindowAt, boardWindowAt } from '../shared/place.mjs';
 import { SORTS, SORT_LABELS, SCHEMA_VERSION } from '../shared/model.mjs';
 
 const DIR = import.meta.dirname;
@@ -133,18 +135,113 @@ function createWindow() {
 
 // Brings the board forward. Hidden with the eye button, it comes back whole:
 // the Dock icon returns too, unless ClearDay lives in the menu bar only.
+// From the widget, it forms where the widget is (fromWidget).
 async function showWindow() {
-  if (!win || win.isDestroyed()) return;
-  if (settings.get('widget')) {
-    settings.set({ widget: false });
-    hideWidget();
-  }
+  if (!win || win.isDestroyed() || changing) return;
   if (hidden) {
     hidden = false;
     await applyShowIn();
   }
+  if (settings.get('widget')) {
+    changing = true;
+    try { await fromWidget(); } catch (e) { console.error('could not open from the widget', e); } finally { changing = false; }
+    if (!win || win.isDestroyed()) return;
+  }
+  win.setOpacity(1);
   win.show();
   win.focus();
+}
+
+// ─── The board and the widget, one shape ─────────────────────────────────────
+// Each forms where the other is (shared/place.mjs), and the change is played
+// on the stage (morph.mjs): the board gathers into the capsule under its own
+// shrink button, and the capsule or the bar opens into the board with that
+// button under its expand arrows. Without the stage (macOS asked to reduce
+// motion, or it failed) the places are the same and the switch is at once.
+let changing = false;
+const BOARD_RADIUS = 12;        // the window's own corners, near enough
+const PLUS_ON_BOARD = 14 / 24;  // the share of Add's round button its plus sign takes (app.css)
+const zoomNow = () => ZOOM[settings.get('textSize')] || 1;
+
+// A picture of the board as its page is now; null if there is none to take.
+async function boardPicture() {
+  const img = await win.webContents.capturePage();
+  return img.isEmpty() ? null : `data:image/jpeg;base64,${img.toJPEG(96).toString('base64')}`;
+}
+
+// at: the centre of the shrink button in the board's page.
+async function toWidget(at) {
+  if (!win || win.isDestroyed() || changing) return false;
+  changing = true;
+  try {
+    const z = zoomNow();
+    const b = win.getBounds();
+    const patch = { widget: true };
+    if (Number.isFinite(at?.x) && Number.isFinite(at?.y)) patch.widgetBounds = capsuleWindowAt({ x: b.x + at.x * z, y: b.y + at.y * z }, z);
+    settings.set(patch);
+    let played = false;
+    if (motionAllowed() && win.isVisible()) {
+      const [src, add] = await Promise.all([boardPicture(), boxOnScreen(win, '#add-open-icon', z)]);
+      await prepareWidget();
+      showWidget({ ghost: true });
+      const face = await widgetFace();
+      if (src && face) {
+        played = await play({
+          shell: { from: { rect: b, radius: BOARD_RADIUS }, to: { rect: face.shape, radius: face.radius } },
+          board: { rect: b, src, show: 'out' },
+          pill: face.src && { rect: face.window, src: face.src, show: 'in' },
+          mark: add && face.plus && { from: add, to: face.plus, iconFrom: PLUS_ON_BOARD, iconTo: face.plusIcon },
+        }, { covered: () => { win.setOpacity(0); win.hide(); }, arrived: () => revealWidget() });
+      }
+    }
+    win.hide();
+    if (played) revealWidget(); else showWidget();
+    return true;
+  } catch (e) {
+    console.error('could not shrink to the widget', e);
+    win.hide();
+    showWidget();
+    return true;
+  } finally {
+    changing = false;
+  }
+}
+
+// The board, still out of sight, is put where the widget is; then the
+// widget opens into it. showWindow() shows the board whatever happens here.
+async function fromWidget() {
+  settings.set({ widget: false });
+  const z = zoomNow();
+  const face = await widgetFace();
+  if (!face) { hideWidget(); return; }
+  const was = win.getBounds();
+  const button = await boxOnScreen(win, '#widget-btn', z);
+  let b = was;
+  if (button) {
+    b = boardWindowAt(face.arrows, { x: button.x + button.width / 2 - was.x, y: button.y + button.height / 2 - was.y },
+      { width: was.width, height: was.height }, screen.getDisplayNearestPoint(face.arrows).workArea);
+    win.setBounds(b);
+    settings.set({ bounds: b });
+  }
+  if (motionAllowed() && face.src) {
+    // Shown but unseen, so its page paints and can be pictured.
+    win.setOpacity(0);
+    win.showInactive();
+    await painted(win);
+    const [src, add] = await Promise.all([boardPicture(), boxOnScreen(win, '#add-open-icon', z)]);
+    if (src) {
+      await play({
+        shell: { from: { rect: face.shape, radius: face.radius }, to: { rect: b, radius: BOARD_RADIUS } },
+        board: { rect: b, src, show: 'in' },
+        pill: { rect: face.window, src: face.src, show: 'out' },
+        mark: add && face.plus && { from: face.plus, to: add, iconFrom: face.plusIcon, iconTo: PLUS_ON_BOARD },
+      }, {
+        covered: () => hideWidget(),
+        arrived: async () => { win.setOpacity(1); win.show(); win.focus(); await painted(win); },
+      });
+    }
+  }
+  hideWidget();
 }
 
 // ─── Hide: out of sight, still running ───────────────────────────────────────
@@ -409,16 +506,10 @@ ipcMain.handle('app:quit', () => app.quit());
 ipcMain.handle('app:hide', () => hideApp());
 
 // ─── The widget ──────────────────────────────────────────────────────────────
-// The header's shrink button: the board is put away and the capsule shows.
+// The header's shrink button: the board gathers into the capsule (toWidget).
 // showWindow() is the way back, from the widget's expand button, the Dock
 // or menu-bar icon, or opening ClearDay again.
-ipcMain.handle('app:widget', () => {
-  if (!win || win.isDestroyed()) return false;
-  settings.set({ widget: true });
-  showWidget();
-  win.hide();
-  return true;
-});
+ipcMain.handle('app:widget', (_e, at) => toWidget(at));
 initWidget({
   store,
   settings,
@@ -543,7 +634,7 @@ if (!app.requestSingleInstanceLock()) {
   app.on('second-instance', showWindow);
   app.on('activate', showWindow);
   let stopBridge = () => {};
-  app.on('before-quit', () => { quitting = true; store.flush(); stopQuick(); stopBridge(); closeWidget(); });
+  app.on('before-quit', () => { quitting = true; store.flush(); stopQuick(); stopBridge(); closeWidget(); closeStage(); });
   // The installer (an update, or the one-line install) quits ClearDay with
   // SIGTERM: quit properly, so the board is saved.
   process.on('SIGTERM', () => app.quit());
@@ -556,6 +647,10 @@ if (!app.requestSingleInstanceLock()) {
     applyLoginItem();
     await applyShowIn();
     createWindow();
+    // The widget and the stage its changes of shape play on, ready before they're asked for.
+    initMorph();
+    prepareStage();
+    prepareWidget();
     setQuickShortcut(settings.get('quickKey'));
     setQuickEnabled(settings.get('quickAdd'));
     stopBridge = startBridge(path.join(app.getPath('userData'), 'clearday.sock'), {

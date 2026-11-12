@@ -51,7 +51,7 @@ ipcMain.handle('update:install', () => { installs++; return true; });
 const calls = { hide: 0, resetPermission: 0, openPermission: 0 };
 let fakeCursor = { x: 0, y: 0 };
 ipcMain.handle('app:hide', () => { calls.hide++; return true; });
-ipcMain.handle('app:widget', () => { calls.widget = (calls.widget || 0) + 1; return true; });
+ipcMain.handle('app:widget', (_e, at) => { calls.widget = (calls.widget || 0) + 1; calls.widgetAt = at; return true; });
 // The widget itself is the real one, on the real store and settings.
 widget.initWidget({
   store, settings,
@@ -60,6 +60,7 @@ widget.initWidget({
   changed: () => win.webContents.send('tasks:changed'),
   zoom: () => 1,
   cursor: () => fakeCursor,   // where the test says the pointer is, for dragging the widget
+  animate: () => false,       // no stage: shapes switch at once (hidden windows paint nothing)
 });
 ipcMain.handle('quick:reset-permission', () => { calls.resetPermission++; return true; });
 ipcMain.handle('app:info', () => ({ version: app.getVersion(), dataFile: '' }));
@@ -1063,7 +1064,9 @@ done
   // ── The widget: a small capsule that opens into the add bar ──
   {
     await click('#widget-btn');
-    check('the shrink button asks the app for the widget', calls.widget === 1);
+    const wb = await rect('#widget-btn');
+    check('the shrink button asks the app for the widget, and says where it is so the capsule forms under it', calls.widget === 1 &&
+      Math.abs(calls.widgetAt?.x - wb.x) <= 1 && Math.abs(calls.widgetAt?.y - wb.y) <= 1, JSON.stringify(calls.widgetAt));
     const { screen } = await import('electron');
     const area = screen.getPrimaryDisplay().workArea;
     // Left on the left half of the screen, so the bar grows to the right.
@@ -1107,14 +1110,14 @@ done
     pc.sendInputEvent({ type: 'mouseMove', x: plus.x + 12, y: plus.y + 4 });
     await sleep(150);
     pc.sendInputEvent({ type: 'mouseUp', x: plus.x + 12, y: plus.y + 4, button: 'left', clickCount: 1 });
-    await sleep(400);
+    await sleep(950);
     const dragged = pw.getBounds();
     check('dragged by its +, it moves with the pointer, stays a capsule, and remembers the place',
       dragged.x === mini.x + 30 && dragged.y === mini.y + 40 && !(await isOpen()) &&
       settings.get('widgetBounds').x === dragged.x && settings.get('widgetBounds').y === dragged.y, JSON.stringify(dragged));
     pc.focus();
     await pclick('#w-add');
-    await sleep(400);
+    await sleep(950);
     const bar = pw.getBounds();
     const pill = await prect('#w');
     check('+ opens it into the add bar, growing to the right of where the capsule was', await isOpen() && bar.width === 600 && bar.x === dragged.x && bar.y === dragged.y &&
@@ -1142,7 +1145,7 @@ done
     await pclick('#w-input');
     await pc.insertText('Renew the passport');
     await pclick('#w-add');
-    await sleep(400);
+    await sleep(950);
     const pass = byText('Renew the passport');
     check('switched to Ongoing, + adds a personal ongoing project', pass?.space === 'personal' && pass?.list === 'ongoing' &&
       await pjs(`document.getElementById('w-input').placeholder.includes('ongoing')`));
@@ -1159,24 +1162,24 @@ done
     await sleep(300);
     check('Esc empties the field and the bar stays', await isOpen() && await pjs(`document.getElementById('w-input').value === ''`));
     pkey('Escape');
-    await sleep(600);
+    await sleep(1150);
     const folded = pw.getBounds();
     check('Esc in the empty field folds it back to the capsule, in the same spot', !(await isOpen()) && folded.width === 132 &&
       folded.x === dragged.x && folded.y === dragged.y && await showing() === 'w-add,w-expand', `${JSON.stringify(folded)} ${await showing()}`);
     // A click somewhere else folds it, and keeps what was typed.
     await pclick('#w-add');
-    await sleep(400);
+    await sleep(950);
     await pclick('#w-input');
     await pc.insertText('Water the ficus');
     pw.emit('blur');
-    await sleep(600);
+    await sleep(1150);
     check('a click somewhere else folds it', !(await isOpen()) && pw.getBounds().width === 132);
     await pclick('#w-add');
-    await sleep(400);
+    await sleep(950);
     check('and what was typed is still there when it opens again', await isOpen() && await pjs(`document.getElementById('w-input').value`) === 'Water the ficus' && !byText('Water the ficus'),
       `${await isOpen()} "${await pjs(`document.getElementById('w-input').value`)}" ${!!byText('Water the ficus')}`);
     await pclick('#w-shrink');
-    await sleep(600);
+    await sleep(1150);
     check('the bar\'s shrink button folds it too', !(await isOpen()) && pw.getBounds().width === 132 && pw.getBounds().x === dragged.x);
     // On the right half of the screen the bar grows to the left: the capsule's end stays put.
     settings.set({ widgetBounds: { x: area.x + area.width - 200, y: area.y + 120 } });
@@ -1184,26 +1187,26 @@ done
     await sleep(300);
     const right = pw.getBounds();
     await pclick('#w-add');
-    await sleep(400);
+    await sleep(950);
     const grown = pw.getBounds();
     const rpill = await prect('#w');
     check('near the right edge the bar grows to the left, its right end where the capsule was', await isOpen() && grown.width === 600 &&
       grown.x + grown.width === right.x + right.width && await pjs(`document.body.dataset.side`) === 'right' && Math.round(rpill.right) === 580,
       `${JSON.stringify(right)} ${JSON.stringify(grown)} ${rpill.right}`);
     pw.emit('blur');
-    await sleep(600);
+    await sleep(1150);
     check('and folds back to that end', !(await isOpen()) && pw.getBounds().x === right.x && pw.getBounds().width === 132);
     await pclick('#w-expand');
     check('the capsule\'s expand button asks for the full board', calls.expand === 1);
     // Put away while open (the board came back some other way), it returns as the capsule.
     await pclick('#w-add');
-    await sleep(400);
+    await sleep(950);
     widget.hideWidget();
     await sleep(200);
     check('put away as the bar, it comes back as the capsule', !(await isOpen()) && pw.getBounds().width === 132 && pw.getBounds().x === right.x);
     widget.closeWidget();
     await click('.space-opt[data-space="work"]');
-    await sleep(400);
+    await sleep(950);
   }
 
   // ── Updates ──
