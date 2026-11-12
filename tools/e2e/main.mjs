@@ -51,7 +51,7 @@ ipcMain.handle('update:install', () => { installs++; return true; });
 const calls = { hide: 0, resetPermission: 0, openPermission: 0 };
 let fakeCursor = { x: 0, y: 0 };
 ipcMain.handle('app:hide', () => { calls.hide++; return true; });
-ipcMain.handle('app:widget', (_e, at) => { calls.widget = (calls.widget || 0) + 1; calls.widgetAt = at; return true; });
+ipcMain.handle('app:widget', () => { calls.widget = (calls.widget || 0) + 1; return true; });
 // The widget itself is the real one, on the real store and settings.
 widget.initWidget({
   store, settings,
@@ -1064,9 +1064,7 @@ done
   // ── The widget: a small capsule that opens into the add bar ──
   {
     await click('#widget-btn');
-    const wb = await rect('#widget-btn');
-    check('the shrink button asks the app for the widget, and says where it is so the capsule forms under it', calls.widget === 1 &&
-      Math.abs(calls.widgetAt?.x - wb.x) <= 1 && Math.abs(calls.widgetAt?.y - wb.y) <= 1, JSON.stringify(calls.widgetAt));
+    check('the shrink button asks the app for the widget', calls.widget === 1);
     const { screen } = await import('electron');
     const area = screen.getPrimaryDisplay().workArea;
     // Left on the left half of the screen, so the bar grows to the right.

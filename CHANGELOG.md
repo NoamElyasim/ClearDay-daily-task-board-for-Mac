@@ -12,11 +12,11 @@
     didn't add waits in the field.
   - Drag it by any part of it, the + included.
 - **One shape, three sizes.** The board, the bar and the capsule turn into
-  each other in place. The board gathers into the capsule right under the
-  shrink button you pressed, and opens again from wherever the capsule is,
-  with that button back under the pointer. Nothing jumps to where it last
-  was. With Reduce Motion on in macOS, they switch at once, in the same
-  places.
+  each other in place, around the +. The board gathers into the capsule at
+  its own Add button, the bar stretches out to the right of the +, and the
+  board opens again from wherever the capsule is. Nothing jumps to where
+  it last was. With Reduce Motion on in macOS, they switch at once, in the
+  same places.
 - Preferences no longer shows the quick-add permission buttons when they
   don't apply.
 

@@ -12,6 +12,7 @@
 import { BrowserWindow, ipcMain, screen } from 'electron';
 import path from 'node:path';
 import { play, painted, boxOnScreen, motionAllowed } from './morph.mjs';
+import { CAPSULE } from '../shared/place.mjs';
 
 const DIR = import.meta.dirname;
 // The capsule and the bar, each plus room around it for its shadow (the
@@ -25,8 +26,8 @@ let loaded = null;     // resolves once the pill's page has loaded
 let deps = null;       // { store, settings, setSpace, expand, changed, zoom, cursor, animate }
 let open = false;      // the bar is showing, not the capsule
 // The end of the bar the capsule sits at: 'left' and the bar grows to the
-// right of it, 'right' and it grows to the left. It grows away from the
-// nearer screen edge, so the capsule is in the same spot once it folds.
+// right of it, 'right' (no room there) and it grows to the left. Either
+// way the capsule is in the same spot once it folds.
 let side = 'left';
 let dragFrom = null;   // { x, y, cx, cy }: the window and the pointer as a drag began
 
@@ -120,14 +121,11 @@ function miniBounds() {
   return { x: open && side === 'right' ? b.x + b.width - m.width : b.x, y: b.y, ...m };
 }
 
-// Away from the nearer edge of the screen, unless the bar wouldn't fit there.
+// To the right of the capsule, so the + stays where it is, unless the bar
+// wouldn't fit on the screen there.
 function pickSide(m) {
   const area = areaOf(m);
-  const bar = sized(BAR);
-  const onTheRight = m.x + m.width / 2 > area.x + area.width / 2;
-  const fitsToTheRight = m.x + bar.width <= area.x + area.width;
-  const fitsToTheLeft = m.x + m.width - bar.width >= area.x;
-  return onTheRight ? (fitsToTheLeft ? 'right' : 'left') : (fitsToTheRight ? 'left' : 'right');
+  return m.x + sized(BAR).width <= area.x + area.width ? 'left' : 'right';
 }
 
 // Where the capsule sits is what is remembered, whichever shape was dragged.
@@ -270,28 +268,29 @@ export function hideWidget() {
 }
 
 // The widget as the stage needs it (morph.mjs): its window, a picture of
-// it, its pill (the capsule or the bar), its + and the centre of its expand
-// arrows, all on screen. null if it isn't there to be seen.
+// it, its pill (the capsule or the bar) and its +, all on screen. null if it
+// isn't there to be seen.
 export async function widgetFace() {
   if (!alive() || !pill.isVisible()) return null;
   await loaded;
   await painted(pill);
   if (!alive()) return null;
   const z = deps.zoom();
-  const [image, shape, plus, arrows] = await Promise.all([
+  const [image, shape, plus] = await Promise.all([
     pill.webContents.capturePage(),
     boxOnScreen(pill, '#w', z),
     boxOnScreen(pill, '#w-add', z),
-    boxOnScreen(pill, '#w-expand', z),
   ]);
-  if (!shape || !arrows) return null;
+  if (!shape) return null;
   return {
     window: pill.getBounds(),
     src: image.isEmpty() ? null : image.toDataURL(),
     shape, plus,
     plusIcon: open ? 16 / 34 : 18 / 40,   // the share of + its plus sign takes (widget.css)
     radius: shape.height / 2,
-    arrows: { x: arrows.x + arrows.width / 2, y: arrows.y + arrows.height / 2 },
+    // Where the capsule's + is, or will be again once the bar folds: the
+    // point the board forms around.
+    home: (() => { const m = miniBounds(); return { x: m.x + (CAPSULE.margin + CAPSULE.plusX) * z, y: m.y + (CAPSULE.margin + CAPSULE.plusY) * z }; })(),
     open,
   };
 }

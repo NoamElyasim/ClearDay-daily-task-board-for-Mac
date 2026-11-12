@@ -19,7 +19,7 @@ import { relayHover } from './hover.mjs';
 import * as attachments from './attachments.mjs';
 import * as updates from './updates.mjs';
 import { initWidget, prepareWidget, showWidget, revealWidget, hideWidget, closeWidget, refreshWidget, applyWidgetLook, widgetFace } from './widget.mjs';
-import { initMorph, prepareStage, closeStage, play, painted, boxOnScreen, motionAllowed } from './morph.mjs';
+import { initMorph, prepareStage, closeStage, play, painted, boxOnScreen, centreOf, motionAllowed } from './morph.mjs';
 import { capsuleWindowAt, boardWindowAt } from '../shared/place.mjs';
 import { SORTS, SORT_LABELS, SCHEMA_VERSION } from '../shared/model.mjs';
 
@@ -153,14 +153,15 @@ async function showWindow() {
 }
 
 // ─── The board and the widget, one shape ─────────────────────────────────────
-// Each forms where the other is (shared/place.mjs), and the change is played
-// on the stage (morph.mjs): the board gathers into the capsule under its own
-// shrink button, and the capsule or the bar opens into the board with that
-// button under its expand arrows. Without the stage (macOS asked to reduce
+// Both grow out of the +. The board gathers into the capsule around its own
+// Add button, and the capsule or the bar opens into the board around its +
+// (shared/place.mjs), so each forms where the other is. The change is
+// played on the stage (morph.mjs). Without the stage (macOS asked to reduce
 // motion, or it failed) the places are the same and the switch is at once.
 let changing = false;
 const BOARD_RADIUS = 12;        // the window's own corners, near enough
 const PLUS_ON_BOARD = 14 / 24;  // the share of Add's round button its plus sign takes (app.css)
+const ADD = '#add-open-icon';   // the + on the board
 const zoomNow = () => ZOOM[settings.get('textSize')] || 1;
 
 // A picture of the board as its page is now; null if there is none to take.
@@ -169,19 +170,17 @@ async function boardPicture() {
   return img.isEmpty() ? null : `data:image/jpeg;base64,${img.toJPEG(96).toString('base64')}`;
 }
 
-// at: the centre of the shrink button in the board's page.
-async function toWidget(at) {
+async function toWidget() {
   if (!win || win.isDestroyed() || changing) return false;
   changing = true;
   try {
     const z = zoomNow();
     const b = win.getBounds();
-    const patch = { widget: true };
-    if (Number.isFinite(at?.x) && Number.isFinite(at?.y)) patch.widgetBounds = capsuleWindowAt({ x: b.x + at.x * z, y: b.y + at.y * z }, z);
-    settings.set(patch);
+    const add = await boxOnScreen(win, ADD, z);
+    settings.set({ widget: true, ...(add ? { widgetBounds: capsuleWindowAt(centreOf(add), z) } : {}) });
     let played = false;
     if (motionAllowed() && win.isVisible()) {
-      const [src, add] = await Promise.all([boardPicture(), boxOnScreen(win, '#add-open-icon', z)]);
+      const src = await boardPicture();
       await prepareWidget();
       showWidget({ ghost: true });
       const face = await widgetFace();
@@ -190,7 +189,7 @@ async function toWidget(at) {
           shell: { from: { rect: b, radius: BOARD_RADIUS }, to: { rect: face.shape, radius: face.radius } },
           board: { rect: b, src, show: 'out' },
           pill: face.src && { rect: face.window, src: face.src, show: 'in' },
-          mark: add && face.plus && { from: add, to: face.plus, iconFrom: PLUS_ON_BOARD, iconTo: face.plusIcon },
+          mark: add?.showing && face.plus && { from: add, to: face.plus, iconFrom: PLUS_ON_BOARD, iconTo: face.plusIcon },
         }, { covered: () => { win.setOpacity(0); win.hide(); }, arrived: () => revealWidget() });
       }
     }
@@ -215,32 +214,42 @@ async function fromWidget() {
   const face = await widgetFace();
   if (!face) { hideWidget(); return; }
   const was = win.getBounds();
-  const button = await boxOnScreen(win, '#widget-btn', z);
-  let b = was;
-  if (button) {
-    b = boardWindowAt(face.arrows, { x: button.x + button.width / 2 - was.x, y: button.y + button.height / 2 - was.y },
-      { width: was.width, height: was.height }, screen.getDisplayNearestPoint(face.arrows).workArea);
-    win.setBounds(b);
-    settings.set({ bounds: b });
+  const add = await boxOnScreen(win, ADD, z);
+  if (add) {
+    const inBoard = { x: add.x + add.width / 2 - was.x, y: add.y + add.height / 2 - was.y };
+    const target = boardWindowAt(face.home, inBoard, { width: was.width, height: was.height },
+      screen.getDisplayNearestPoint(face.home).workArea);
+    win.setBounds(target);
   }
   if (motionAllowed() && face.src) {
-    // Shown but unseen, so its page paints and can be pictured.
+    // Shown but unseen, so its page paints and can be pictured, and so
+    // that where macOS really put it is known.
     win.setOpacity(0);
     win.showInactive();
     await painted(win);
-    const [src, add] = await Promise.all([boardPicture(), boxOnScreen(win, '#add-open-icon', z)]);
+    const b = win.getBounds();
+    const at = await boxOnScreen(win, ADD, z);
+    // The + is the stage's to draw: it stays where it is while the board
+    // unfolds under it, so the board is pictured without its own.
+    const plusShown = (on) => win.webContents.executeJavaScript(
+      `document.querySelector(${JSON.stringify(ADD)}).style.visibility = ${on ? "''" : "'hidden'"}; 1`).catch(() => {});
+    const travels = at?.showing && face.plus;
+    if (travels) { await plusShown(false); await painted(win); }
+    const src = await boardPicture();
+    if (travels) await plusShown(true);
     if (src) {
       await play({
         shell: { from: { rect: face.shape, radius: face.radius }, to: { rect: b, radius: BOARD_RADIUS } },
         board: { rect: b, src, show: 'in' },
         pill: { rect: face.window, src: face.src, show: 'out' },
-        mark: add && face.plus && { from: face.plus, to: add, iconFrom: face.plusIcon, iconTo: PLUS_ON_BOARD },
+        mark: travels && { from: face.plus, to: at, iconFrom: face.plusIcon, iconTo: PLUS_ON_BOARD },
       }, {
         covered: () => hideWidget(),
         arrived: async () => { win.setOpacity(1); win.show(); win.focus(); await painted(win); },
       });
     }
   }
+  settings.set({ bounds: win.getBounds() });
   hideWidget();
 }
 
@@ -509,7 +518,7 @@ ipcMain.handle('app:hide', () => hideApp());
 // The header's shrink button: the board gathers into the capsule (toWidget).
 // showWindow() is the way back, from the widget's expand button, the Dock
 // or menu-bar icon, or opening ClearDay again.
-ipcMain.handle('app:widget', (_e, at) => toWidget(at));
+ipcMain.handle('app:widget', () => toWidget());
 initWidget({
   store,
   settings,

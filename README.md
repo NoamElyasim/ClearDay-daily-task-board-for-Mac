@@ -100,13 +100,14 @@ claude mcp add clearday --scope user --env ELECTRON_RUN_AS_NODE=1 -- \
     Esc in the empty field, or press its shrink arrows. What you typed and
     didn't add is still there next time.
   - Drag the capsule or the bar anywhere, by any part of it; it stays where
-    you leave it. The bar opens away from the nearer edge of the screen.
+    you leave it.
   - The expand arrows, on the capsule or the bar, bring the full board
     back. So does ClearDay's Dock or menu-bar icon.
-  - Each shape forms where the last one was. The capsule appears under the
-    shrink button you pressed, and the board opens from wherever the
-    capsule is now, with that button back under the pointer: move the
-    capsule and you have moved the board.
+  - Every shape grows out of the +, where the last one was. The capsule
+    forms at the board's Add button, the bar stretches to the right of the
+    + (to the left when there is no room), and the board opens around the +
+    wherever the capsule is now: move the capsule and you have moved the
+    board.
   - It floats above other windows only with Preferences → Always on top.
 - **Hide it.** The eye button in the header hides ClearDay completely,
   window and Dock icon, while it keeps running. See

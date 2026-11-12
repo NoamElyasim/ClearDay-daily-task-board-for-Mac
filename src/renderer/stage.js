@@ -86,8 +86,8 @@ s.onGo(async () => {
         run(fold, { height: ['0px', full] }, { duration: 420, delay: 130 });
         run(board, { transform: [LOWERED, RESTING] }, { duration: 520, delay: 130 });
       } else {
+        // Folding, it stays put: its own + is under the one that stays.
         run(fold, { height: [full, '0px'] }, { duration: 420 });
-        run(board, { transform: [RESTING, LOWERED] }, { duration: 520 });
       }
     }
     // The widget's own face goes as the surface leaves it, and is back as

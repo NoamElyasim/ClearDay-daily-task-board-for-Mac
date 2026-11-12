@@ -53,6 +53,9 @@ export function prepareStage() {
     fullscreenable: false,
     focusable: false,
     show: false,
+    // macOS otherwise moves a window this size to keep it clear of the Dock
+    // or the Stage Manager strip, and it would no longer cover the screen.
+    enableLargerThanScreen: true,
     title: 'ClearDay',
     webPreferences: {
       preload: path.join(DIR, '..', 'stage-preload.cjs'),
@@ -102,9 +105,11 @@ export async function play(scene, { covered, arrived }) {
   try {
     if (!(await Promise.race([loaded, new Promise((r) => setTimeout(() => r(false), 1500))]))) return false;
     const rects = [scene.shell?.from.rect, scene.shell?.to.rect, scene.board?.rect, scene.pill?.rect].filter(Boolean);
-    // Below the menu bar, where windows are; macOS decides how much of that
-    // the stage gets, so its place is read back.
+    // Over the screen the shape is on, below the menu bar. It is shown
+    // empty first: where macOS really put it is only known once it shows,
+    // and that is what the scene is drawn against.
     stage.setBounds(screen.getDisplayMatching(rects[0]).workArea);
+    stage.showInactive();
     const origin = stage.getBounds();
     stage.webContents.send('stage:scene', {
       ms: MORPH_MS,
@@ -116,7 +121,6 @@ export async function play(scene, { covered, arrived }) {
       pill: scene.pill && { ...scene.pill, rect: onStage(scene.pill.rect, origin) },
       mark: scene.mark && { ...scene.mark, from: onStage(scene.mark.from, origin), to: onStage(scene.mark.to, origin) },
     });
-    stage.showInactive();
     if (!(await heard('ready', 800))) { stage.hide(); return false; }
     await covered();
     stage.webContents.send('stage:go');
@@ -145,8 +149,9 @@ export function painted(w, ms = 300) {
   ]);
 }
 
-// An element's box on screen, from a window's page; null if it isn't
-// showing. Page coordinates are CSS px, so the window's zoom scales them.
+// An element's box on screen, from a window's page; null if the page has no
+// such element. showing: whether it can be seen there now. Page coordinates
+// are CSS px, so the window's zoom scales them.
 export async function boxOnScreen(w, selector, zoom = 1) {
   if (!w || w.isDestroyed()) return null;
   const r = await w.webContents.executeJavaScript(`(() => {
@@ -154,10 +159,12 @@ export async function boxOnScreen(w, selector, zoom = 1) {
     if (!el) return null;
     const r = el.getBoundingClientRect();
     const s = getComputedStyle(el);
-    if (!r.width || !r.height || s.visibility === 'hidden' || Number(s.opacity) === 0 || el.closest('.opener.open')) return null;
-    return { x: r.x, y: r.y, width: r.width, height: r.height };
+    const showing = r.width > 0 && r.height > 0 && s.visibility !== 'hidden' && Number(s.opacity) !== 0 && !el.closest('.opener.open');
+    return { x: r.x, y: r.y, width: r.width, height: r.height, showing };
   })()`).catch(() => null);
-  if (!r) return null;
+  if (!r || !r.width || !r.height) return null;
   const b = w.getBounds();
-  return { x: b.x + r.x * zoom, y: b.y + r.y * zoom, width: r.width * zoom, height: r.height * zoom };
+  return { x: b.x + r.x * zoom, y: b.y + r.y * zoom, width: r.width * zoom, height: r.height * zoom, showing: r.showing };
 }
+
+export const centreOf = (r) => ({ x: r.x + r.width / 2, y: r.y + r.height / 2 });
