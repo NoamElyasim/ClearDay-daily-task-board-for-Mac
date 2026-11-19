@@ -77,7 +77,12 @@ const codexStub = { codex: false, codexAvailable: true };
 let codexResult = { ok: true, via: 'codex' };
 ipcMain.handle('mcp:status', () => ({ desktop: false, desktopInstalled: true, code: false, command: '', ...codexStub }));
 for (const ch of ['mcp:connect-desktop', 'mcp:copy-code-command']) ipcMain.handle(ch, () => true);
-ipcMain.handle('mcp:connect-codex', () => { calls.connectCodex = (calls.connectCodex || 0) + 1; codexStub.codex = codexResult.ok; return codexResult; });
+ipcMain.handle('mcp:connect-codex', () => {
+  calls.connectCodex = (calls.connectCodex || 0) + 1;
+  if (codexResult === 'throw') throw new Error('the disk is full');
+  codexStub.codex = codexResult.ok;
+  return codexResult;
+});
 for (const ch of ['app:reveal-data', 'app:export', 'app:reset-bounds', 'app:quit']) ipcMain.handle(ch, () => null);
 const moves = [];   // window moves the renderer asked for: [dx, dy]
 ipcMain.on('win:drag-start', () => { moves.length = 0; });
@@ -1090,10 +1095,15 @@ done
     await pressCodex();
     c = await codex();
     check('a failed connect says so, with Codex\'s own words', c.text === 'Couldn\'t connect' && c.note.includes('Error: not logged in'), JSON.stringify(c));
+    codexResult = 'throw';
+    await pressCodex();
+    c = await codex();
+    check('a connect that breaks inside the app still says so, and the button works again', c.text === 'Couldn\'t connect' && !c.disabled &&
+      c.note.includes('the disk is full'), JSON.stringify(c));
     codexResult = { ok: true, via: 'codex' };
     await pressCodex();
     c = await codex();
-    check('Connect asks the app and then reads Connected ✓', calls.connectCodex === 2 && c.text === 'Connected ✓' && c.note === '', JSON.stringify(c));
+    check('Connect asks the app and then reads Connected ✓', calls.connectCodex === 3 && c.text === 'Connected ✓' && c.note === '', JSON.stringify(c));
     await key('Escape');
     await sleep(300);
     Object.assign(codexStub, { codex: false, codexAvailable: false });

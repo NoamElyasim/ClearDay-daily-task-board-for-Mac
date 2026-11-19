@@ -194,7 +194,8 @@ function build(info) {
   const codexBtn = action('Connect', async () => {
     codexBtn.disabled = true;
     codexBtn.textContent = 'Connecting…';
-    const r = await api.mcp.connectCodex();
+    let r;
+    try { r = await api.mcp.connectCodex(); } catch (e) { r = { ok: false, error: e.message.replace(/^Error invoking remote method '[^']+': (Error: )?/, '') }; }
     codexNote.hidden = r.ok;
     codexNote.firstChild.textContent = r.ok ? '' : `Codex said: ${r.error}`;
     await refreshClaude();
