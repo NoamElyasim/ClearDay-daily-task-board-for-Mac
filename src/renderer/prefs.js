@@ -11,6 +11,7 @@ const api = window.clearday;
 let root = null;
 let current = {};
 const syncers = [];   // (settings) => void, one per control
+const onOpen = [];    // () => void, run each time Preferences opens
 
 const SHORTCUTS = [
   ['Enter', 'Add the task you typed; on a selected row, edit it'],
@@ -188,13 +189,31 @@ function build(info) {
     codeBtn.textContent = 'Copied';
     setTimeout(refreshClaude, 1600);
   }, '', 'Copy the Terminal command that adds ClearDay to Claude Code');
+  // Codex: Codex adds ClearDay itself; a failure shows Codex's own words
+  // under the row until the next try.
+  const codexBtn = action('Connect', async () => {
+    codexBtn.disabled = true;
+    codexBtn.textContent = 'Connecting…';
+    const r = await api.mcp.connectCodex();
+    codexNote.hidden = r.ok;
+    codexNote.firstChild.textContent = r.ok ? '' : `Codex said: ${r.error}`;
+    await refreshClaude();
+    if (!r.ok) codexBtn.textContent = 'Couldn\'t connect';
+  }, '', 'Add ClearDay to Codex: the Codex app and the codex command');
+  const codexNote = h('div', { className: 'pref-note codex-note', hidden: true }, h('span', { className: 'pref-hint warn' }));
   async function refreshClaude() {
     const st = await api.mcp.status();
     desktopBtn.textContent = st.desktop ? 'Connected ✓' : 'Connect';
     desktopBtn.disabled = !st.desktopInstalled && !st.desktop;
     codeBtn.textContent = st.code ? 'Connected ✓ · Copy again' : 'Copy command';
+    codexBtn.textContent = st.codex ? 'Connected ✓' : 'Connect';
+    codexBtn.disabled = !st.codexAvailable && !st.codex;
+    codexBtn.title = codexBtn.disabled ? 'Install Codex or the ChatGPT app first'
+      : st.codex ? 'Connect again, for example after moving ClearDay' : 'Add ClearDay to Codex: the Codex app and the codex command';
   }
   refreshClaude();
+  // Connected or installed elsewhere meanwhile: shown when Preferences opens.
+  onOpen.push(refreshClaude);
 
   const sheet = h('div', { className: 'prefs-sheet' },
     h('header', { className: 'prefs-head' }, h('h2', { textContent: 'Preferences' }), done),
@@ -217,10 +236,12 @@ function build(info) {
         quickNote,
       ),
       h('section', {},
-        h('h3', { textContent: 'Claude' }),
-        h('p', { className: 'pref-hint claude-intro', textContent: 'Let Claude read and update your board: add tasks, change their status, search them.' }),
+        h('h3', { textContent: 'Claude & Codex' }),
+        h('p', { className: 'pref-hint claude-intro', textContent: 'Let Claude or Codex read and update your board: add tasks, change their status, search them.' }),
         row('Claude Desktop', desktopBtn, 'Restart Claude Desktop after connecting'),
         row('Claude Code', codeBtn, 'Copies a command; paste it into Terminal'),
+        row('Codex', codexBtn, 'The Codex app and the codex command. Restart Codex after connecting'),
+        codexNote,
       ),
       h('section', {},
         h('h3', { textContent: 'Data' }),
@@ -267,6 +288,7 @@ export function isPrefsOpen() {
 }
 
 export function openPrefs() {
+  for (const fn of onOpen) fn();
   root.classList.add('open');
   root.setAttribute('aria-hidden', 'false');
   root.querySelector('.prefs-done').focus({ preventScroll: true });

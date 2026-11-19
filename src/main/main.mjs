@@ -21,6 +21,7 @@ import * as updates from './updates.mjs';
 import { initWidget, prepareWidget, showWidget, revealWidget, hideWidget, closeWidget, refreshWidget, applyWidgetLook, widgetFace } from './widget.mjs';
 import { initMorph, prepareStage, closeStage, play, painted, boxOnScreen, centreOf, motionAllowed } from './morph.mjs';
 import { capsuleWindowAt, boardWindowAt } from '../shared/place.mjs';
+import { codexStatus, connectCodex } from './codex.mjs';
 import { SORTS, SORT_LABELS, SCHEMA_VERSION } from '../shared/model.mjs';
 
 const DIR = import.meta.dirname;
@@ -597,9 +598,10 @@ ipcMain.handle('quick:reset-permission', async () => {
   return true;
 });
 
-// ─── Claude (MCP) ────────────────────────────────────────────────────────────
-// Claude starts ClearDay's MCP server itself, as this app's binary in Node
-// mode; the server reaches the running app over the bridge socket.
+// ─── Claude and Codex (MCP) ──────────────────────────────────────────────────
+// Claude or Codex starts ClearDay's MCP server itself, as this app's binary
+// in Node mode; the server reaches the running app over the bridge socket.
+// Codex is connected by its own codex command (codex.mjs).
 const CLAUDE_DESKTOP_CONFIG = path.join(os.homedir(), 'Library', 'Application Support', 'Claude', 'claude_desktop_config.json');
 const CLAUDE_CODE_CONFIG = path.join(os.homedir(), '.claude.json');
 
@@ -623,6 +625,7 @@ ipcMain.handle('mcp:status', () => ({
   desktopInstalled: fs.existsSync(path.dirname(CLAUDE_DESKTOP_CONFIG)),
   code: !!readJson(CLAUDE_CODE_CONFIG)?.mcpServers?.clearday,
   command: claudeCodeCommand(),
+  ...(({ connected, available }) => ({ codex: connected, codexAvailable: available }))(codexStatus()),
 }));
 // Adds (or refreshes) ClearDay in Claude Desktop's config, keeping a copy of
 // the file as it was.
@@ -635,6 +638,9 @@ ipcMain.handle('mcp:connect-desktop', () => {
   return true;
 });
 ipcMain.handle('mcp:copy-code-command', () => { clipboard.writeText(claudeCodeCommand()); return true; });
+// Has Codex add ClearDay (or adds it to Codex's settings when there is no
+// codex command): → { ok, via, error? }.
+ipcMain.handle('mcp:connect-codex', () => connectCodex(mcpLaunch()));
 
 // ─── Startup ─────────────────────────────────────────────────────────────────
 if (!app.requestSingleInstanceLock()) {

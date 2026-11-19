@@ -58,8 +58,9 @@ ipcMain.on('widget:drag', () => {});
 // asks for their status.
 ipcMain.handle('quick:status', () => 'ready');
 for (const ch of ['quick:show', 'quick:open-permission']) ipcMain.handle(ch, () => null);
-ipcMain.handle('mcp:status', () => ({ desktop: false, desktopInstalled: true, code: false, command: '' }));
+ipcMain.handle('mcp:status', () => ({ desktop: false, desktopInstalled: true, code: false, command: '', codex: false, codexAvailable: true }));
 for (const ch of ['mcp:connect-desktop', 'mcp:copy-code-command']) ipcMain.handle(ch, () => true);
+ipcMain.handle('mcp:connect-codex', () => ({ ok: true, via: 'codex' }));
 for (const ch of ['app:reveal-data', 'app:export', 'app:reset-bounds', 'app:quit']) ipcMain.handle(ch, () => null);
 // The quick-add bar's own channels (quick-preload.cjs).
 ipcMain.handle('quick:add', () => null);
@@ -222,6 +223,8 @@ const SHOTS = {
     await js(`[...document.querySelectorAll('#sections .row')].slice(1, 3).forEach((r) => r.click()); 1`);
   } },
   'prefs-dark': { theme: 'dark', width: 780, height: 560, setup: (js) => js('cleardayDebug.openPrefs(); 1') },
+  // Preferences scrolled to Claude & Codex.
+  'prefs-ai-light': { theme: 'light', width: 780, height: 560, setup: async (js) => { await js(`cleardayDebug.openPrefs(); [...document.querySelectorAll('#prefs h3')].find((h) => h.textContent.includes('Codex')).scrollIntoView({ block: 'start' }); 1`); } },
   'prefs-light-narrow': { theme: 'light', width: 340, height: 600, setup: (js) => js('cleardayDebug.openPrefs(); 1') },
   // The quick task shortcut: listening with ⌃⇧ held (dark), listening empty,
   // and set to a combination (light).

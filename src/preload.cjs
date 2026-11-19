@@ -45,6 +45,7 @@ contextBridge.exposeInMainWorld('clearday', {
     status: () => ipcRenderer.invoke('mcp:status'),
     connectDesktop: () => ipcRenderer.invoke('mcp:connect-desktop'),
     copyCodeCommand: () => ipcRenderer.invoke('mcp:copy-code-command'),
+    connectCodex: () => ipcRenderer.invoke('mcp:connect-codex'),
   },
   // Files attached to notes: copied in by the main process, which answers
   // { file, name, image } or { error }.

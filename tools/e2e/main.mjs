@@ -72,8 +72,12 @@ const recordingCalls = [];   // what Preferences told main while picking a key
 ipcMain.on('quick:recording', (e, on) => { recordingCalls.push(on); e.sender.setIgnoreMenuShortcuts(!!on); });
 ipcMain.handle('quick:show', () => null);
 ipcMain.handle('quick:open-permission', () => { calls.openPermission++; return null; });
-ipcMain.handle('mcp:status', () => ({ desktop: false, desktopInstalled: true, code: false, command: '' }));
+// Codex: what Preferences is told, and what pressing Connect answers.
+const codexStub = { codex: false, codexAvailable: true };
+let codexResult = { ok: true, via: 'codex' };
+ipcMain.handle('mcp:status', () => ({ desktop: false, desktopInstalled: true, code: false, command: '', ...codexStub }));
 for (const ch of ['mcp:connect-desktop', 'mcp:copy-code-command']) ipcMain.handle(ch, () => true);
+ipcMain.handle('mcp:connect-codex', () => { calls.connectCodex = (calls.connectCodex || 0) + 1; codexStub.codex = codexResult.ok; return codexResult; });
 for (const ch of ['app:reveal-data', 'app:export', 'app:reset-bounds', 'app:quit']) ipcMain.handle(ch, () => null);
 const moves = [];   // window moves the renderer asked for: [dx, dy]
 ipcMain.on('win:drag-start', () => { moves.length = 0; });
@@ -1057,6 +1061,47 @@ done
     await sleep(200);
     n = await note();
     check('ready, it says so and keeps Ask macOS again at hand', /^Ready/.test(n.text) && n.buttons.join() === 'Ask macOS again', JSON.stringify(n));
+    await key('Escape');
+    await sleep(300);
+  }
+
+  // ── Preferences: Claude & Codex ──
+  {
+    const codexRow = `(() => [...document.querySelectorAll('#prefs .pref-row')].find((r) => r.querySelector('.pref-label')?.firstChild?.textContent === 'Codex'))()`;
+    const codex = () => js(`(() => { const r = ${codexRow}; if (!r) return null; const b = r.querySelector('button.pref-action');
+      const note = r.nextElementSibling?.classList.contains('codex-note') ? r.nextElementSibling : null;
+      return { text: b.textContent, disabled: b.disabled, title: b.getAttribute('data-tip') || b.title, hint: r.querySelector('.pref-hint')?.textContent,
+        note: note && !note.hidden ? note.textContent : '' }; })()`);
+    const pressCodex = async () => {
+      await js(`(() => { const r = ${codexRow}; r.scrollIntoView({ block: 'center' }); r.querySelector('button.pref-action').classList.add('e2e-codex'); return 1; })()`);
+      await click('#prefs .e2e-codex');
+      await sleep(300);
+    };
+    await click('#settings-btn');
+    await sleep(400);
+    check('the Claude section is headed Claude & Codex and says what it does', await js(`(() => {
+      const h = [...document.querySelectorAll('#prefs h3')].find((x) => x.textContent.includes('Codex'));
+      return h?.textContent === 'Claude & Codex' &&
+        h.parentElement.querySelector('.claude-intro')?.textContent === 'Let Claude or Codex read and update your board: add tasks, change their status, search them.'; })()`));
+    let c = await codex();
+    check('Codex shows Connect when it is not connected', c && c.text === 'Connect' && !c.disabled &&
+      c.hint === 'The Codex app and the codex command. Restart Codex after connecting', JSON.stringify(c));
+    codexResult = { ok: false, via: 'codex', error: 'Error: not logged in' };
+    await pressCodex();
+    c = await codex();
+    check('a failed connect says so, with Codex\'s own words', c.text === 'Couldn\'t connect' && c.note.includes('Error: not logged in'), JSON.stringify(c));
+    codexResult = { ok: true, via: 'codex' };
+    await pressCodex();
+    c = await codex();
+    check('Connect asks the app and then reads Connected ✓', calls.connectCodex === 2 && c.text === 'Connected ✓' && c.note === '', JSON.stringify(c));
+    await key('Escape');
+    await sleep(300);
+    Object.assign(codexStub, { codex: false, codexAvailable: false });
+    await click('#settings-btn');
+    await sleep(400);
+    c = await codex();
+    check('without Codex the button is disabled', c.disabled && c.title === 'Install Codex or the ChatGPT app first', JSON.stringify(c));
+    Object.assign(codexStub, { codexAvailable: true });
     await key('Escape');
     await sleep(300);
   }
