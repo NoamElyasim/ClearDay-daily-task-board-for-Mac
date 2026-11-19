@@ -19,3 +19,6 @@ clearday-prompt.md
 Design references/
 Video/
 build/native/
+
+# AgentGrid canvas state (terminal logs, notes, worktrees): local only
+.agent-grid/
