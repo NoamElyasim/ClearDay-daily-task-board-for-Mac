@@ -1,6 +1,6 @@
-// The tools ClearDay offers Claude over MCP, independent of transport and
+// The tools ClearDay offers Claude or Codex over MCP, independent of transport and
 // storage: each takes its arguments and a backend with list / create /
-// update / remove, and returns text for Claude plus the data behind it.
+// update / remove, and returns text for the assistant plus the data behind it.
 import { STATUSES, STATUS_LABELS, LISTS, SPACES, SPACE_LABELS } from '../shared/model.mjs';
 
 const PRIORITY_IN = { high: 'high', medium: 'medium', none: null };

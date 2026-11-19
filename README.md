@@ -13,7 +13,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/NoamElyasim/ClearDay-daily-task-board-for-Mac/releases/download/v0.11.0/ClearDay-film.mp4"><img src="docs/film.gif" alt="ClearDay in 41 seconds: add a task, start it, prioritize it, write a note, switch to light, collapse the sections, select and delete, flip between Work and Personal, quick add with ⌘⌘, shrink the board to a small capsule that opens into an add bar and grows back, then pick your own shortcut"></a>
+  <a href="https://github.com/NoamElyasim/ClearDay-daily-task-board-for-Mac/releases/download/v0.12.0/ClearDay-film.mp4"><img src="docs/film.gif" alt="ClearDay in 41 seconds: add a task, start it, prioritize it, write a note, switch to light, collapse the sections, select and delete, flip between Work and Personal, quick add with ⌘⌘, shrink the board to a small capsule that opens into an add bar and grows back, then pick your own shortcut"></a>
   <br>
   <sub>Click the animation to watch the film with sound.</sub>
 </p>
@@ -31,9 +31,9 @@
   <img src="docs/readme/card-search.png" width="49%" alt="Live search through text and notes">
 </p>
 
-## Talk to ClearDay through Claude
+## Talk to ClearDay through Claude or Codex
 
-Talk to Claude in your own words and it runs your board. No commands to learn, typos welcome.
+Talk to Claude or Codex in your own words and it runs your board. No commands to learn, typos welcome.
 
 <p align="center">
   <img src="docs/claude-demo.gif" width="100%" alt="A request typed with typos, “add task cal dani abot the budjet tmrw, high prioraty”, becomes the task “Call Dani about the budget tomorrow” with a High bookmark in ClearDay's To Do">
@@ -47,9 +47,10 @@ Try saying:
 - “Everything about the Houston event goes to Ongoing.”
 - “Write my manager a status update from my board.”
 
-Connect in one click: **Preferences → Claude**. It connects Claude Desktop, and
-copies the command that adds ClearDay to Claude Code. Claude can then list,
-add, update, move, search and delete your tasks. With ClearDay open, changes
+Connect in one click: **Preferences → Claude & Codex**. It connects Claude
+Desktop and Codex (the Codex app and the `codex` command), and copies the
+command that adds ClearDay to Claude Code. Claude or Codex can then list, add,
+update, move, search and delete your tasks. With ClearDay open, changes
 appear on the board at once; with it closed, they are saved to the board's
 file for next time.
 
@@ -57,7 +58,13 @@ Prefer Terminal? The server runs on ClearDay's own binary, so nothing else
 needs installing:
 
 ```bash
+# Claude Code
 claude mcp add clearday --scope user --env ELECTRON_RUN_AS_NODE=1 -- \
+  /Applications/ClearDay.app/Contents/MacOS/ClearDay \
+  /Applications/ClearDay.app/Contents/Resources/app.asar.unpacked/src/mcp/server.mjs
+
+# Codex
+codex mcp add clearday --env ELECTRON_RUN_AS_NODE=1 -- \
   /Applications/ClearDay.app/Contents/MacOS/ClearDay \
   /Applications/ClearDay.app/Contents/Resources/app.asar.unpacked/src/mcp/server.mjs
 ```
@@ -114,9 +121,10 @@ claude mcp add clearday --scope user --env ELECTRON_RUN_AS_NODE=1 -- \
   [Hiding ClearDay](#hiding-clearday) for the way back.
 - **The header's buttons explain themselves.** Rest the pointer on one for
   two seconds and a tip says what it does. It stays until you move away.
-- **Works with Claude.** ClearDay includes an MCP server, so Claude Code and
-  Claude Desktop can list, add, update, move, search and delete your tasks,
-  on either board. Connect it from Preferences → Claude.
+- **Works with Claude and Codex.** ClearDay includes an MCP server, so Claude
+  Code, Claude Desktop and Codex can list, add, update, move, search and
+  delete your tasks, on either board. Connect it from Preferences → Claude &
+  Codex.
 - **Add and Search buttons.** Each opens into a field with the caret ready.
   Search shows matching tasks (text and notes, both boards) as you type;
   Enter jumps to the task.

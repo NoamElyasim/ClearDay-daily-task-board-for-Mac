@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.12.0 — 2026-11-19
+
+- **Codex can run your board too.** Preferences → Claude & Codex has a
+  Codex row: one click and Codex can list, add, update, move, search and
+  delete your tasks, on either board. It covers the `codex` command and
+  Codex in the ChatGPT app. Codex adds ClearDay to its own settings; when
+  there is no `codex` command, ClearDay adds itself and keeps a copy of
+  Codex's settings as they were. Restart Codex after connecting.
+
 ## v0.11.0 — 2026-11-12
 
 - **A smaller widget.** The shrink button now turns ClearDay into a small

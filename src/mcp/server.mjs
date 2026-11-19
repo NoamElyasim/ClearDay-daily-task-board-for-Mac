@@ -1,12 +1,13 @@
 #!/usr/bin/env node
-// ClearDay's MCP server: lets Claude (Claude Code, Claude Desktop) read and
-// change the task board. Speaks MCP over stdio (newline-delimited JSON-RPC).
+// ClearDay's MCP server: lets Claude (Claude Code, Claude Desktop) or Codex
+// (the Codex app, the codex command) read and change the task board. Speaks
+// MCP over stdio (newline-delimited JSON-RPC).
 //
-// Run by Claude, as ClearDay's own binary in Node mode, so nothing else
-// needs installing:
+// Run by Claude or Codex, as ClearDay's own binary in Node mode, so nothing
+// else needs installing:
 //   ELECTRON_RUN_AS_NODE=1 /Applications/ClearDay.app/Contents/MacOS/ClearDay \
 //     /Applications/ClearDay.app/Contents/Resources/app.asar.unpacked/src/mcp/server.mjs
-// Preferences → Claude sets this up.
+// Preferences → Claude & Codex sets this up.
 import readline from 'node:readline';
 import { TOOLS, callTool } from './tools.mjs';
 import { openBackend } from './backend.mjs';
