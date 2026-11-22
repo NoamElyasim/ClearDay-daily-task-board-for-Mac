@@ -63,6 +63,8 @@ const ITEMS = {
   'card-notes': () => card('Rich notes', 'Files, links, formatting', crop('notes-rich-dark', 46, 172, 446)),
   'card-ongoing': () => card('Ongoing projects', 'One tab away', crop('ongoing-dark', 488, 134, 330)),
   'card-search': () => card('Live search', 'Text and notes', crop('search-light', 46, 82, 700)),
+  // The calendar open under a row's Today label (shot calendar-dark).
+  'card-due': () => card('Due dates', 'Today, Fri, red when late', crop('calendar-dark', 56, 172, 528)),
   'download': () => `<div class="dl">${DOWNLOAD}<span>Download for Mac</span></div>`,
   'social-preview': () => `<div class="social">
       <div class="glow" style="width:420px;height:300px;left:-120px;top:-150px;background:rgba(205,141,0,.30)"></div>

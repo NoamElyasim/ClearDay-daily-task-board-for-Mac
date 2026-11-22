@@ -14,11 +14,11 @@ const HERE = import.meta.dirname;
 const OUT = path.join(HERE, '..', '..', 'docs', 'readme');
 // The real-UI shots art.html crops; without them the cards would come out blank.
 const SHOTS = path.join(HERE, '..', 'shots', 'out');
-const NEEDS = ['side-hidden-dark', 'quick-dark', 'notes-rich-dark', 'ongoing-dark', 'search-light'];
+const NEEDS = ['side-hidden-dark', 'quick-dark', 'notes-rich-dark', 'ongoing-dark', 'search-light', 'calendar-dark'];
 const CARD = { width: 640, height: 480 };
 const ITEMS = {
   'card-claude': CARD, 'card-quick': CARD, 'card-colour': CARD,
-  'card-notes': CARD, 'card-ongoing': CARD, 'card-search': CARD,
+  'card-notes': CARD, 'card-ongoing': CARD, 'card-search': CARD, 'card-due': CARD,
   download: { width: 300, height: 72 },
   'social-preview': { width: 640, height: 320 },
 };

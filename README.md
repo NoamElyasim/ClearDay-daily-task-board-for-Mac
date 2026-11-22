@@ -30,6 +30,9 @@
   <img src="docs/readme/card-ongoing.png" width="49%" alt="Ongoing projects, one tab away">
   <img src="docs/readme/card-search.png" width="49%" alt="Live search through text and notes">
 </p>
+<p align="center">
+  <img src="docs/readme/card-due.png" width="49%" alt="Due dates: pick a day from the calendar on the row; it reads Today or Fri, and turns red when late">
+</p>
 
 ## Talk to ClearDay through Claude or Codex
 

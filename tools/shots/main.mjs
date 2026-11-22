@@ -128,8 +128,8 @@ const openNotes = (js) => js(`cleardayDebug.toggleNotes(${firstId}); document.ac
 const openWidgetBar = (js) => js(`document.getElementById('w-add').click(); new Promise((r) => setTimeout(() => r(1), 1100))`);
 const clickFirst = (sel) => (js) => js(`document.querySelector(${JSON.stringify(sel)}).click(); 1`);
 
-// Due dates relative to the real today: the first To Do task due today, an
-// In Progress one late, Awaiting Approval in 4 days, another To Do in 12,
+// Due dates relative to the real today: the first To Do task and the first In
+// Progress one due today, the second In Progress one late, Awaiting Approval in 4 days, another To Do in 12,
 // and an Ongoing project tomorrow. The board is reloaded and redrawn.
 const withDues = (js) => js(`(async () => {
   const all = [...cleardayDebug.state.tasks.values()].filter((t) => t.space === 'work');
@@ -138,6 +138,7 @@ const withDues = (js) => js(`(async () => {
   const today = (t) => t.list === 'today';
   const plan = [
     [pick((t) => today(t) && t.status === 'todo'), 0],
+    [pick((t) => today(t) && t.status === 'in_progress'), 0],
     [pick((t) => today(t) && t.status === 'in_progress', 1), -1],
     [pick((t) => today(t) && t.status === 'awaiting_approval'), 4],
     [pick((t) => today(t) && t.status === 'todo', 1), 12],
@@ -179,7 +180,7 @@ const SHOTS = {
   'status-picker-dark': { theme: 'dark', width: 780, height: 560, setup: clickFirst('#sections .status-btn') },
   'priority-picker-light': { theme: 'light', width: 780, height: 560, setup: clickFirst('#sections [data-action="priority"]') },
   'editing-dark': { theme: 'dark', width: 780, height: 560, setup: (js) => js(`cleardayDebug.startEdit(${firstId}); 1`) },
-  'ongoing-dark': { theme: 'dark', width: 780, height: 560, prefs: { sidePanel: 'ongoing' } },
+  'ongoing-dark': { theme: 'dark', width: 780, height: 560, prefs: { sidePanel: 'ongoing' }, setup: withDues },
   'spaces-light': { theme: 'light', width: 780, height: 560, prefs: { space: 'personal' } },
   'spaces-compact-dark': { theme: 'dark', width: 420, height: 600, prefs: { space: 'personal' } },
   'done-light': { theme: 'light', width: 780, height: 560, prefs: { sidePanel: 'done' } },
@@ -193,13 +194,14 @@ const SHOTS = {
   } },
   // To Do folded, so the README's colour card and social preview open on
   // the coloured sections.
-  'side-hidden-dark': { theme: 'dark', width: 780, height: 560, prefs: { showSide: false, collapsed: ['today:todo'] } },
+  'side-hidden-dark': { theme: 'dark', width: 780, height: 560, prefs: { showSide: false, collapsed: ['today:todo'] }, setup: withDues },
   // The quick-add bar as it rises over the Dock, a task typed in.
   'quick-dark': { theme: 'dark', width: 640, height: 112, html: 'quick.html', preload: 'quick-preload.cjs', setup: (js) => js(`(() => {
     const i = document.getElementById('q-input'); i.value = 'Book the launch venue'; i.dispatchEvent(new Event('input'));
     document.getElementById('q').classList.add('in'); return 1; })()`) },
   'narrow-light': { theme: 'light', width: 320, height: 520 },
   'notes-rich-dark': { theme: 'dark', width: 780, height: 560, prefs: { collapsed: ['today:todo'] }, setup: async (js) => {
+    await withDues(js);
     await js(`(async () => { const id = ${firstId}; const html = '<div><b>Slides 4–7</b> still use the <u>old logo</u>.</div><ul><li>Ask Ben for the booth photo</li><li><s>Check the venue</s></li></ul><div><span class="att" contenteditable="false" data-att="00000000-0000-4000-8000-0000000000aa.pdf" data-name="Booth brief v3.pdf">Booth brief v3.pdf</span>&nbsp;and the <a href="https://example.com">print specs</a></div><div><span class="fs-l">Next week</span></div>';
       await window.clearday.tasks.update(id, { notes: 'x', notesHtml: html });
       cleardayDebug.state.tasks.set(id, (await window.clearday.tasks.list()).find((t) => t.id === id)); cleardayDebug.toggleNotes(id); document.activeElement.blur(); 1 })()`);
