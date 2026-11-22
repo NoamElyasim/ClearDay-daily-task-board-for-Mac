@@ -317,6 +317,43 @@ async function run() {
   await key('Escape');
   check('Esc closes the calendar', !(await js(`!!document.querySelector('.popover.cal')`)));
 
+  // ── Due dates: the label ──
+  const giveDue = async (tid, day) => js(`(async () => { const t = await window.clearday.tasks.update(${JSON.stringify(tid)}, { due: ${JSON.stringify(day)} });
+    cleardayDebug.state.tasks.set(t.id, t); cleardayDebug.render(); })()`);
+  const label = (tid) => js(`(() => { const b = document.querySelector('${taskSel(tid)} .due'); return b && getComputedStyle(b).display !== 'none' ? [b.textContent, b.dataset.state] : null; })()`);
+  check('a task with no date shows no label', await label(id) === null);
+  await giveDue(id, addDaysLocal(0));
+  check('due today reads Today, in its strong state', JSON.stringify(await label(id)) === '["Today","today"]', JSON.stringify(await label(id)));
+  check('the hover calendar button hides once a date is set', await js(`getComputedStyle(document.querySelector('${taskSel(id)} .edit-group [data-action="due"]')).display`) === 'none');
+  await giveDue(id, addDaysLocal(-1));
+  const dueStyle = () => js(`(() => { const c = getComputedStyle(document.querySelector('${taskSel(id)} .due')); return [c.color, c.backgroundColor, c.opacity].join(' / '); })()`);
+  const lateAtOnce = await dueStyle();
+  await sleep(250);   // the label eases between its states
+  check('a late task reads Yesterday, red on a light pill', JSON.stringify(await label(id)) === '["Yesterday","late"]' &&
+    await js(`getComputedStyle(document.querySelector('${taskSel(id)} .due')).color`) === await cssColor('--danger') &&
+    await js(`getComputedStyle(document.querySelector('${taskSel(id)} .due')).backgroundColor`) === 'rgb(251, 248, 238)', `at once: ${lateAtOnce}; settled: ${await dueStyle()}`);
+  await giveDue(id, addDaysLocal(1));
+  await sleep(250);
+  check('due tomorrow reads Tomorrow, dimmed', JSON.stringify(await label(id)) === '["Tomorrow","later"]' &&
+    Number(await js(`getComputedStyle(document.querySelector('${taskSel(id)} .due')).opacity`)) < 1, await dueStyle());
+  // Midnight: shift the clock past it; Tomorrow becomes Today with no reload.
+  await js(`(() => { const t = new Date(); const m = new Date(t.getFullYear(), t.getMonth(), t.getDate() + 1); window.cleardayClockOffset = m - t + 1000; cleardayDebug.updateDate(); })()`);
+  await sleep(100);
+  check('at midnight the label moves on by itself', JSON.stringify(await label(id)) === '["Today","today"]');
+  await js(`window.cleardayClockOffset = 0; cleardayDebug.updateDate(); 1`);
+  await sleep(100);
+  await click(`${taskSel(id)} .due`);
+  check('clicking the label opens the calendar on its day', await js(`document.querySelector('.popover.cal .cal-day.picked')?.dataset.day`) === task(id).due);
+  await key('Escape');
+  {
+    const doneId = store.list().find((t) => t.status === 'done' && (t.space || 'work') === 'work').id;
+    await giveDue(doneId, addDaysLocal(-3));
+    check('done tasks show no date label', await js(`(() => { const b = [...document.querySelectorAll('.task[data-status="done"] .due')];
+      return b.length > 0 && b.every((x) => getComputedStyle(x).display === 'none'); })()`));
+    await giveDue(doneId, null);
+  }
+  await giveDue(id, null);
+
   // ── Edit (double-click), Esc cancels, Enter saves ──
   check('the row has no pencil: double-click edits', await js(`!document.querySelector('${taskSel(id)} [data-action="edit"]')`));
   await click(`${taskSel(id)} .text`, 2);
@@ -975,6 +1012,30 @@ done
     const bg = tabs.map((t) => getComputedStyle(t).backgroundColor);
     return document.getElementById('pane').classList.contains('compact') &&
       rs.every((r) => Math.abs(r.bottom - innerHeight) < 1) && bg[0] === bg[1] && !hits; })()`));
+  {
+    // A long task with a date and a High bookmark still fits a narrow row.
+    const long = store.list().find((t) => t.status === 'todo' && t.priority === 'high' && (t.list || 'today') === 'today' && (t.space || 'work') === 'work');
+    const before = long.text;
+    await js(`(async () => { const t = await window.clearday.tasks.update(${JSON.stringify(long.id)}, { text: 'Call the print shop about the vinyl stock for the booth wall and the two banners before Thursday', due: ${JSON.stringify(addDaysLocal(2))} });
+      cleardayDebug.state.tasks.set(t.id, t); cleardayDebug.render(); })()`);
+    await reveal(`${taskSel(long.id)}`);
+    check('a long task with a date shortens its text, keeps the label on one line and ≡ inside the row', await js(`(() => {
+      const row = document.querySelector('${taskSel(long.id)} .row'), text = row.querySelector('.text'), due = row.querySelector('.due'), notes = row.querySelector('.notes-btn');
+      const r = row.getBoundingClientRect();
+      return getComputedStyle(due).display !== 'none' && due.getBoundingClientRect().height <= 24 &&
+        notes.getBoundingClientRect().right <= r.right && due.getBoundingClientRect().right <= r.right &&
+        (text.scrollWidth > text.clientWidth || text.getBoundingClientRect().height > 30); })()`));
+    await click(`${taskSel(long.id)} .text`);
+    await click(`${taskSel(long.id)} .ctl.more`);
+    const items = await js(`[...document.querySelectorAll('.popover .pop-item')].map((b) => b.textContent)`);
+    check('the ⋯ menu offers Change due date…', items.includes('Change due date…'), items.join(' | '));
+    await js(`[...document.querySelectorAll('.popover .pop-item')].find((b) => b.textContent === 'Change due date…').classList.add('e2e')`);
+    await click('.popover .pop-item.e2e');
+    check('picking it opens the calendar', await js(`!!document.querySelector('.popover.cal')`));
+    await key('Escape');
+    await js(`(async () => { const t = await window.clearday.tasks.update(${JSON.stringify(long.id)}, { text: ${JSON.stringify(before)}, due: null });
+      cleardayDebug.state.tasks.set(t.id, t); cleardayDebug.render(); })()`);
+  }
   win.setSize(780, 560);
   await sleep(500);
 

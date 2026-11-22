@@ -449,11 +449,12 @@ svg { display: block; }
   caret-color: currentColor;
 }
 
-.controls { flex: none; display: flex; align-items: center; gap: 2px; }
+.controls { flex: none; display: flex; align-items: center; gap: 2px; position: relative; }
 /* The tools fade in over the end of the row on hover, so while hidden they
-   take no room from the text; the ring and ≡ always show. */
+   take no room from the text; the ring and ≡ always show. They sit just left
+   of the row's own controls, the date label included. */
 .edit-group {
-  position: absolute; right: 64px; top: 50%; translate: 0 -50%;
+  position: absolute; right: 100%; top: 50%; translate: 0 -50%;
   display: flex; gap: 1px;
   padding-left: 22px;
   background: linear-gradient(to right, transparent, var(--fill) 20px);
@@ -470,6 +471,29 @@ svg { display: block; }
 .ctl:hover, .ctl.open { background: var(--on-fill); color: var(--fill); }
 .ctl:active { transform: scale(0.92); }
 .ctl.more { display: none; }
+
+/* The due date: the calendar icon and a word, in the row's ink. Dimmed while
+   it is further off, bold on the day, red on a light pill once it is late.
+   No label without a date (the hover tools have the calendar then), and none
+   on a done task. */
+.due {
+  flex: none; display: inline-flex; align-items: center; gap: 4px;
+  height: 22px; padding: 0 8px 0 6px; margin-right: 4px;
+  border-radius: var(--radius-control);
+  font-size: 11.5px; font-weight: 500; line-height: 1; white-space: nowrap;
+  color: var(--on-fill); opacity: 0.7;
+  transition: opacity var(--dur-fast) ease, background-color var(--dur-fast) ease;
+}
+.due svg { width: 13px; height: 13px; flex: none; }
+.due[data-state="today"] { opacity: 1; font-weight: 600; }
+.due[data-state="late"] { opacity: 1; font-weight: 600; background: #FBF8EE; color: var(--danger); }
+.due:not([data-state="late"]):hover, .due:not([data-state="late"]).open {
+  opacity: 1; background: color-mix(in srgb, var(--on-fill) 14%, transparent);
+}
+.task:not([data-due]) > .row .due, [data-status="done"] > .row .due { display: none; }
+.task[data-due] > .row .edit-group [data-action="due"] { display: none; }
+#pane.compact .due { padding: 0 7px; }
+#pane.compact .due svg { display: none; }
 
 /* Priority: a bookmark hanging from the row's top edge, red for High and
    amber for Medium, with a thin keyline so it reads on any fill. With no

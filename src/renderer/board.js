@@ -1,7 +1,7 @@
 // Draws the board: today's sections on the left, the Ongoing / Done panel on the right, one
 // element per task kept across renders (so focus, scroll and running
 // animations survive) and moved with a FLIP animation when its place changes.
-import { arrangeBoard, arrangeOngoing, arrangeDone, canDrag, STATUS_LABELS } from '../shared/model.mjs';
+import { arrangeBoard, arrangeOngoing, arrangeDone, canDrag, STATUS_LABELS, dueLabel, longDay } from '../shared/model.mjs';
 import { state } from './state.js';
 import { renderRich } from './richtext.js';
 import { ICONS } from './icons.js';
@@ -80,9 +80,12 @@ function createRow(task) {
   // picks the priority. The slot only keeps the text clear of it.
   const bookmarkSlot = document.createElement('span');
   bookmarkSlot.className = 'bookmark-slot';
+  // The due date, when there is one: the calendar icon and a word (rowFor).
+  const due = button('due', 'due', `${ICONS.due}<span class="due-text"></span>`, 'Due date');
   controls.append(
     group,
     button('ctl more', 'more', ICONS.more, 'Edit, bold, move or delete'),
+    due,
     bookmarkSlot,
     button('ctl notes-btn', 'notes', ICONS.notes, 'Notes'),
   );
@@ -144,7 +147,7 @@ function startNotesResize(e, id, notesEl) {
 
 function signature(task) {
   return [
-    task.updatedAt, task.text, JSON.stringify(task.bold), task.status, task.priority, task.list,
+    task.updatedAt, task.text, JSON.stringify(task.bold), task.status, task.priority, task.list, task.due, state.today,
     task.notes.length > 0, task.notesHtml.length, task.notesHeight, task.notesDir, state.spellcheck, state.notesTools,
     state.selectedId === task.id, state.editingId === task.id, state.openNotes.has(task.id), state.picked.has(task.id),
   ].join('|');
@@ -178,6 +181,21 @@ function rowFor(task) {
   if (task.priority) bookmark.dataset.priority = task.priority;
   else delete bookmark.dataset.priority;
   bookmark.title = task.priority ? `${task.priority === 'high' ? 'High' : 'Medium'} priority. Click to change it` : 'Set a priority';
+
+  // Today, Tomorrow, Fri, 4 Dec; red once it is late (app.css). Hidden with
+  // no date, and on a done task.
+  const due = row.querySelector('.due');
+  if (task.due) {
+    const { text, state: when } = dueLabel(task.due, state.today);
+    due.querySelector('.due-text').textContent = text;
+    due.dataset.state = when;
+    due.title = `Due ${longDay(task.due, state.today)}. Click to change it`;
+    due.setAttribute('aria-label', due.title);
+    el.dataset.due = task.due;
+  } else {
+    delete due.dataset.state;
+    delete el.dataset.due;
+  }
 
   const notesBtn = row.querySelector('.notes-btn');
   notesBtn.classList.toggle('has-notes', task.notes.trim().length > 0);

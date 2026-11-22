@@ -38,7 +38,11 @@ let midnightTimer = null;
 
 function updateDate() {
   const d = now();
-  state.today = dayString(d);
+  // A new day: the date labels move on (Tomorrow becomes Today).
+  const day = dayString(d);
+  const newDay = state.today && state.today !== day;
+  state.today = day;
+  if (newDay) render();
   document.getElementById('date').textContent = `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
   document.getElementById('weekday').textContent = d.toLocaleDateString('en-GB', { weekday: 'long' });
   // Re-armed every time: after sleep, a long timer may have fired late or not
@@ -375,6 +379,7 @@ function moreItems(task) {
   return [
     { label: 'Edit', icon: ICONS.pencil, onPick: () => startEdit(task.id) },
     { label: 'Bold', icon: ICONS.bold, onPick: () => toggleBoldFor(task.id) },
+    { label: task.due ? 'Change due date…' : 'Set due date…', icon: ICONS.due, onPick: () => openCalendarFor(task.id) },
     { sep: true },
     moveItem(task),
     moveSpaceItem(task),
