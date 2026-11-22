@@ -309,8 +309,13 @@ async function run() {
   await key('Enter');
   check('Enter picks the day under the keys', task(id).due === '2026-12-01', task(id).due);
   await js(`cleardayDebug.openCalendarFor(${JSON.stringify(id)}); 1`);
+  const calBox = () => js(`(() => { const r = document.querySelector('.popover.cal').getBoundingClientRect(); return { h: Math.round(r.height), bottom: r.bottom, top: r.top, inner: innerHeight }; })()`);
+  const fiveWeeks = await calBox();   // December 2026: five weeks
   await js(`document.querySelector('.cal-next').click(); 1`);
   check('next month from December is January 2027', await js(`document.querySelector('.cal-title').textContent`) === 'January 2027');
+  const sixWeeks = await calBox();    // January 2027: six weeks
+  check('the calendar keeps its size from month to month, inside the window', sixWeeks.h === fiveWeeks.h && sixWeeks.bottom <= sixWeeks.inner && sixWeeks.top >= 0,
+    `${JSON.stringify(fiveWeeks)} → ${JSON.stringify(sixWeeks)}`);
   await click('.cal-remove');
   check('Remove date clears it', task(id).due === null);
   await js(`cleardayDebug.openCalendarFor(${JSON.stringify(id)}); 1`);
@@ -349,6 +354,8 @@ async function run() {
     const doneId = store.list().find((t) => t.status === 'done' && (t.space || 'work') === 'work').id;
     await giveDue(doneId, addDaysLocal(-3));
     check('done tasks show no date label', await js(`(() => { const b = [...document.querySelectorAll('.task[data-status="done"] .due')];
+      return b.length > 0 && b.every((x) => getComputedStyle(x).display === 'none'); })()`));
+    check('done tasks offer no calendar in their hover tools', await js(`(() => { const b = [...document.querySelectorAll('.task[data-status="done"]:not([data-due]) .edit-group [data-action="due"]')];
       return b.length > 0 && b.every((x) => getComputedStyle(x).display === 'none'); })()`));
     await giveDue(doneId, null);
   }

@@ -139,6 +139,9 @@ test('tools: due dates', async () => {
   assert.match(list.text, /^Today is Sun 22 Nov 2026\./);
   assert.match(list.text, /Send the quote · To Do · due 2026-11-27 \(Fri\)/);
   assert.match(list.text, /Renew the domain · To Do · due 2026-11-18 \(late\)/);
+  // A finished task is never late: Claude shouldn't report it as overdue.
+  await callTool('add_task', { text: 'Pay the invoice', due: '2026-11-18', status: 'done' }, b, now);
+  assert.match((await callTool('list_tasks', {}, b, now)).text, /Pay the invoice · Done · due 2026-11-18 \(Wed\)/);
   const id = a.data.id.slice(0, 8);
   assert.equal((await callTool('update_task', { id, due: '2026-12-04' }, b, now)).data.due, '2026-12-04');
   assert.equal((await callTool('update_task', { id, due: 'none' }, b, now)).data.due, null);

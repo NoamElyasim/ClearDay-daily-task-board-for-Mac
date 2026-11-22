@@ -379,7 +379,7 @@ function moreItems(task) {
   return [
     { label: 'Edit', icon: ICONS.pencil, onPick: () => startEdit(task.id) },
     { label: 'Bold', icon: ICONS.bold, onPick: () => toggleBoldFor(task.id) },
-    { label: task.due ? 'Change due date…' : 'Set due date…', icon: ICONS.due, onPick: () => openCalendarFor(task.id) },
+    ...(task.status === 'done' ? [] : [{ label: task.due ? 'Change due date…' : 'Set due date…', icon: ICONS.due, onPick: () => openCalendarFor(task.id) }]),
     { sep: true },
     moveItem(task),
     moveSpaceItem(task),

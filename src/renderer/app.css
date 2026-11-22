@@ -491,7 +491,8 @@ svg { display: block; }
   opacity: 1; background: color-mix(in srgb, var(--on-fill) 14%, transparent);
 }
 .task:not([data-due]) > .row .due, [data-status="done"] > .row .due { display: none; }
-.task[data-due] > .row .edit-group [data-action="due"] { display: none; }
+.task[data-due] > .row .edit-group [data-action="due"],
+[data-status="done"] > .row .edit-group [data-action="due"] { display: none; }
 #pane.compact .due { padding: 0 7px; }
 #pane.compact .due svg { display: none; }
 
@@ -802,7 +803,9 @@ svg { display: block; }
 .cal-prev svg, .cal-next svg { width: 14px; height: 14px; }
 .cal-prev svg { rotate: 90deg; }
 .cal-next svg { rotate: -90deg; }
-.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; text-align: center; }
+/* Always room for six weeks, so the calendar keeps its size (and its place
+   inside the window) from month to month. */
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); grid-template-rows: 22px repeat(6, 30px); gap: 2px; text-align: center; }
 .cal-wd { height: 22px; line-height: 22px; font-size: 10px; font-weight: 500; color: var(--text-dim); }
 .cal-day {
   height: 30px; border-radius: var(--radius-control);

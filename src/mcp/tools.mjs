@@ -79,8 +79,10 @@ const brief = (t) => ({
   priority: t.priority || 'none', due: t.due || null, notes: t.notes || '',
 });
 
-// A due date reads "due 2026-11-27 (Fri)", or "(late)" once it has passed.
-const dueText = (t, today) => t.due ? ` · due ${t.due} (${dueLabel(t.due, today).state === 'late' ? 'late' : weekdayOf(t.due)})` : '';
+// A due date reads "due 2026-11-27 (Fri)", or "(late)" once it has passed;
+// a finished task is never late.
+const late = (t, today) => t.status !== 'done' && dueLabel(t.due, today).state === 'late';
+const dueText = (t, today) => t.due ? ` · due ${t.due} (${late(t, today) ? 'late' : weekdayOf(t.due)})` : '';
 const line = (t, today) => `- [${t.id.slice(0, 8)}] ${t.text} · ${STATUS_LABELS[t.status]}${t.priority ? ` · ${t.priority} priority` : ''}${dueText(t, today)}${t.notes ? ' · has notes' : ''}`;
 
 // Where a task lives: "Work · Today".
