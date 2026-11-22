@@ -131,7 +131,73 @@ export function trimRich(text, bold) {
 
 // ─── Tasks ───────────────────────────────────────────────────────────────────
 
-export function createTask({ text = '', bold = [], status = 'todo', priority = null, order = 0, list = 'today', space = 'work' } = {}, now = Date.now()) {
+// ─── Due dates ───────────────────────────────────────────────────────────────
+// A due date is a day, "YYYY-MM-DD", not a moment: it means the same day in
+// any time zone, and days are counted on the strings themselves (in UTC), so
+// a daylight-saving change can never move one. Names are fixed English, like
+// the rest of the app.
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const DAY = /^(\d{4})-(\d{2})-(\d{2})$/;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+// The day as a UTC timestamp, or NaN if it isn't a real one.
+function dayMs(s) {
+  const m = typeof s === 'string' && s.match(DAY);
+  if (!m) return NaN;
+  const [y, mo, d] = [Number(m[1]), Number(m[2]) - 1, Number(m[3])];
+  const ms = Date.UTC(y, mo, d);
+  const back = new Date(ms);
+  return back.getUTCFullYear() === y && back.getUTCMonth() === mo && back.getUTCDate() === d ? ms : NaN;
+}
+const fromMs = (ms) => new Date(ms).toISOString().slice(0, 10);
+const pad2 = (n) => String(n).padStart(2, '0');
+
+export const isDay = (s) => Number.isFinite(dayMs(s));
+
+// The local date of a moment: what "today" is on this Mac.
+export const dayString = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+
+export const addDays = (day, n) => fromMs(dayMs(day) + n * DAY_MS);
+
+export const weekdayOf = (day) => WEEKDAYS[new Date(dayMs(day)).getUTCDay()];
+
+// "4 Dec", or "3 Jan 2027" when it isn't the year of `today` (or no today).
+function shortDate(day, today) {
+  const d = new Date(dayMs(day));
+  const sameYear = today && new Date(dayMs(today)).getUTCFullYear() === d.getUTCFullYear();
+  return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}${sameYear ? '' : ` ${d.getUTCFullYear()}`}`;
+}
+
+// "Fri 27 Nov" (the calendar's footer), with the year as in shortDate.
+export const longDay = (day, today) => `${weekdayOf(day)} ${shortDate(day, today)}`;
+
+// What a row's date label says, and how loudly: Today, Tomorrow, the day's
+// name for the rest of the coming week, then the date; Yesterday, then the
+// date, once it is late.
+export function dueLabel(due, today) {
+  const diff = Math.round((dayMs(due) - dayMs(today)) / DAY_MS);
+  if (diff === 0) return { text: 'Today', state: 'today' };
+  if (diff === 1) return { text: 'Tomorrow', state: 'later' };
+  if (diff === -1) return { text: 'Yesterday', state: 'late' };
+  if (diff >= 2 && diff <= 6) return { text: weekdayOf(due), state: 'later' };
+  return { text: shortDate(due, today), state: diff < 0 ? 'late' : 'later' };
+}
+
+// A month as calendar cells, week by week from firstDay (0 = Sunday): null
+// for the blanks before the 1st and after the last day, which complete the
+// last week.
+export function monthGrid(year, month, firstDay) {
+  const first = Date.UTC(year, month, 1);
+  const count = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+  const lead = (new Date(first).getUTCDay() - firstDay + 7) % 7;
+  const cells = Array(lead).fill(null);
+  for (let i = 0; i < count; i++) cells.push(fromMs(first + i * DAY_MS));
+  while (cells.length % 7) cells.push(null);
+  return cells;
+}
+
+export function createTask({ text = '', bold = [], status = 'todo', priority = null, order = 0, list = 'today', space = 'work', due = null } = {}, now = Date.now()) {
   const t = String(text);
   const ts = nowIso(now);
   return {
@@ -142,6 +208,7 @@ export function createTask({ text = '', bold = [], status = 'todo', priority = n
     priority: PRIORITIES.includes(priority) ? priority : null,
     list: LISTS.includes(list) ? list : 'today',
     space: SPACES.includes(space) ? space : 'work',
+    due: isDay(due) ? due : null,
     notes: '',
     notesHtml: '',
     notesHeight: DEFAULT_NOTES_HEIGHT,
@@ -221,7 +288,7 @@ function keepAttachments(notes, oldHtml) {
 // note with its formatting (bold, underline, strikethrough, sizes, bullets,
 // links, attachments), already cleaned by the editor. Setting notes alone
 // clears the formatting, but keeps any attachments.
-const EDITABLE = ['text', 'bold', 'status', 'priority', 'list', 'space', 'notes', 'notesHtml', 'notesHeight', 'notesDir', 'order', 'deletedAt'];
+const EDITABLE = ['text', 'bold', 'status', 'priority', 'list', 'space', 'due', 'notes', 'notesHtml', 'notesHeight', 'notesDir', 'order', 'deletedAt'];
 
 // Applies a partial update. Unknown keys are dropped and every field is
 // validated, so a bad patch from either side can never corrupt the store.
@@ -234,6 +301,7 @@ export function applyPatch(task, patch, now = Date.now()) {
   if (!PRIORITIES.includes(next.priority)) next.priority = task.priority;
   if (!LISTS.includes(next.list)) next.list = LISTS.includes(task.list) ? task.list : 'today';
   if (!SPACES.includes(next.space)) next.space = SPACES.includes(task.space) ? task.space : 'work';
+  if (next.due !== null && !isDay(next.due)) next.due = isDay(task.due) ? task.due : null;
   if (!NOTES_DIRS.includes(next.notesDir)) next.notesDir = NOTES_DIRS.includes(task.notesDir) ? task.notesDir : 'auto';
   next.notes = String(next.notes ?? '');
   if ('notes' in patch && !('notesHtml' in patch)) {
@@ -272,6 +340,7 @@ export function validateTask(raw) {
     priority: PRIORITIES.includes(raw.priority) ? raw.priority : null,
     list: LISTS.includes(raw.list) ? raw.list : 'today',
     space: SPACES.includes(raw.space) ? raw.space : 'work',
+    due: isDay(raw.due) ? raw.due : null,
     notes: String(raw.notes ?? ''),
     notesHtml: String(raw.notesHtml ?? ''),
     notesHeight: clampNotesHeight(raw.notesHeight),

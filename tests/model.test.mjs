@@ -4,6 +4,7 @@ import {
   normalizeRanges, toggleBold, isRangeBold, segments, fromSegments, trimRich,
   createTask, applyPatch, validateTask, migrate, arrangeBoard, arrangeOngoing, arrangeDone, orderBetween, nextOrder,
   attachmentFiles, plainToHtml, ATT_FILE, SPACES,
+  isDay, dayString, addDays, dueLabel, longDay, weekdayOf, monthGrid,
   TOMBSTONE_TTL_MS,
 } from '../src/shared/model.mjs';
 
@@ -260,4 +261,60 @@ test('space: Work by default, validated, and each board shows only its own', () 
   assert.deepEqual(arrangeDone(tasks, 'work').map((t) => t.id), ['wd']);
   assert.deepEqual(arrangeDone(tasks, 'personal').map((t) => t.id), ['pd']);
   assert.equal(arrangeDone(tasks).length, 2);
+});
+
+// ─── Due dates ───────────────────────────────────────────────────────────────
+// Today in these tests is Sunday 22 November 2026.
+
+test('dueLabel words and states', () => {
+  const T = '2026-11-22';
+  assert.deepEqual(dueLabel('2026-11-22', T), { text: 'Today', state: 'today' });
+  assert.deepEqual(dueLabel('2026-11-23', T), { text: 'Tomorrow', state: 'later' });
+  assert.deepEqual(dueLabel('2026-11-27', T), { text: 'Fri', state: 'later' });
+  assert.deepEqual(dueLabel('2026-11-28', T), { text: 'Sat', state: 'later' });      // 6 days on
+  assert.deepEqual(dueLabel('2026-11-29', T), { text: '29 Nov', state: 'later' });   // 7 days on
+  assert.deepEqual(dueLabel('2026-12-04', T), { text: '4 Dec', state: 'later' });
+  assert.deepEqual(dueLabel('2027-01-03', T), { text: '3 Jan 2027', state: 'later' });
+  assert.deepEqual(dueLabel('2026-11-21', T), { text: 'Yesterday', state: 'late' });
+  assert.deepEqual(dueLabel('2026-11-18', T), { text: '18 Nov', state: 'late' });
+  assert.deepEqual(dueLabel('2025-12-30', T), { text: '30 Dec 2025', state: 'late' });
+  assert.deepEqual(dueLabel('2027-01-01', '2026-12-30'), { text: 'Fri', state: 'later' });   // across the year
+  assert.deepEqual(dueLabel('2026-03-30', '2026-03-28'), { text: 'Mon', state: 'later' });   // across a DST change
+});
+
+test('day helpers', () => {
+  assert.equal(dayString(new Date(2026, 2, 29, 0, 30)), '2026-03-29');
+  assert.equal(addDays('2026-11-30', 1), '2026-12-01');
+  assert.equal(addDays('2026-11-22', 7), '2026-11-29');
+  assert.equal(longDay('2026-11-27', '2026-11-22'), 'Fri 27 Nov');
+  assert.equal(longDay('2026-11-22'), 'Sun 22 Nov 2026');
+  assert.equal(weekdayOf('2026-11-27'), 'Fri');
+  for (const bad of ['2026-02-29', '2026-13-01', '2026-11-31', 'Friday', '', null, 20261127]) assert.equal(isDay(bad), false, String(bad));
+  assert.equal(isDay('2028-02-29'), true);
+});
+
+test('monthGrid', () => {
+  const sun = monthGrid(2026, 10, 0);   // November 2026 starts on a Sunday
+  assert.equal(sun.length, 35);
+  assert.equal(sun[0], '2026-11-01');
+  assert.equal(sun[29], '2026-11-30');
+  assert.deepEqual(sun.slice(30), [null, null, null, null, null]);
+  const mon = monthGrid(2026, 10, 1);
+  assert.equal(mon.length, 42);
+  assert.equal(mon[6], '2026-11-01');
+  assert.deepEqual(mon.slice(0, 6), [null, null, null, null, null, null]);
+});
+
+test('tasks carry a due day, validated', () => {
+  assert.equal(createTask({ text: 'a' }).due, null);
+  assert.equal(createTask({ text: 'a', due: '2026-11-27' }).due, '2026-11-27');
+  assert.equal(createTask({ text: 'a', due: '2026-02-30' }).due, null);
+  const t = createTask({ text: 'a', due: '2026-11-27' });
+  assert.equal(applyPatch(t, { due: '2026-12-01' }).due, '2026-12-01');
+  assert.equal(applyPatch(t, { due: null }).due, null);
+  assert.equal(applyPatch(t, { due: 'junk' }).due, '2026-11-27');   // a bad value keeps the old one
+  assert.equal(applyPatch(t, { text: 'b' }).due, '2026-11-27');
+  assert.equal(validateTask({ ...t, due: 'junk' }).due, null);
+  const old = { ...t }; delete old.due;
+  assert.equal(migrate({ tasks: [old] }).tasks[0].due, null);
 });
