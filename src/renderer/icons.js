@@ -37,6 +37,8 @@ export const ICONS = {
   personal: svg('<path d="M2.6 7.3a1 1 0 0 1 .37-.78L7.4 2.9a1 1 0 0 1 1.2 0l4.43 3.62a1 1 0 0 1 .37.78v5.2a1 1 0 0 1-1 1H3.6a1 1 0 0 1-1-1Z"/><path d="M6.6 13.5v-2.6a1.4 1.4 0 0 1 2.8 0v2.6"/>'),
   // Notes: attach a file, and link.
   paperclip: svg('<path d="M13.2 7.6 8.1 12.7a3.2 3.2 0 0 1-4.5-4.5l5.4-5.4a2.1 2.1 0 0 1 3 3L6.6 11.2a1 1 0 0 1-1.5-1.5l4.9-4.9"/>'),
+  // A calendar page: its rings, a header line and five days.
+  due: svg('<rect x="2.25" y="3.25" width="11.5" height="10.5" rx="2.6"/><path d="M5.5 1.9v2.6M10.5 1.9v2.6M2.6 6.8h10.8"/><g fill="currentColor" stroke="none"><circle cx="5.4" cy="9.3" r=".75"/><circle cx="8" cy="9.3" r=".75"/><circle cx="10.6" cy="9.3" r=".75"/><circle cx="5.4" cy="11.7" r=".75"/><circle cx="8" cy="11.7" r=".75"/></g>'),
   link: svg('<path d="M6.9 9.1a2.6 2.6 0 0 0 3.7 0l2.1-2.1a2.6 2.6 0 0 0-3.7-3.7l-.9.9"/><path d="M9.1 6.9a2.6 2.6 0 0 0-3.7 0L3.3 9a2.6 2.6 0 0 0 3.7 3.7l.9-.9"/>'),
   check: svg('<path d="m3.8 8.3 2.7 2.7 5.7-6"/>', ' stroke-width="2"'),
   grip: svg('<circle cx="6" cy="4" r=".9" fill="currentColor" stroke="none"/><circle cx="10" cy="4" r=".9" fill="currentColor" stroke="none"/><circle cx="6" cy="8" r=".9" fill="currentColor" stroke="none"/><circle cx="10" cy="8" r=".9" fill="currentColor" stroke="none"/><circle cx="6" cy="12" r=".9" fill="currentColor" stroke="none"/><circle cx="10" cy="12" r=".9" fill="currentColor" stroke="none"/>'),

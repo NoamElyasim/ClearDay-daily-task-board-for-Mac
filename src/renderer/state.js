@@ -19,6 +19,8 @@ export const state = {
   sideWidth: null,        // the side panel's dragged width in px; null is the default
   notesTools: 'open',     // the notes' formatting menu: 'open' | 'min'
   spellcheck: true,       // spelling in notes (Preferences)
+  today: '',              // this Mac's day, "YYYY-MM-DD" (updateDate in app.js)
+  firstDay: 0,            // the region's first day of the week, 0 = Sunday (for the calendar)
 };
 
 const listeners = new Set();

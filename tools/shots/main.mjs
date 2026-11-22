@@ -41,7 +41,7 @@ ipcMain.handle('settings:set', (_e, p) => {
   return settings.all();
 });
 ipcMain.handle('menu:sort', () => {});
-ipcMain.handle('app:info', () => ({ version: app.getVersion(), dataFile: '' }));
+ipcMain.handle('app:info', () => ({ version: app.getVersion(), dataFile: '', firstDay: 0 }));
 for (const ch of ['attach:open', 'link:open', 'attach:pick']) ipcMain.handle(ch, () => null);
 ipcMain.handle('update:known', () => null);
 ipcMain.handle('update:check', () => ({ current: app.getVersion(), latest: app.getVersion(), available: false }));

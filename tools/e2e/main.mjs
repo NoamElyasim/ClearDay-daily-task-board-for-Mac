@@ -63,7 +63,7 @@ widget.initWidget({
   animate: () => false,       // no stage: shapes switch at once (hidden windows paint nothing)
 });
 ipcMain.handle('quick:reset-permission', () => { calls.resetPermission++; return true; });
-ipcMain.handle('app:info', () => ({ version: app.getVersion(), dataFile: '' }));
+ipcMain.handle('app:info', () => ({ version: app.getVersion(), dataFile: '', firstDay: 0 }));
 
 // Quick add and the Claude connection aren't exercised here; Preferences
 // asks for their status.
@@ -281,6 +281,41 @@ async function run() {
 
   check('done rows show no bookmark, even with a priority', await js(`[...document.querySelectorAll('.task[data-status="done"] .bookmark')]
     .every((b) => getComputedStyle(b).display === 'none')`) && store.list().some((t) => t.status === 'done' && t.priority));
+
+  // ── Due dates: the calendar ──
+  const addDaysLocal = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return d.toLocaleDateString('sv-SE'); };
+  await click(`${taskSel(id)} .text`);
+  check('the hover tools hold a calendar button', await js(`!!document.querySelector('${taskSel(id)} .edit-group [data-action="due"] svg')`));
+  await click(`${taskSel(id)} .edit-group [data-action="due"]`);
+  check('it opens the calendar on this month, today ringed, week from Sunday', await js(`(() => {
+    const c = document.querySelector('.popover.cal'); if (!c) return false;
+    const t = c.querySelector('.cal-day.today');
+    return c.querySelector('.cal-title').textContent === new Date().toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })
+      && t?.dataset.day === cleardayDebug.state.today
+      && [...c.querySelectorAll('.cal-wd')].map((w) => w.textContent).join('') === 'SMTWTFS'
+      && [...c.querySelectorAll('.cal-quick button')].map((b) => b.textContent).join('|') === 'Today|Tomorrow|In a week'
+      && !c.querySelector('.cal-remove'); })()`));
+  await js(`document.querySelectorAll('.cal-quick button')[1].classList.add('e2e')`);
+  await click('.cal-quick button.e2e');
+  check('Tomorrow sets the next day and closes the calendar', task(id).due === addDaysLocal(1) && !(await js(`!!document.querySelector('.popover.cal')`)), task(id).due);
+  // Keyboard: reopen, move across the month's end, pick with Enter.
+  await js(`cleardayDebug.openCalendarFor(${JSON.stringify(id)}); 1`);
+  check('reopened, it shows the chosen day filled and offers Remove date', await js(`document.querySelector('.cal-day.picked')?.dataset.day`) === task(id).due &&
+    await js(`!!document.querySelector('.cal-remove')`));
+  await js(`cleardayDebug.calendarGoTo('2026-11-30'); 1`);
+  await key('Right');
+  check('an arrow key past the 30th moves into December', await js(`document.querySelector('.cal-title').textContent`) === 'December 2026' &&
+    await js(`document.querySelector('.cal-day.active')?.dataset.day`) === '2026-12-01');
+  await key('Enter');
+  check('Enter picks the day under the keys', task(id).due === '2026-12-01', task(id).due);
+  await js(`cleardayDebug.openCalendarFor(${JSON.stringify(id)}); 1`);
+  await js(`document.querySelector('.cal-next').click(); 1`);
+  check('next month from December is January 2027', await js(`document.querySelector('.cal-title').textContent`) === 'January 2027');
+  await click('.cal-remove');
+  check('Remove date clears it', task(id).due === null);
+  await js(`cleardayDebug.openCalendarFor(${JSON.stringify(id)}); 1`);
+  await key('Escape');
+  check('Esc closes the calendar', !(await js(`!!document.querySelector('.popover.cal')`)));
 
   // ── Edit (double-click), Esc cancels, Enter saves ──
   check('the row has no pencil: double-click edits', await js(`!document.querySelector('${taskSel(id)} [data-action="edit"]')`));

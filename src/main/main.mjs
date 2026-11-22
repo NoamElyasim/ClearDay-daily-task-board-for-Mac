@@ -493,7 +493,19 @@ ipcMain.on('win:drag-end', () => {
 
 ipcMain.handle('menu:sort', () => Menu.buildFromTemplate(sortTemplate()).popup({ window: win }));
 
-ipcMain.handle('app:info', () => ({ version: updates.currentVersion(), dataFile: store.FILE_PATH, packaged: app.isPackaged }));
+// The first day of the week in the Mac's region (0 = Sunday), for the
+// due-date calendar. Sunday if the region doesn't say.
+function firstWeekday() {
+  try {
+    const loc = new Intl.Locale(app.getSystemLocale());
+    const d = (loc.getWeekInfo?.() ?? loc.weekInfo)?.firstDay;
+    return d === 7 ? 0 : Number.isInteger(d) && d >= 1 && d <= 6 ? d : 0;
+  } catch {
+    return 0;
+  }
+}
+
+ipcMain.handle('app:info', () => ({ version: updates.currentVersion(), dataFile: store.FILE_PATH, packaged: app.isPackaged, firstDay: firstWeekday() }));
 ipcMain.handle('app:reveal-data', () => { store.flush(); shell.showItemInFolder(store.FILE_PATH); });
 ipcMain.handle('app:export', async () => {
   const day = new Date().toISOString().slice(0, 10);

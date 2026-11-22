@@ -74,6 +74,7 @@ function createRow(task) {
   group.append(
     button('ctl', 'bold', ICONS.bold, 'Bold (⌘B)'),
     button('ctl', 'delete', ICONS.trash, 'Delete (⌘⌫)'),
+    button('ctl', 'due', ICONS.due, 'Set a due date'),
   );
   // The priority is a bookmark hanging from the row's top edge; clicking it
   // picks the priority. The slot only keeps the text clear of it.

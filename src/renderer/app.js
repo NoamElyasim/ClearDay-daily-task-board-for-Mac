@@ -2,12 +2,13 @@
 // pickers, notes, delete with undo, drag and drop, preferences, and the
 // keyboard.
 import {
-  STATUSES, STATUS_LABELS, PRIORITIES, SPACES, SPACE_LABELS, toggleBold, trimRich, orderBetween, arrangeDone,
+  STATUSES, STATUS_LABELS, PRIORITIES, SPACES, SPACE_LABELS, toggleBold, trimRich, orderBetween, arrangeDone, dayString,
 } from '../shared/model.mjs';
 import { state, load, changed, onChange, createTask, updateTask, removeTask, restoreTask } from './state.js';
 import { initBoard, render, taskEl, textEl, visibleOrder, showSide, foldableKeys } from './board.js';
 import { renderRich, serialize, selectionOffsets, setSelection, caretToEnd } from './richtext.js';
 import { openPopover, closePopover, handlePopoverKey, isOpen as popoverOpen } from './popover.js';
+import { openCalendar } from './calendar.js';
 import { showToast } from './toast.js';
 import { initDnd } from './dnd.js';
 import { initPrefs, updatePrefs, openPrefs, closePrefs, isPrefsOpen } from './prefs.js';
@@ -37,6 +38,7 @@ let midnightTimer = null;
 
 function updateDate() {
   const d = now();
+  state.today = dayString(d);
   document.getElementById('date').textContent = `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
   document.getElementById('weekday').textContent = d.toLocaleDateString('en-GB', { weekday: 'long' });
   // Re-armed every time: after sleep, a long timer may have fired late or not
@@ -347,6 +349,28 @@ function priorityItems(task) {
   }));
 }
 
+// ─── Due dates ───────────────────────────────────────────────────────────────
+async function setDue(id, due) {
+  await updateTask(id, { due });
+  render();
+}
+
+let calendar = null;   // the open calendar's { goTo }, for the test harness
+function openCalendarAt(anchor, task) {
+  calendar = openCalendar(anchor, { due: task.due, today: state.today, firstDay: state.firstDay, onPick: (day) => setDue(task.id, day) });
+}
+
+// The calendar for a task, under its date label when it shows, else its ⋯
+// button (the compact layout), else its hover calendar button.
+function openCalendarFor(id) {
+  const task = state.tasks.get(id);
+  const row = taskEl(id)?.querySelector('.row');
+  if (!task || !row) return;
+  const shown = (b) => b && getComputedStyle(b).display !== 'none' && b.getClientRects().length > 0;
+  const anchor = [row.querySelector('.due'), row.querySelector('.ctl.more'), row.querySelector('.edit-group [data-action="due"]')].find(shown);
+  if (anchor) openCalendarAt(anchor, task);
+}
+
 function moreItems(task) {
   return [
     { label: 'Edit', icon: ICONS.pencil, onPick: () => startEdit(task.id) },
@@ -539,6 +563,7 @@ pane.addEventListener('click', (e) => {
     if (action === 'status') openPopover(btn, statusItems(task));
     else if (action === 'priority') openPopover(btn, priorityItems(task));
     else if (action === 'more') openPopover(btn, moreItems(task));
+    else if (action === 'due') openCalendarAt(btn, task);
     else if (action === 'edit') startEdit(id);
     else if (action === 'bold') toggleBoldFor(id);
     else if (action === 'delete') deleteTask(id);
@@ -986,6 +1011,7 @@ async function boot() {
   api.onClockResume(updateDate);
   document.addEventListener('visibilitychange', () => { if (!document.hidden) updateDate(); });
 
+  api.app.info().then((info) => { if (Number.isInteger(info?.firstDay)) state.firstDay = info.firstDay; }).catch(() => {});
   const s = await api.settings.get();
   applySettings(s, { first: true });
   api.settings.onChange((next) => applySettings(next));
@@ -1026,4 +1052,5 @@ boot();
 window.cleardayDebug = {
   state, updateDate, render, changed, toggleNotes, startEdit, toggleBoldFor, setDrawer, setSide,
   openPrefs, closePrefs, popoverOpen, closePopover, setSpace,
+  openCalendarFor, calendarGoTo: (day) => calendar?.goTo(day),
 };

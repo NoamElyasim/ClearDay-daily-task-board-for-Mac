@@ -25,19 +25,27 @@ export function closePopover() {
 //          checked?, danger?, onPick } | { sep: true } | { heading: 'text' }
 //        | { field: { value, placeholder, onSubmit(value) } }  (a text field,
 //          focused on open; Enter submits it)
+//        | { node: HTMLElement }  (built by the caller, appended as is: the calendar)
+// onKey(e) → true when it used the key: offered every key after Esc.
+// className is added to the popover; role and label describe it (a menu by default).
 // Returns whether it opened (a second click on the same anchor only closes).
-export function openPopover(anchor, items, { onClose } = {}) {
+export function openPopover(anchor, items, { onClose, onKey, className, role = 'menu', label } = {}) {
   const reopen = current?.anchor === anchor;
   closePopover();
   if (reopen) return false; // a second click on the same button closes it
 
   const el = document.createElement('div');
-  el.className = 'popover';
-  el.setAttribute('role', 'menu');
+  el.className = className ? `popover ${className}` : 'popover';
+  el.setAttribute('role', role);
+  if (label) el.setAttribute('aria-label', label);
   const buttons = [];
   for (const item of items) {
     if (item.sep) {
       el.append(Object.assign(document.createElement('div'), { className: 'pop-sep' }));
+      continue;
+    }
+    if (item.node) {
+      el.append(item.node);
       continue;
     }
     if (item.heading) {
@@ -98,8 +106,8 @@ export function openPopover(anchor, items, { onClose } = {}) {
   el.style.top = `${top}px`;
   el.style.transformOrigin = `${a.left + a.width / 2 - left}px ${top > a.top ? 0 : h}px`;
 
-  current = { el, anchor, buttons, active: -1, onClose };
-  const checked = items.filter((i) => !i.sep && !i.heading && !i.field).findIndex((i) => i.checked);
+  current = { el, anchor, buttons, active: -1, onClose, onKey };
+  const checked = items.filter((i) => !i.sep && !i.heading && !i.field && !i.node).findIndex((i) => i.checked);
   setActive(checked);
   if (el.field) { el.field.focus(); el.field.select(); }
   return true;
@@ -116,6 +124,7 @@ export function handlePopoverKey(e) {
   if (!current) return false;
   const n = current.buttons.length;
   if (e.key === 'Escape') { closePopover(); return true; }
+  if (current.onKey?.(e)) return true;
   // Typing in a field: only Esc (above) and its own Enter act.
   if (e.target === current.el.field) return false;
   if (e.key === 'ArrowDown') { setActive((current.active + 1 + n) % n); return true; }
