@@ -128,3 +128,23 @@ test('tools: Work and Personal are separate boards', async () => {
   await callTool('add_task', { text: 'Only work' }, only);
   assert.doesNotMatch((await callTool('list_tasks', {}, only)).text, /Personal/);
 });
+
+test('tools: due dates', async () => {
+  const b = fileBackend(tmp());
+  const now = new Date(2026, 10, 22, 9).getTime();   // Sun 22 Nov 2026, local
+  const a = await callTool('add_task', { text: 'Send the quote', due: '2026-11-27' }, b, now);
+  assert.equal(a.data.due, '2026-11-27');
+  await callTool('add_task', { text: 'Renew the domain', due: '2026-11-18' }, b, now);
+  const list = await callTool('list_tasks', {}, b, now);
+  assert.match(list.text, /^Today is Sun 22 Nov 2026\./);
+  assert.match(list.text, /Send the quote · To Do · due 2026-11-27 \(Fri\)/);
+  assert.match(list.text, /Renew the domain · To Do · due 2026-11-18 \(late\)/);
+  const id = a.data.id.slice(0, 8);
+  assert.equal((await callTool('update_task', { id, due: '2026-12-04' }, b, now)).data.due, '2026-12-04');
+  assert.equal((await callTool('update_task', { id, due: 'none' }, b, now)).data.due, null);
+  await assert.rejects(callTool('add_task', { text: 'x', due: 'Friday' }, b, now), /due must be a date as YYYY-MM-DD/);
+  await assert.rejects(callTool('update_task', { id, due: '' }, b, now), /due must be a date as YYYY-MM-DD, or "none"/);
+  await assert.rejects(callTool('update_task', { id, due: '2026-02-30' }, b, now), /YYYY-MM-DD/);
+  assert.ok(TOOLS.find((t) => t.name === 'add_task').inputSchema.properties.due);
+  assert.ok(TOOLS.find((t) => t.name === 'update_task').inputSchema.properties.due);
+});

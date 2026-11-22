@@ -1,7 +1,7 @@
 // The tools ClearDay offers Claude or Codex over MCP, independent of transport and
 // storage: each takes its arguments and a backend with list / create /
 // update / remove, and returns text for the assistant plus the data behind it.
-import { STATUSES, STATUS_LABELS, LISTS, SPACES, SPACE_LABELS } from '../shared/model.mjs';
+import { STATUSES, STATUS_LABELS, LISTS, SPACES, SPACE_LABELS, isDay, dayString, dueLabel, longDay, weekdayOf } from '../shared/model.mjs';
 
 const PRIORITY_IN = { high: 'high', medium: 'medium', none: null };
 const LIST_NAMES = { today: 'Today', ongoing: 'Ongoing' };
@@ -31,13 +31,14 @@ export const TOOLS = [
         status: { type: 'string', enum: STATUSES, description: 'Default: todo' },
         priority: { type: 'string', enum: ['none', 'medium', 'high'], description: 'Default: none' },
         notes: { type: 'string', description: 'Notes shown under the task' },
+        due: { type: 'string', description: 'Due date as YYYY-MM-DD (optional)' },
       },
       required: ['text'],
     },
   },
   {
     name: 'update_task',
-    description: 'Change a task: its text, status, priority, list (move between today and ongoing), space (move between work and personal) or notes. Give only what changes.',
+    description: 'Change a task: its text, status, priority, due date, list (move between today and ongoing), space (move between work and personal) or notes. Give only what changes.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -47,6 +48,7 @@ export const TOOLS = [
         priority: { type: 'string', enum: ['none', 'medium', 'high'] },
         list: { type: 'string', enum: LISTS },
         space: { type: 'string', enum: SPACES },
+        due: { type: 'string', description: 'Due date as YYYY-MM-DD, or "none" to remove it' },
         notes: { type: 'string', description: 'Replaces the notes. Images and files attached to them (shown as [image: name] / [file: name]) are kept.' },
       },
       required: ['id'],
@@ -74,10 +76,12 @@ export const TOOLS = [
 
 const brief = (t) => ({
   id: t.id, text: t.text, space: t.space || 'work', list: t.list || 'today', status: t.status,
-  priority: t.priority || 'none', notes: t.notes || '',
+  priority: t.priority || 'none', due: t.due || null, notes: t.notes || '',
 });
 
-const line = (t) => `- [${t.id.slice(0, 8)}] ${t.text} · ${STATUS_LABELS[t.status]}${t.priority ? ` · ${t.priority} priority` : ''}${t.notes ? ' · has notes' : ''}`;
+// A due date reads "due 2026-11-27 (Fri)", or "(late)" once it has passed.
+const dueText = (t, today) => t.due ? ` · due ${t.due} (${dueLabel(t.due, today).state === 'late' ? 'late' : weekdayOf(t.due)})` : '';
+const line = (t, today) => `- [${t.id.slice(0, 8)}] ${t.text} · ${STATUS_LABELS[t.status]}${t.priority ? ` · ${t.priority} priority` : ''}${dueText(t, today)}${t.notes ? ' · has notes' : ''}`;
 
 // Where a task lives: "Work · Today".
 const place = (t) => `${SPACE_LABELS[t.space || 'work']} · ${LIST_NAMES[t.list || 'today']}`;
@@ -92,11 +96,18 @@ function find(tasks, id) {
   throw new Error(prefixed.length ? `id "${key}" matches more than one task` : `no task with id "${key}"`);
 }
 
+function checkDue(value, allowNone) {
+  if (value === undefined || isDay(value) || (allowNone && value === 'none')) return;
+  throw new Error(`due must be a date as YYYY-MM-DD${allowNone ? ', or "none"' : ''}`);
+}
+
 function check(field, value, allowed) {
   if (value !== undefined && !allowed.includes(value)) throw new Error(`${field} must be one of: ${allowed.join(', ')}`);
 }
 
-export async function callTool(name, args = {}, backend) {
+// now decides what "today" is (the tests pass their own).
+export async function callTool(name, args = {}, backend, now = Date.now()) {
+  const today = dayString(new Date(now));
   switch (name) {
     case 'list_tasks': {
       const which = args.list || 'all';
@@ -118,10 +129,11 @@ export async function callTool(name, args = {}, backend) {
         for (const l of lists) {
           const mine = board.filter((t) => (t.list || 'today') === l);
           parts.push(`${SPACE_LABELS[sp]} · ${LIST_NAMES[l]} (${mine.length})`);
-          for (const s of STATUSES) for (const t of mine.filter((x) => x.status === s)) parts.push(line(t));
+          for (const s of STATUSES) for (const t of mine.filter((x) => x.status === s)) parts.push(line(t, today));
         }
       }
-      return { text: tasks.length ? parts.join('\n') : 'No tasks.', data: tasks.map(brief) };
+      // Today's date first, so the assistant can turn "Friday" into a day.
+      return { text: `Today is ${longDay(today)}.\n${tasks.length ? parts.join('\n') : 'No tasks.'}`, data: tasks.map(brief) };
     }
     case 'add_task': {
       const text = String(args.text || '').trim();
@@ -130,12 +142,13 @@ export async function callTool(name, args = {}, backend) {
       check('space', args.space, SPACES);
       check('status', args.status, STATUSES);
       check('priority', args.priority, Object.keys(PRIORITY_IN));
+      checkDue(args.due, false);
       const t = await backend.create({
         text, space: args.space || 'work', list: args.list || 'today', status: args.status || 'todo',
-        priority: PRIORITY_IN[args.priority || 'none'],
+        priority: PRIORITY_IN[args.priority || 'none'], due: args.due || null,
       });
       const done = args.notes ? await backend.update(t.id, { notes: String(args.notes) }) : t;
-      return { text: `Added to ${place(done)}:\n${line(done)}`, data: brief(done) };
+      return { text: `Added to ${place(done)}:\n${line(done, today)}`, data: brief(done) };
     }
     case 'update_task': {
       const t = find(await backend.list(), args.id);
@@ -143,6 +156,7 @@ export async function callTool(name, args = {}, backend) {
       check('priority', args.priority, Object.keys(PRIORITY_IN));
       check('list', args.list, LISTS);
       check('space', args.space, SPACES);
+      checkDue(args.due, true);
       const patch = {};
       if (args.text !== undefined) {
         const text = String(args.text).trim();
@@ -153,11 +167,12 @@ export async function callTool(name, args = {}, backend) {
       if (args.priority !== undefined) patch.priority = PRIORITY_IN[args.priority];
       if (args.list !== undefined) patch.list = args.list;
       if (args.space !== undefined) patch.space = args.space;
+      if (args.due !== undefined) patch.due = args.due === 'none' ? null : args.due;
       if (args.notes !== undefined) patch.notes = String(args.notes);
-      if (!Object.keys(patch).length) return { text: `Nothing to change:\n${line(t)}`, data: brief(t) };
+      if (!Object.keys(patch).length) return { text: `Nothing to change:\n${line(t, today)}`, data: brief(t) };
       const n = await backend.update(t.id, patch);
       const moved = n.list !== t.list || (n.space || 'work') !== (t.space || 'work');
-      return { text: `Updated:\n${line(n)}${moved ? ` (moved to ${place(n)})` : ''}`, data: brief(n) };
+      return { text: `Updated:\n${line(n, today)}${moved ? ` (moved to ${place(n)})` : ''}`, data: brief(n) };
     }
     case 'delete_task': {
       const t = find(await backend.list(), args.id);
@@ -169,7 +184,7 @@ export async function callTool(name, args = {}, backend) {
       if (!q) throw new Error('query is required');
       const hits = (await backend.list()).filter((t) => t.text.toLowerCase().includes(q) || (t.notes || '').toLowerCase().includes(q));
       return {
-        text: hits.length ? hits.map((t) => `${line(t)} · ${place(t)}`).join('\n') : `No tasks match "${args.query}".`,
+        text: hits.length ? hits.map((t) => `${line(t, today)} · ${place(t)}`).join('\n') : `No tasks match "${args.query}".`,
         data: hits.map(brief),
       };
     }
