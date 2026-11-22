@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.13.0 — 2026-11-22
+
+- **Due dates.** Any task can have one, on the board or in Ongoing. Point at
+  a row and click the new calendar beside Bold and Delete: Today, Tomorrow
+  and In a week are one click, or pick a day in the month below (arrow keys
+  and Enter work too).
+  - The date stays on the row before the priority bookmark: Today,
+    Tomorrow, the day's name for the rest of the week, then the date.
+  - It is quiet while it's further off, bold on the day, and red once the
+    task is late. Done tasks don't show theirs.
+  - Click the date to change or remove it. In a narrow window it is in the
+    row's ⋯ menu.
+  - Claude and Codex can set, change, clear and read due dates.
+
 ## v0.12.0 — 2026-11-19
 
 - **Codex can run your board too.** Preferences → Claude & Codex has a

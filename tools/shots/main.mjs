@@ -128,6 +128,25 @@ const openNotes = (js) => js(`cleardayDebug.toggleNotes(${firstId}); document.ac
 const openWidgetBar = (js) => js(`document.getElementById('w-add').click(); new Promise((r) => setTimeout(() => r(1), 1100))`);
 const clickFirst = (sel) => (js) => js(`document.querySelector(${JSON.stringify(sel)}).click(); 1`);
 
+// Due dates relative to the real today: the first To Do task due today, an
+// In Progress one late, Awaiting Approval in 4 days, another To Do in 12,
+// and an Ongoing project tomorrow. The board is reloaded and redrawn.
+const withDues = (js) => js(`(async () => {
+  const all = [...cleardayDebug.state.tasks.values()].filter((t) => t.space === 'work');
+  const day = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return d.toLocaleDateString('sv-SE'); };
+  const pick = (f, i = 0) => all.filter(f)[i];
+  const today = (t) => t.list === 'today';
+  const plan = [
+    [pick((t) => today(t) && t.status === 'todo'), 0],
+    [pick((t) => today(t) && t.status === 'in_progress', 1), -1],
+    [pick((t) => today(t) && t.status === 'awaiting_approval'), 4],
+    [pick((t) => today(t) && t.status === 'todo', 1), 12],
+    [pick((t) => t.list === 'ongoing' && t.status === 'todo'), 1],
+  ];
+  for (const [t, n] of plan) if (t) await window.clearday.tasks.update(t.id, { due: day(n) });
+  for (const t of await window.clearday.tasks.list()) cleardayDebug.state.tasks.set(t.id, t);
+  document.activeElement.blur(); cleardayDebug.render(); return 1; })()`);
+
 // Preferences scrolled to the quick task shortcut, listening, after these
 // key events: [type, key, code].
 async function recordKey(js, events) {
@@ -142,6 +161,16 @@ async function recordKey(js, events) {
 const RTL_NOTE = 'לבדוק את השקפים 4–7\nלבקש מבן את תמונת הביתן';
 
 const SHOTS = {
+  'due-light': { theme: 'light', width: 780, height: 560, setup: withDues },
+  'due-dark': { theme: 'dark', width: 780, height: 560, setup: withDues },
+  'due-hover-light': { theme: 'light', width: 780, height: 560, setup: async (js) => {
+    await withDues(js);
+    // The second To Do task due in 12 days is the 4th planned; the third To Do row has no date.
+    await js(`(() => { const t = [...cleardayDebug.state.tasks.values()].filter((x) => x.space === 'work' && x.list === 'today' && x.status === 'todo' && !x.due)[0];
+      cleardayDebug.state.selectedId = t.id; cleardayDebug.render(); return 1; })()`);
+  } },
+  'calendar-light': { theme: 'light', width: 780, height: 560, setup: async (js) => { await withDues(js); await js(`document.querySelector('#sections .due[data-state]').click(); 1`); } },
+  'calendar-dark': { theme: 'dark', width: 780, height: 560, setup: async (js) => { await withDues(js); await js(`document.querySelector('#sections .due[data-state]').click(); 1`); } },
   'expanded-dark': { theme: 'dark', width: 780, height: 560, setup: openNotes },
   'expanded-light': { theme: 'light', width: 780, height: 560, setup: openNotes },
   'compact-dark': { theme: 'dark', width: 420, height: 600 },

@@ -162,6 +162,8 @@ codex mcp add clearday --env ELECTRON_RUN_AS_NODE=1 -- \
 - **Priority bookmarks.** A red (High) or amber (Medium) bookmark hangs from
   the top of the row. Click it to change the priority; on a row without one,
   a faint bookmark appears when you point at the row.
+- **Due dates.** Give a task a deadline from the calendar on its row; see
+  [Due dates](#due-dates).
 - **Edit in place.** Double-click a task to change its text.
 - **Partial bold.** Select a word and press ⌘B or the B button. With nothing
   selected, B bolds the whole row.
@@ -224,6 +226,21 @@ codex mcp add clearday --env ELECTRON_RUN_AS_NODE=1 -- \
 | Esc | Cancel an edit, or close a picker, the drawer or Preferences |
 
 </details>
+
+## Due dates
+
+Any task can have a due date, on the board or in Ongoing. Point at a row and
+click the calendar beside Bold and Delete: pick Today, Tomorrow or In a week,
+or a day in the month below. Arrow keys move between days and Enter picks.
+
+The date then stays on the row, just before the priority bookmark. It reads
+Today, Tomorrow, the day's name for the rest of the week ("Fri"), or the date
+("4 Dec"). Dates further off are quiet, Today is bold, and a late task turns
+red. Click the date to change it, or to remove it. Done tasks don't show
+theirs.
+
+In a narrow window, the row's ⋯ menu has Set due date…. Claude and Codex can
+set, change and read due dates too: "move the quote to Friday".
 
 ## Hiding ClearDay
 
@@ -333,6 +350,7 @@ format is plain, versioned JSON, ready for syncing to a phone later:
 
 - every task has an ID, a `createdAt` and an `updatedAt` timestamp
 - every task has a `space`, `work` or `personal`
+- a task may have a `due` day, as `YYYY-MM-DD`
 - deleted tasks are kept as tombstones for 30 days
 
 Window size, theme and the other settings live in a separate
