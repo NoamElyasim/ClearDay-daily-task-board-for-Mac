@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.13.1 — 2026-11-24
+
+- **The capsule stays where you put it.** With the capsule near the edge of
+  the screen, the board it opens into is pushed inside the screen; shrinking
+  it again used to leave the capsule somewhere new, under the board's Add
+  button. Now, if you haven't moved the board, the capsule goes back to
+  exactly where it was. Move the board first, and the capsule forms at its
+  Add button as before.
+
 ## v0.13.0 — 2026-11-22
 
 - **Due dates.** Any task can have one, on the board or in Ongoing. Point at
