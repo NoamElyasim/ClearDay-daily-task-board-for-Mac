@@ -1,7 +1,10 @@
 // Where ClearDay's shapes form. The board and the widget grow out of one
 // point, the +: the capsule forms with its + on the board's Add button, and
 // the board forms with its Add button on the widget's +. Each shape is
-// where the last one was, and nothing jumps back to where it last sat.
+// where the last one was, and nothing jumps back to where it last sat. A
+// board that couldn't form on the + (the capsule near the screen's edge)
+// and hasn't been moved goes back into the capsule where it was
+// (capsuleReturn).
 
 // The capsule's pill inside its window, in CSS px before the text-size zoom
 // (widget.css): the room around it for its shadow, and the centre of its +.
@@ -27,4 +30,18 @@ export function boardWindowAt(point, add, size, area) {
     width: size.width,
     height: size.height,
   };
+}
+
+// Where the capsule forms when the board gathers into it. formed: where the
+// board stood when it opened out of the capsule, and where the capsule was
+// ({ board, capsule }), or null. A board still there (a resize, or a pixel
+// of macOS rounding, doesn't count as a move) goes back into the capsule
+// where it was, even when it had to be pushed inside the screen and its Add
+// button isn't on that +. A board moved since, or one that never opened from
+// the capsule, gathers into it at its own Add button (centred at add, on
+// screen; null when it can't be measured).
+export function capsuleReturn(formed, board, add, zoom = 1) {
+  const still = formed && Math.abs(board.x - formed.board.x) <= 2 && Math.abs(board.y - formed.board.y) <= 2;
+  if (still) return { x: formed.capsule.x, y: formed.capsule.y };
+  return add ? capsuleWindowAt(add, zoom) : null;
 }

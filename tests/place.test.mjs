@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { CAPSULE, capsuleWindowAt, boardWindowAt } from '../src/shared/place.mjs';
+import { CAPSULE, capsuleWindowAt, boardWindowAt, capsuleReturn } from '../src/shared/place.mjs';
 
 const AREA = { x: 0, y: 25, width: 1920, height: 1055 };
 const ADD = { x: 34, y: 64 };                  // the centre of Add's + in the board
@@ -37,4 +37,26 @@ test('a board bigger than the screen keeps its top left corner on it', () => {
   const b = boardWindowAt({ x: 900, y: 500 }, ADD, { width: 2400, height: 1400 }, AREA);
   assert.equal(b.x, 0);
   assert.equal(b.y, 25);
+});
+
+// The capsule near the top right corner: the board it opens into can't put its
+// Add button on the capsule's + and is pushed inside the screen.
+const HOME = { x: 1740, y: 30 };
+const FORMED = { board: { x: 1140, y: 25, ...SIZE }, capsule: HOME };
+
+test('a board that has not moved gathers back into the capsule where it was', () => {
+  assert.deepEqual(capsuleReturn(FORMED, { x: 1140, y: 25, ...SIZE }, { x: 1174, y: 89 }), HOME);
+});
+
+test('a pixel or two of rounding, or a resize, still counts as not moved', () => {
+  assert.deepEqual(capsuleReturn(FORMED, { x: 1141, y: 26, width: 900, height: 700 }, { x: 1175, y: 90 }), HOME);
+});
+
+test('a board moved since it opened gathers into the capsule at its own Add button', () => {
+  assert.deepEqual(capsuleReturn(FORMED, { x: 600, y: 300, ...SIZE }, { x: 634, y: 364 }, 1.12), capsuleWindowAt({ x: 634, y: 364 }, 1.12));
+});
+
+test('a board that did not open from the capsule gathers at its Add button', () => {
+  assert.deepEqual(capsuleReturn(null, { x: 700, y: 150, ...SIZE }, { x: 734, y: 214 }), capsuleWindowAt({ x: 734, y: 214 }));
+  assert.equal(capsuleReturn(null, { x: 700, y: 150, ...SIZE }, null), null);
 });

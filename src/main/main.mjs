@@ -20,7 +20,7 @@ import * as attachments from './attachments.mjs';
 import * as updates from './updates.mjs';
 import { initWidget, prepareWidget, showWidget, revealWidget, hideWidget, closeWidget, refreshWidget, applyWidgetLook, widgetFace } from './widget.mjs';
 import { initMorph, prepareStage, closeStage, play, painted, boxOnScreen, centreOf, motionAllowed } from './morph.mjs';
-import { capsuleWindowAt, boardWindowAt } from '../shared/place.mjs';
+import { capsuleWindowAt, boardWindowAt, capsuleReturn } from '../shared/place.mjs';
 import { codexStatus, connectCodex } from './codex.mjs';
 import { SORTS, SORT_LABELS, SCHEMA_VERSION } from '../shared/model.mjs';
 
@@ -164,6 +164,9 @@ const BOARD_RADIUS = 12;        // the window's own corners, near enough
 const PLUS_ON_BOARD = 14 / 24;  // the share of Add's round button its plus sign takes (app.css)
 const ADD = '#add-open-icon';   // the + on the board
 const zoomNow = () => ZOOM[settings.get('textSize')] || 1;
+// Where the board stood when it opened out of the capsule, and where the
+// capsule was: shrunk again from there, it goes back to that place.
+let formed = null;   // { board, capsule } | null
 
 // A picture of the board as its page is now; null if there is none to take.
 async function boardPicture() {
@@ -178,7 +181,9 @@ async function toWidget() {
     const z = zoomNow();
     const b = win.getBounds();
     const add = await boxOnScreen(win, ADD, z);
-    settings.set({ widget: true, ...(add ? { widgetBounds: capsuleWindowAt(centreOf(add), z) } : {}) });
+    const at = capsuleReturn(formed, b, add && centreOf(add), z);
+    formed = null;
+    settings.set({ widget: true, ...(at ? { widgetBounds: at } : {}) });
     let played = false;
     if (motionAllowed() && win.isVisible()) {
       const src = await boardPicture();
@@ -215,6 +220,7 @@ async function fromWidget() {
   const face = await widgetFace();
   if (!face) { hideWidget(); return; }
   const was = win.getBounds();
+  const capsule = capsuleWindowAt(face.home, z);
   const add = await boxOnScreen(win, ADD, z);
   if (add) {
     const inBoard = { x: add.x + add.width / 2 - was.x, y: add.y + add.height / 2 - was.y };
@@ -250,7 +256,8 @@ async function fromWidget() {
       });
     }
   }
-  settings.set({ bounds: win.getBounds() });
+  formed = { board: win.getBounds(), capsule };
+  settings.set({ bounds: formed.board });
   hideWidget();
 }
 
